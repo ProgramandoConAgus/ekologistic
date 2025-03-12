@@ -1,3 +1,15 @@
+<?php
+session_start();
+include('../usuarioClass.php');
+include("../con_db.php");
+$IdUsuario=$_SESSION["IdUsuario"];
+
+$usuario= new Usuario($conexion);
+
+$user=$usuario->obtenerUsuarioPorId($IdUsuario);
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <!-- [Head] start -->
@@ -103,8 +115,8 @@
               <a href="#" class="arrow-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-offset="0,20">
                 <div class="d-flex align-items-center">
                   <div class="flex-grow-1 me-2">
-                    <h6 class="mb-0">Juan Loaiza</h6>
-                    <small>Administrador</small>
+                  <h6 class="mb-0"><?=ucfirst($user['nombre'])?> <?=ucfirst($user['apellido'])?></h6>
+                  <small>Administrador</small>
                   </div>
                   <div class="flex-shrink-0">
                     <div class="btn btn-icon btn-link-secondary avtar">

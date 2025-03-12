@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: application/json');
-
+session_start();
 // Incluir el archivo de conexión a la base de datos usando mysqli
 require_once 'con_db.php';
 
@@ -36,6 +36,7 @@ $result = $stmt->get_result();
 if ($result && $user = $result->fetch_assoc()) {
     // Verificar la contraseña usando password_verify (asegúrate de que en la BD esté almacenado el hash)
     if (password_verify($password, $user['password'])) {
+        $_SESSION["IdUsuario"]=$user["IdUsuario"];
         echo json_encode(['success' => true, 'message' => 'Inicio de sesión exitoso']);
     } else {
         echo json_encode(['success' => false, 'message' => 'Contraseña incorrecta']);
