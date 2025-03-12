@@ -55,8 +55,9 @@
   <div class="navbar-wrapper">
     <div class="m-header">
       <a href="../dashboard/index.html" class="b-brand text-primary">
-        <!-- ========   Change your logo from here   ============ -->
-        <img src="../assets/images/ekologistic.png" alt="logo image" height="70px" width="240px"/>
+          <!-- ========   Change your logo from here   ============ -->
+        <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="220px"/>
+        
         
       </a>
     </div>
@@ -471,7 +472,7 @@
         <div class="card-header d-flex align-items-center justify-content-between py-3">
             <h5 class="mb-0"></h5>
             <button class="btn btn-sm btn-success">
-                <a class="text-white" href="../forms/bls-carga.php">Nuevo Packing List</a>
+                <a class="text-white" href="../forms/importarpk.php">Nuevo Packing List</a>
             </button>
         </div>
         <div class="card-body">
@@ -479,11 +480,11 @@
         <table class="table table-hover" id="pc-dt-simple">
             <thead>
                 <tr>
-                    <th>Productos incluidos</th>
-                    <th>Destinatario / Cliente</th>
-                    <th>Estado</th>
-                    <th>Fecha de generación</th>
-                    <th>Inventario asociado</th>
+                    <th>N° Packing List</th>
+                    <th>Fecha Subida</th>
+                    <th>Hora Subida</th>
+                    <th>Usuario</th>
+                    <th>Archivo Fuente</th>
                 </tr>
             </thead>
             <tbody>

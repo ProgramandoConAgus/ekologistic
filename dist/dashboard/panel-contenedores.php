@@ -56,7 +56,8 @@
     <div class="m-header">
       <a href="../dashboard/index.html" class="b-brand text-primary">
         <!-- ========   Change your logo from here   ============ -->
-        <img src="../assets/images/ekologistic.png" alt="logo image" height="70px" width="240px"/>
+        <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="220px"/>
+        
         
       </a>
     </div>
@@ -470,9 +471,6 @@
     <div class="card table-card">
         <div class="card-header d-flex align-items-center justify-content-between py-3">
             <h5 class="mb-0"></h5>
-            <button class="btn btn-sm btn-success">
-                <a class="text-white" href="../dashboard/contenedores.php">Crear Contenedor</a>
-            </button>
         </div>
         <div class="card-body">
     <div class="table-responsive">
@@ -480,9 +478,9 @@
             <thead>
                 <tr>
                     <th>Número Contenedor</th>
-                    <th>Cantidad de Productos</th>
-                    <th>BL Asignado</th>
+                    <th>Número Booking</th>
                     <th>Fecha de Creación</th>
+                    <th>Usuario</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -512,12 +510,6 @@
                     <td>
                         <a href="../admins/bls-detalle.php" class="avtar avtar-xs btn-link-secondary">
                             <i class="ti ti-eye f-20"></i>
-                        </a>
-                        <a href="../admins/bls-detalle.php" class="avtar avtar-xs btn-link-primary">
-                            <i class="ti ti-pencil f-20"></i>
-                        </a>
-                        <a href="#" class="avtar avtar-xs btn-link-danger" onclick="confirmDelete('BL-789012')">
-                            <i class="ti ti-trash f-20"></i>
                         </a>
                     </td>
                 </tr>

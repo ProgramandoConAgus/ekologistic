@@ -56,7 +56,7 @@
     <div class="m-header">
       <a href="../dashboard/index.html" class="b-brand text-primary">
         <!-- ========   Change your logo from here   ============ -->
-        <img src="../assets/images/ekologistic.png" alt="logo image" height="70px" width="240px"/>
+        <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="220px"/>
         
       </a>
     </div>
