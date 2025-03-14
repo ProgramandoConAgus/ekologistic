@@ -61,7 +61,7 @@
                 <input type="email" class="form-control" id="recoveryEmail" name="recoveryEmail" placeholder="Email" required>
               </div>
               <div class="d-grid mt-3">
-                <button type="submit" class="btn btn-primary">Enviar email</button>
+                <button type="submit" style="background-color:#afc97c" class="btn text-white">Enviar email</button>
               </div>
             </div>
           </form>

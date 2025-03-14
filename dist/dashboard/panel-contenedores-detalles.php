@@ -7,18 +7,40 @@ $IdUsuario=$_SESSION["IdUsuario"];
 $usuario= new Usuario($conexion);
 
 $user=$usuario->obtenerUsuarioPorId($IdUsuario);
+$numeroContenedor = $_GET['numeroContenedor'];
 
-
-$sql="SELECT 
-    contenedor.*, 
-    usuarios.nombre, 
-    usuarios.apellido
+$sql = "SELECT 
+    IdContenedoresDetalles AS 'ID',
+    num_op AS 'OP',
+    destinity_pod AS 'Destino POD',
+    incoterm AS 'Incoterm',
+    dispatch_date_warehouse_ec AS 'Fecha Despacho',
+    departure_date_port_origin_ec AS 'Fecha Salida',
+    booking_bk AS 'Booking',
+    number_container AS 'Contenedor',
+    number_commercial_invoice AS 'Factura',
+    code_product_ec AS 'Código Producto',
+    number_lot AS 'Lote',
+    customer AS 'Cliente',
+    number_po AS 'PO',
+    description AS 'Descripción',
+    packing_unit AS 'Unidad Empaque',
+    qty_box AS 'Cajas',
+    weight_neto_per_box_kg AS 'Peso Neto/Caja',
+    weight_bruto_per_box_kg AS 'Peso Bruto/Caja',
+    total_weight_kg AS 'Peso Total',
+    eta_date AS 'ETA',
+    price_box_ec AS 'Precio/Caja (EC)',
+    total_price_ec AS 'Total (EC)',
+    price_box_usa AS 'Precio/Caja (USA)',
+    total_price_usa AS 'Total (USA)'
 FROM 
-    contenedor
-JOIN 
-    usuarios ON contenedor.idUsuario = usuarios.IdUsuario;
-";
-$stmt = $conexion->prepare($sql);  
+    contenedordetalles
+WHERE 
+    number_container = ?";  // Usar el nombre real de la columna
+
+$stmt = $conexion->prepare($sql);
+$stmt->bind_param("s", $numeroContenedor); // "s" para tipo string
 $stmt->execute();
 $result=$stmt->get_result();
 
@@ -496,45 +518,77 @@ $result=$stmt->get_result();
         </div>
         <div class="card-body">
     <div class="table-responsive">
-        <table class="table table-hover" id="pc-dt-simple">
-            <thead>
-                <tr>
-                    <th>Número Contenedor</th>
-                    <th>Número Booking</th>
-                    <th>Fecha de Creación</th>
-                    <th>Usuario</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-              <?php
-                  while($packings = $result->fetch_assoc()){
-                    
-                ?>
-                  <tr>
-                    
-                      <td><h5><?=$packings['numeroContenedor']?></h5></td>
-                      <td><h5><?= $packings['numeroBooking']?></h5></td>
-                      <td><h5><?= date('Y-m-d', strtotime($packings['fecha'])) ?></h5></td>
-                      <td><h5><?=ucfirst($packings['nombre'])?> <?=ucfirst($packings['apellido'])?></h5></td>
-                      <td>
-                          <a href="./panel-contenedores-detalles.php?numeroContenedor=<?=$packings['numeroContenedor']?>" class="avtar avtar-xs btn-link-secondary">
-                              <i class="ti ti-eye f-20"></i>
-                          </a>
-                          <a href="../admins/bls-detalle.php" class="avtar avtar-xs btn-link-primary">
-                              <i class="ti ti-pencil f-20"></i>
-                          </a>
-                          <a href="#" class="avtar avtar-xs btn-link-danger" onclick="confirmDelete('BL-123456')">
-                              <i class="ti ti-trash f-20"></i>
-                          </a>
-                      </td>
-                  </tr>
-                  <?php
-                    }
-                  ?>
-                
-            </tbody>
-        </table>
+    <table class="table table-hover" id="pc-dt-detalles-completos">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>OP</th>
+                        <th>Destino POD</th>
+                        <th>Incoterm</th>
+                        <th>Fecha Despacho</th>
+                        <th>Fecha Salida</th>
+                        <th>Booking</th>
+                        <th>Contenedor</th>
+                        <th>Factura</th>
+                        <th>Código Producto</th>
+                        <th>Lote</th>
+                        <th>Cliente</th>
+                        <th>PO</th>
+                        <th>Descripción</th>
+                        <th>Unidad Empaque</th>
+                        <th>Cajas</th>
+                        <th>Peso Neto/Caja</th>
+                        <th>Peso Bruto/Caja</th>
+                        <th>Peso Total</th>
+                        <th>ETA</th>
+                        <th>Precio/Caja (EC)</th>
+                        <th>Total (EC)</th>
+                        <th>Precio/Caja (USA)</th>
+                        <th>Total (USA)</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    while ($detalle = $result->fetch_assoc()) {
+                    ?>
+                    <tr>
+                        <td><?= $detalle['ID'] ?></td>
+                        <td><?= $detalle['OP'] ?></td>
+                        <td><?= $detalle['Destino POD'] ?></td>
+                        <td><?= $detalle['Incoterm'] ?></td>
+                        <td><?= date('d/m/Y', strtotime($detalle['Fecha Despacho'])) ?></td>
+                        <td><?= date('d/m/Y', strtotime($detalle['Fecha Salida'])) ?></td>
+                        <td><?= $detalle['Booking'] ?></td>
+                        <td><?= $detalle['Contenedor'] ?></td>
+                        <td><?= $detalle['Factura'] ?></td>
+                        <td><?= $detalle['Código Producto'] ?></td>
+                        <td><?= $detalle['Lote'] ?></td>
+                        <td><?= $detalle['Cliente'] ?></td>
+                        <td><?= $detalle['PO'] ?></td>
+                        <td><?= substr($detalle['Descripción'], 0, 30) ?>...</td>
+                        <td><?= $detalle['Unidad Empaque'] ?></td>
+                        <td><?= number_format($detalle['Cajas'], 0) ?></td>
+                        <td><?= number_format($detalle['Peso Neto/Caja'], 2) ?> kg</td>
+                        <td><?= number_format($detalle['Peso Bruto/Caja'], 2) ?> kg</td>
+                        <td><?= number_format($detalle['Peso Total'], 2) ?> kg</td>
+                        <td><?= date('d/m/Y', strtotime($detalle['ETA'])) ?></td>
+                        <td>$<?= number_format($detalle['Precio/Caja (EC)'], 2) ?></td>
+                        <td>$<?= number_format($detalle['Total (EC)'], 2) ?></td>
+                        <td>$<?= number_format($detalle['Precio/Caja (USA)'], 2) ?></td>
+                        <td>$<?= number_format($detalle['Total (USA)'], 2) ?></td>
+                        <td>
+                            <a href="detalle.php?id=<?= $detalle['ID'] ?>" class="avtar avtar-xs btn-link-secondary">
+                                <i class="ti ti-eye f-20"></i>
+                            </a>
+                            <a href="editar.php?id=<?= $detalle['ID'] ?>" class="avtar avtar-xs btn-link-primary">
+                                <i class="ti ti-pencil f-20"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <?php } ?>
+                </tbody>
+            </table>
     </div>
 </div>
 

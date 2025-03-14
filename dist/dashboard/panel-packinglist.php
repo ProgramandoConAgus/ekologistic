@@ -7,6 +7,21 @@ $IdUsuario=$_SESSION["IdUsuario"];
 $usuario= new Usuario($conexion);
 
 $user=$usuario->obtenerUsuarioPorId($IdUsuario);
+
+
+$sql="SELECT 
+    packinglist.*, 
+    usuarios.nombre, 
+    usuarios.apellido
+FROM 
+    packinglist
+JOIN 
+    usuarios ON packinglist.idUsuario = usuarios.IdUsuario;
+";
+$stmt = $conexion->prepare($sql);  
+$stmt->execute();
+$result=$stmt->get_result();
+
 ?>
 
 <!DOCTYPE html>
@@ -82,10 +97,10 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">BLs</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Packing List</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Contenedores</a></li>
         <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Inventarios</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Packing List</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">BLs</a></li>
         <li class="pc-item"><a class="pc-link">Despachos</a></li>
         <li class="pc-item"><a class="pc-link">Palets</a></li>
         <li class="pc-item"><a class="pc-link" >Ordenes de Compra</a></li>
@@ -495,39 +510,29 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
                 </tr>
             </thead>
             <tbody>
+              <?php
+                while($packings = $result->fetch_assoc()){
+                  
+              ?>
                 <tr>
-                    <td>Producto A, Producto B</td>
-                    <td>Cliente XYZ</td>
-                    <td><span class="badge text-bg-success">Enviado</span></td>
-                    <td>10/03/2025</td>
-                    <td>
-                        <a href="../admins/inventario.php?producto=PL-123456" class="avtar avtar-xs btn-link-secondary">
-                            <i class="ti ti-eye f-20"></i> Ver Inventario
-                        </a>
+                  
+                    <td><h5><?=$packings['IdPacking']?></h5></td>
+                    <td><h5><?= date('Y-m-d', strtotime($packings['fecha_subida'])) ?></h5></td>
+                    <td><h5><?= date('H:i', strtotime($packings['fecha_subida'])) ?></h5></td>
+                    <td><h5><?=ucfirst($packings['nombre'])?> <?=ucfirst($packings['apellido'])?></h5></td>
+                    <td class="text-center">
+                        <h5>
+                            <a href="<?= $packings['excel_path'] ?>" 
+                              class="btn d-flex align-items-center" >
+                                <i class="ti ti-eye f-30 me-2"></i> Ver Excel
+                            </a>
+                        </h5>
                     </td>
                 </tr>
-                <tr>
-                    <td>Producto C, Producto D</td>
-                    <td>Cliente ABC</td>
-                    <td><span class="badge text-bg-warning">Pendiente</span></td>
-                    <td>12/03/2025</td>
-                    <td>
-                        <a href="../admins/inventario.php?producto=PL-789012" class="avtar avtar-xs btn-link-secondary">
-                            <i class="ti ti-eye f-20"></i> Ver Inventario
-                        </a>
-                    </td>
-                </tr>
-                <tr>
-                    <td>Producto E, Producto F</td>
-                    <td>Cliente DEF</td>
-                    <td><span class="badge text-bg-info">Recibido</span></td>
-                    <td>15/03/2025</td>
-                    <td>
-                        <a href="../admins/inventario.php?producto=PL-345678" class="avtar avtar-xs btn-link-secondary">
-                            <i class="ti ti-eye f-20"></i> Ver Inventario
-                        </a>
-                    </td>
-                </tr>
+                <?php
+                  }
+                ?>
+                
             </tbody>
         </table>
     </div>

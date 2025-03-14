@@ -1,3 +1,13 @@
+<?php
+session_start();
+include('../usuarioClass.php');
+include("../con_db.php");
+$IdUsuario=$_SESSION["IdUsuario"];
+
+$usuario= new Usuario($conexion);
+
+$user=$usuario->obtenerUsuarioPorId($IdUsuario);
+?>
 <!DOCTYPE html>
 <html lang="en">
   <!-- [Head] start -->
@@ -69,13 +79,13 @@
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">BLs</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Packing List</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Contenedores</a></li>
         <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Inventarios</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Packing List</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/finance.html">Despachos</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/finance.html">Palets</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/finance.html">Ordenes de Compra</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">BLs</a></li>
+        <li class="pc-item"><a class="pc-link">Despachos</a></li>
+        <li class="pc-item"><a class="pc-link">Palets</a></li>
+        <li class="pc-item"><a class="pc-link" >Ordenes de Compra</a></li>
       </ul>
     </li>
     <li class="pc-item pc-hasmenu">
@@ -104,7 +114,7 @@
               <a href="#" class="arrow-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-offset="0,20">
                 <div class="d-flex align-items-center">
                   <div class="flex-grow-1 me-2">
-                    <h6 class="mb-0">Juan Loaiza</h6>
+                  <h6 class="mb-0"><?=ucfirst($user['nombre'])?> <?=ucfirst($user['apellido'])?></h6>
                     <small>Administrador</small>
                   </div>
                   <div class="flex-shrink-0">
@@ -118,7 +128,7 @@
                 <ul>
                   
                   <li>
-                    <a class="pc-user-links" href="../pages/login-v1.php">
+                    <a class="pc-user-links" href="../">
                       <i class="ph-duotone ph-power"></i>
                       <span>Cerrar Sesión</span>
                     </a>
@@ -465,23 +475,28 @@
         <!-- [ Main Content ] start -->
         <div class="row">
           <!-- [ file-upload ] start -->
-          <div class="col-sm-12">
-            <div class="card">
-              <div class="card-header">
-                <h5>Importar Packing List</h5>
-              </div>
-              <div class="card-body">
-                <form action="../assets/json/file-upload.php" class="dropzone">
-                  <div class="fallback">
-                    <input name="file" type="file" multiple>
-                  </div>
-                </form>
-                <div class="text-center m-t-20">
-                  <button class="btn btn-primary">Subir</button>
+            <div class="col-sm-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Importar Packing List</h5>
+                    </div>
+                    <!-- En importarpk.php -->
+<div class="card-body">
+    <?php if (isset($_SESSION['mensaje'])): ?>
+    <div class="alert alert-success">
+        <?= $_SESSION['mensaje']; unset($_SESSION['mensaje']); ?>
+    </div>
+    <?php endif; ?>
+
+    <form action="procesar_excel.php" method="POST" enctype="multipart/form-data">
+        <div class="mb-3">
+            <input type="file" name="excel" class="form-control" accept=".xlsx" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Subir y Procesar</button>
+    </form>
+</div>
                 </div>
-              </div>
             </div>
-          </div>
           <!-- [ file-upload ] end -->
         </div>
         <!-- [ Main Content ] end -->

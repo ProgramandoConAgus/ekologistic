@@ -38,7 +38,7 @@
                 <input type="password" class="form-control" id="confirmPassword" placeholder="Confirmar Nueva Contraseña" required>
               </div>
               <div class="d-grid mt-4">
-                <button type="submit" class="btn btn-primary">Reiniciar Contraseña</button>
+                <button type="submit" style="background-color:#afc97c" class="btn text-white">Reiniciar Contraseña</button>
               </div>
             </form>
           </div>

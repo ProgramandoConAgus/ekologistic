@@ -58,7 +58,9 @@
             <div class="card-body">
               <div class="text-center">
                 <img src="./assets/images/ekologistic.png" alt="images" class="img-fluid mb-3" height="70" width="120">
-                <h4 class="f-w-500 mb-1">Ingresa con tus credenciales</h4>
+                <h4 class="f-w-500 mb-1">Registrate con tus datos</h4>
+                <p class="mb-3">Volver al <a href="./" class="link-primary ms-1">Inicio de sesion</a></p>
+
               </div>
               <div class="mb-3">
                 <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Nombre" required>
