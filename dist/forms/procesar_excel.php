@@ -72,45 +72,18 @@ try {
 
     // Obtener datos comunes para contenedor (primer registro de datos, fila 2)
     $primerRegistro = $rows[1];
-    // Corregir el mapeo: índice 5 es Booking_BK y 6 es Number_Container
-    $numeroBooking = isset($primerRegistro[5]) ? $primerRegistro[5] : '';
-    $numeroContenedor = isset($primerRegistro[6]) ? $primerRegistro[6] : '';
+    $numeroBooking = $primerRegistro[5] ?? '';
+    $numeroContenedor = $primerRegistro[6] ?? '';
 
     // Insertar en contenedor
     $stmtContenedor = $conexion->prepare("INSERT INTO contenedor (numeroContenedor, numeroBooking, fecha, idUsuario, idPackingList) VALUES (?, ?, ?, ?, ?)");
-    // Si no deseas guardar una fecha en contenedor, puedes ajustar este valor; aquí se guarda el timestamp actual.
     $fechaContenedor = date('Y-m-d H:i:s');
     $stmtContenedor->bind_param("sssii", $numeroContenedor, $numeroBooking, $fechaContenedor, $IdUsuario, $idPackingList);
     $stmtContenedor->execute();
     $idContenedor = $conexion->insert_id;
     $stmtContenedor->close();
 
-    // Preparar la inserción en contenedordetalles
-    // Mapeo de columnas según el Excel:
-    // 0: Num OP
-    // 1: Destinity POD
-    // 2: Incoterm
-    // 3: Dispatch Date Warehouse EC
-    // 4: Departure Date Port Origin EC
-    // 5: Booking_BK
-    // 6: Number_Container
-    // 7: Number_ Commercial Invoice
-    // 8: Code_ Product_ EC
-    // 9: Number LOT
-    // 10: Customer
-    // 11: Number_PO
-    // 12: Description
-    // 13: Packing_ Unit
-    // 14: Qty_Box
-    // 15: Weight_ Neto_ Per_ box_kg
-    // 16: Weight_ Bruto_ Per_ box_kg
-    // 17: Total_ Weight_kg
-    // 18: ETA Date
-    // 19: PRICE BOX EC
-    // 20: TOTAL PRICE EC
-    // 21: PRICE BOX USA
-    // 22: TOTAL PRICE USA
-
+    // Preparar inserción en contenedordetalles
     $stmtDetalles = $conexion->prepare("INSERT INTO contenedordetalles (
          num_op, destinity_pod, incoterm, dispatch_date_warehouse_ec, 
          departure_date_port_origin_ec, booking_bk, number_container, 
@@ -122,45 +95,65 @@ try {
          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
      )");
 
-    // Recorrer cada fila (omitiendo la cabecera)
+    // Procesar filas
     foreach (array_slice($rows, 1) as $row) {
-        // Asignar y convertir datos de cada columna:
-        $num_op = (int)$row[0];
-        $destinity_pod = $row[1];
-        $incoterm = $row[2];
+        // Validar fila vacía
+        $isEmpty = true;
+        foreach ($row as $cell) {
+            if (!empty(trim($cell ?? ''))) {
+                $isEmpty = false;
+                break;
+            }
+        }
+        if ($isEmpty) continue;
 
-        // Convertir fechas; se asume formato 'd/m/Y'
-        $dispatchDateObj = DateTime::createFromFormat('d/m/Y', $row[3]);
-        $dispatchDateVal = $dispatchDateObj ? $dispatchDateObj->format('Y-m-d') : null;
+        // Procesar datos de la fila
+        $num_op = (int)($row[0] ?? 0);
+        $destinity_pod = $row[1] ?? '';
+        $incoterm = $row[2] ?? '';
 
-        $departureDateObj = DateTime::createFromFormat('d/m/Y', $row[4]);
-        $departureDateVal = $departureDateObj ? $departureDateObj->format('Y-m-d') : null;
+        // Procesar fechas
+        $dispatchDateVal = null;
+        if (!empty($row[3])) {
+            $dispatchDateObj = DateTime::createFromFormat('d/m/Y', $row[3]);
+            $dispatchDateVal = $dispatchDateObj ? $dispatchDateObj->format('Y-m-d') : null;
+        }
 
-        $booking_bk = $row[5];
-        $number_container = $row[6];
-        $number_commercial_invoice = $row[7];
-        $code_product_ec = $row[8];
-        $number_lot = $row[9];
-        $customer = $row[10];
-        $number_po = $row[11];
-        $description = $row[12];
-        $packing_unit = $row[13];
-        $qty_box = (int)$row[14];
-        $weight_neto_per_box_kg = (float)$row[15];
-        $weight_bruto_per_box_kg = (float)$row[16];
-        $total_weight_kg = (float)$row[17];
+        $departureDateVal = null;
+        if (!empty($row[4])) {
+            $departureDateObj = DateTime::createFromFormat('d/m/Y', $row[4]);
+            $departureDateVal = $departureDateObj ? $departureDateObj->format('Y-m-d') : null;
+        }
 
-        // ETA Date (índice 18)
-        $etaDateObj = DateTime::createFromFormat('d/m/Y', $row[18]);
-        $etaDateVal = $etaDateObj ? $etaDateObj->format('Y-m-d') : null;
+        // Resto de campos
+        $booking_bk = $row[5] ?? '';
+        $number_container = $row[6] ?? '';
+        $number_commercial_invoice = $row[7] ?? '';
+        $code_product_ec = $row[8] ?? '';
+        $number_lot = $row[9] ?? '';
+        $customer = $row[10] ?? '';
+        $number_po = $row[11] ?? '';
+        $description = $row[12] ?? '';
+        $packing_unit = $row[13] ?? '';
+        $qty_box = (int)($row[14] ?? 0);
+        $weight_neto_per_box_kg = (float)($row[15] ?? 0);
+        $weight_bruto_per_box_kg = (float)($row[16] ?? 0);
+        $total_weight_kg = (float)($row[17] ?? 0);
 
-        // Precios (índices 19 a 22)
-        $priceBoxEC = (float)$row[19];
-        $totalPriceEC = (float)$row[20];
-        $priceBoxUSA = (float)$row[21];
-        $totalPriceUSA = (float)$row[22];
+        // Procesar ETA Date
+        $etaDateVal = null;
+        if (!empty($row[18])) {
+            $etaDateObj = DateTime::createFromFormat('d/m/Y', $row[18]);
+            $etaDateVal = $etaDateObj ? $etaDateObj->format('Y-m-d') : null;
+        }
 
-        // Realizar el bind_param con 24 parámetros:
+        // Campos numéricos
+        $priceBoxEC = (float)($row[19] ?? 0);
+        $totalPriceEC = (float)($row[20] ?? 0);
+        $priceBoxUSA = (float)($row[21] ?? 0);
+        $totalPriceUSA = (float)($row[22] ?? 0);
+
+        // Ejecutar inserción
         $stmtDetalles->bind_param(
             "isssssssssssssidddsddddi",
             $num_op,

@@ -10,14 +10,26 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 
 $sql="SELECT 
-    packinglist.*, 
-    usuarios.nombre, 
-    usuarios.apellido
+    p.IdPacking AS 'ITEM #',
+    MAX(cd.num_op) AS 'Num OP',
+    MAX(cd.destinity_pod) AS 'Destinity POD',
+    MAX(cd.booking_bk) AS 'Booking_BK',
+    MAX(cd.number_container) AS 'Number_Container',
+    SUM(cd.qty_box) AS 'Qty_Box',
+    SUM(cd.total_price_ec) AS 'TOTAL PRICE EC',
+    p.fecha_subida AS 'Date created',
+    DATE_FORMAT(p.fecha_subida, '%H:%i') AS 'Hour',
+    CONCAT(u.nombre, ' ', u.apellido) AS 'User Name',
+    p.excel_path AS 'File Home',
+    p.status AS 'STATUS'
 FROM 
-    packinglist
+    packinglist p
 JOIN 
-    usuarios ON packinglist.idUsuario = usuarios.IdUsuario;
-";
+    usuarios u ON p.idUsuario = u.IdUsuario
+JOIN 
+    contenedordetalles cd ON p.IdPacking = cd.idPackingList
+GROUP BY 
+    p.IdPacking;";
 $stmt = $conexion->prepare($sql);  
 $stmt->execute();
 $result=$stmt->get_result();
@@ -59,8 +71,29 @@ $result=$stmt->get_result();
     <!-- [Template CSS Files] -->
     <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" >
     <link rel="stylesheet" href="../assets/css/style-preset.css" >
-
-  </head>
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+    /* Ajustes para el modal y Handsontable */
+    .modal-xl {
+        max-width: 95% !important;
+    }
+    
+    #excelEditor {
+        width: 100%;
+        overflow: auto;
+    }
+    
+    .handsontable {
+        font-size: 12px;
+    }
+    
+    .htCore td {
+        white-space: nowrap;
+    }
+</style>
+    </head>
   <!-- [Head] end -->
   <!-- [Body] Start -->
 
@@ -97,10 +130,10 @@ $result=$stmt->get_result();
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Packing List</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Contenedores</a></li>
-        <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Inventarios</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">BLs</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Dashboard Containers</a></li>
+        <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Panel Inventory</a></li>
         <li class="pc-item"><a class="pc-link">Despachos</a></li>
         <li class="pc-item"><a class="pc-link">Palets</a></li>
         <li class="pc-item"><a class="pc-link" >Ordenes de Compra</a></li>
@@ -471,14 +504,14 @@ $result=$stmt->get_result();
             <div class="row align-items-center">
               <div class="col-md-12">
                 <ul class="breadcrumb">
-                  <li class="breadcrumb-item"><a href="../dashboard/index.html">Inicio</a></li>
+                  <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
                   <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
-                  <li class="breadcrumb-item" aria-current="page">Packing List</li>
+                  <li class="breadcrumb-item" aria-current="page">Dashboard Packing List</li>
                 </ul>
               </div>
               <div class="col-md-12">
                 <div class="page-header-title">
-                  <h2 class="mb-0">Panel de Packings List</h2>
+                  <h2 class="mb-0">Dashboard Packing List</h2>
                 </div>
               </div>
             </div>
@@ -500,46 +533,74 @@ $result=$stmt->get_result();
         <div class="card-body">
     <div class="table-responsive">
         <table class="table table-hover" id="pc-dt-simple">
-            <thead>
-                <tr>
-                    <th>N° Packing List</th>
-                    <th>Fecha Subida</th>
-                    <th>Hora Subida</th>
-                    <th>Usuario</th>
-                    <th>Archivo Fuente</th>
-                </tr>
-            </thead>
-            <tbody>
-              <?php
-                while($packings = $result->fetch_assoc()){
-                  
-              ?>
-                <tr>
-                  
-                    <td><h5><?=$packings['IdPacking']?></h5></td>
-                    <td><h5><?= date('Y-m-d', strtotime($packings['fecha_subida'])) ?></h5></td>
-                    <td><h5><?= date('H:i', strtotime($packings['fecha_subida'])) ?></h5></td>
-                    <td><h5><?=ucfirst($packings['nombre'])?> <?=ucfirst($packings['apellido'])?></h5></td>
-                    <td class="text-center">
-                        <h5>
-                            <a href="<?= $packings['excel_path'] ?>" 
-                              class="btn d-flex align-items-center" >
-                                <i class="ti ti-eye f-30 me-2"></i> Ver Excel
-                            </a>
-                        </h5>
-                    </td>
-                </tr>
-                <?php
-                  }
-                ?>
-                
-            </tbody>
+           <!-- Encabezados de la tabla -->
+<thead>
+    <tr>
+        <th>ITEM #</th>
+        <th>Num OP</th>
+        <th>Destinity POD</th>
+        <th>Booking_BK</th>
+        <th>Number_Container</th>
+        <th>Qty_Box</th>
+        <th>TOTAL PRICE EC</th>
+        <th>Date created</th>
+        <th>Hour</th>
+        <th>User Name</th>
+        <th>File Home</th>
+        <th>STATUS</th>
+    </tr>
+</thead>
+
+<!-- Cuerpo de la tabla -->
+<tbody>
+    <?php while($packings = $result->fetch_assoc()) { ?>
+    <tr>
+        <td><?= $packings['ITEM #'] ?></td>
+        <td><?= $packings['Num OP'] ?></td>
+        <td><?= $packings['Destinity POD'] ?></td>
+        <td><?= $packings['Booking_BK'] ?></td>
+        <td><?= $packings['Number_Container'] ?></td>
+        <td><?= $packings['Qty_Box'] ?></td>
+        <td><?= number_format($packings['TOTAL PRICE EC'], 2) ?></td>
+        <td><?= date('Y-m-d', strtotime($packings['Date created'])) ?></td>
+        <td><?= $packings['Hour'] ?></td>
+        <td><?= $packings['User Name']  ?></td>
+        <td>
+            <button class="btn d-flex align-items-center btn-edit-excel" 
+                    data-excel-path="<?= $packings['File Home'] ?>" 
+                    data-packing-id="<?= $packings['ITEM #'] ?>">
+                <i class="ti ti-edit f-30 me-2"></i> Editar Excel
+            </button>
+        </td>
+        <td><?= $packings['STATUS'] ?></td>
+    </tr>
+    <?php } ?>
+</tbody>
         </table>
     </div>
 </div>
 
     </div>
 </div>
+<!-- Modal para edición -->
+<div class="modal fade" id="editExcelModal" tabindex="-1" aria-labelledby="editExcelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editExcelModalLabel">Editar Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="excelEditor" style="height: 600px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="guardarCambios">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Fin Modal edicion-->
 
 <script>
 function confirmDelete(blNumber) {
@@ -737,6 +798,91 @@ function confirmDelete(blNumber) {
     </div>
   </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let hot;
+        let currentExcelPath;
+        let currentPackingId;
+
+        // Abrir modal con editor
+        document.querySelectorAll('.btn-edit-excel').forEach(btn => {
+    btn.addEventListener('click', function() {
+        currentExcelPath = this.dataset.excelPath;
+        currentPackingId = this.dataset.packingId;
+        
+        fetch(`../api/leer_excel.php?path=${encodeURIComponent(currentExcelPath)}&packingId=${currentPackingId}`)
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('excelEditor');
+                
+                if(!hot) {
+                    hot = new Handsontable(container, {
+                        data: data,
+                        rowHeaders: true,
+                        colHeaders: true,
+                        contextMenu: true,
+                        licenseKey: 'tu-licencia',
+                        stretchH: 'all', // Ajustar columnas al ancho
+                        width: '100%',
+                        height: '70vh',
+                        manualColumnResize: true,
+                        manualRowResize: true
+                    });
+                } else {
+                    hot.updateSettings({data: data});
+                }
+                
+                // Redimensionar después de mostrar el modal
+                $('#editExcelModal').modal('show').on('shown.bs.modal', function() {
+                    hot.render();
+                    hot.view.adjustElementsSize();
+                });
+            });
+    });
+});
+
+        // Guardar cambios
+        document.getElementById('guardarCambios').addEventListener('click', function() {
+            const datos = hot.getData();
+            
+            fetch('../api/guardar_excel.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    path: currentExcelPath,
+                    packingId: currentPackingId,
+                    data: datos
+                })
+            })
+            .then(response => {
+                if(!response.ok) throw new Error('Error al guardar');
+                return response.json();
+            })
+            .then(result => {
+                if(result.success) {
+                    location.reload();
+                } else {
+                    throw new Error(result.error || 'Error desconocido');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al guardar cambios: ' + error.message);
+            });
+        });
+    });
+    </script>
+    <script>
+// Forzar redimensionamiento al cambiar tamaño de ventana
+window.addEventListener('resize', function() {
+    if (hot) {
+        hot.render();
+        hot.view.adjustElementsSize();
+    }
+});
+</script>
+
     <!-- [Page Specific JS] start -->
     <script src="../assets/js/plugins/apexcharts.min.js"></script>
     <script src="../assets/js/plugins/jsvectormap.min.js"></script>

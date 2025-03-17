@@ -8,16 +8,17 @@ $usuario= new Usuario($conexion);
 
 $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
-
-$sql="SELECT 
-    contenedor.*, 
-    usuarios.nombre, 
-    usuarios.apellido
-FROM 
-    contenedor
-JOIN 
-    usuarios ON contenedor.idUsuario = usuarios.IdUsuario;
-";
+$sql = "SELECT 
+    c.idContenedor AS 'ITEM #',
+    c.numeroContenedor AS 'Number_Container',
+    cd.destinity_pod AS 'Destinity POD',  
+    cd.booking_bk AS 'Booking_BK',
+    cd.num_op
+FROM contenedor c
+LEFT JOIN contenedordetalles cd ON c.idPackingList = cd.idPackingList
+WHERE c.status != 'Completado'
+GROUP BY c.idContenedor 
+ORDER BY c.fecha DESC";
 $stmt = $conexion->prepare($sql);  
 $stmt->execute();
 $result=$stmt->get_result();
@@ -97,10 +98,10 @@ $result=$stmt->get_result();
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Packing List</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Contenedores</a></li>
-        <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Inventarios</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">BLs</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Dashboard Containers</a></li>
+        <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Panel Inventory</a></li>
         <li class="pc-item"><a class="pc-link">Despachos</a></li>
         <li class="pc-item"><a class="pc-link">Palets</a></li>
         <li class="pc-item"><a class="pc-link" >Ordenes de Compra</a></li>
@@ -471,14 +472,14 @@ $result=$stmt->get_result();
             <div class="row align-items-center">
               <div class="col-md-12">
                 <ul class="breadcrumb">
-                  <li class="breadcrumb-item"><a href="../dashboard/index.html">Inicio</a></li>
+                  <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
                   <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
-                  <li class="breadcrumb-item" aria-current="page">Contenedores Activos</li>
+                  <li class="breadcrumb-item" aria-current="page">Dashboard Containers</li>
                 </ul>
               </div>
               <div class="col-md-12">
                 <div class="page-header-title">
-                  <h2 class="mb-0">Panel de Contenedores</h2>
+                  <h2 class="mb-0">Dashboard Containers</h2>
                 </div>
               </div>
             </div>
@@ -488,55 +489,37 @@ $result=$stmt->get_result();
         <!-- [ Main Content ] start -->
         <div class="row">
        
-          
-        <div class="col-md-12 col-xl-12">
-    <div class="card table-card">
+    <div class="col-md-12 col-xl-12">
+      <div class="card table-card">
         <div class="card-header d-flex align-items-center justify-content-between py-3">
             <h5 class="mb-0"></h5>
         </div>
-        <div class="card-body">
-    <div class="table-responsive">
-        <table class="table table-hover" id="pc-dt-simple">
-            <thead>
-                <tr>
-                    <th>Número Contenedor</th>
-                    <th>Número Booking</th>
-                    <th>Fecha de Creación</th>
-                    <th>Usuario</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-              <?php
-                  while($packings = $result->fetch_assoc()){
-                    
-                ?>
+      <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover" id="pc-dt-simple">
+              <thead>
                   <tr>
-                    
-                      <td><h5><?=$packings['numeroContenedor']?></h5></td>
-                      <td><h5><?= $packings['numeroBooking']?></h5></td>
-                      <td><h5><?= date('Y-m-d', strtotime($packings['fecha'])) ?></h5></td>
-                      <td><h5><?=ucfirst($packings['nombre'])?> <?=ucfirst($packings['apellido'])?></h5></td>
-                      <td>
-                          <a href="./panel-contenedores-detalles.php?numeroContenedor=<?=$packings['numeroContenedor']?>" class="avtar avtar-xs btn-link-secondary">
-                              <i class="ti ti-eye f-20"></i>
-                          </a>
-                          <a href="../admins/bls-detalle.php" class="avtar avtar-xs btn-link-primary">
-                              <i class="ti ti-pencil f-20"></i>
-                          </a>
-                          <a href="#" class="avtar avtar-xs btn-link-danger" onclick="confirmDelete('BL-123456')">
-                              <i class="ti ti-trash f-20"></i>
-                          </a>
-                      </td>
+                      <th>ITEM #</th>
+                      <th>Num OP</th>
+                      <th>Destinity POD</th>
+                      <th>Number Container</th>
+                      <th>Booking_BK</th>
                   </tr>
-                  <?php
-                    }
-                  ?>
-                
-            </tbody>
-        </table>
-    </div>
-</div>
+              </thead>
+              <tbody>
+                  <?php while ($row = $result->fetch_assoc()) { ?>
+                  <tr>
+                      <td><?= $row['ITEM #'] ?></td>
+                      <td><?= $row['num_op'] ?></td>
+                      <td><?= $row['Destinity POD'] ?></td>
+                      <td><?= $row['Number_Container'] ?></td>
+                      <td><?= $row['Booking_BK'] ?></td>
+                    </tr>
+                  <?php } ?>
+              </tbody>
+          </table>
+          </div>
+      </div>
 
     </div>
 </div>
