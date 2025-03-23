@@ -1,3 +1,15 @@
+<?php
+session_start();
+include('../usuarioClass.php');
+include("../con_db.php");
+$IdUsuario=$_SESSION["IdUsuario"];
+
+$usuario= new Usuario($conexion);
+
+$user=$usuario->obtenerUsuarioPorId($IdUsuario);
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <!-- [Head] start -->
@@ -50,7 +62,8 @@
     <div class="m-header">
       <a href="../dashboard/index.html" class="b-brand text-primary">
         <!-- ========   Change your logo from here   ============ -->
-        <img src="../assets/images/ekologistic.png" alt="logo image" height="70px" width="240px"/>
+        <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="220px"/>
+        
       </a>
     </div>
     <div class="navbar-content">
@@ -67,10 +80,10 @@
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">BLs</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Contenedores</a></li>
-        <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Inventarios</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Packing List</a></li>
+     <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Dashboard Containers</a></li>
+        <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Panel Inventory</a></li>
         <li class="pc-item"><a class="pc-link">Despachos</a></li>
         <li class="pc-item"><a class="pc-link">Palets</a></li>
         <li class="pc-item"><a class="pc-link" >Ordenes de Compra</a></li>
@@ -102,8 +115,8 @@
               <a href="#" class="arrow-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-offset="0,20">
                 <div class="d-flex align-items-center">
                   <div class="flex-grow-1 me-2">
-                    <h6 class="mb-0">Juan Loaiza</h6>
-                    <small>Administrador</small>
+                  <h6 class="mb-0"><?=ucfirst($user['nombre'])?> <?=ucfirst($user['apellido'])?></h6>
+                  <small>Administrador</small>
                   </div>
                   <div class="flex-shrink-0">
                     <div class="btn btn-icon btn-link-secondary avtar">

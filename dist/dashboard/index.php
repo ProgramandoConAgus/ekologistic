@@ -1,5 +1,42 @@
 <?php
+session_start();
+include('../usuarioClass.php');
+include("../con_db.php");
+$IdUsuario=$_SESSION["IdUsuario"];
+if(!$_SESSION["IdUsuario"]){
+  header("Location: ../");
+}
+$usuario= new Usuario($conexion);
 
+$user=$usuario->obtenerUsuarioPorId($IdUsuario);
+
+$start = isset($_GET['start']) ? $_GET['start'] : null;
+$end = isset($_GET['end']) ? $_GET['end'] : null;
+
+
+// Construir consulta base
+$sql = "SELECT 
+    cd.IdContenedoresDetalles AS 'ITEM #',
+    cd.num_op AS 'Num OP',
+    cd.destinity_pod AS 'Destinity POD',
+    cd.departure_date_port_origin_ec AS 'Departure Date Port Origin EC',
+    cd.booking_bk AS 'Booking_BK',
+    cd.number_container AS 'Number_Container',
+    cd.qty_box AS 'Qty_Box',
+    cd.eta_date AS 'ETA Date',
+    cd.new_eta_date AS 'NEW ETA DATE',
+    cd.total_price_ec AS 'TOTAL PRICE EC',
+    cd.total_price_usa AS 'TOTAL PRICE USA',
+    c.status AS 'STATUS'
+FROM contenedordetalles cd
+INNER JOIN contenedor c ON cd.idPackingList = c.idPackingList
+WHERE c.status != 'Completado'";
+
+if ($start && $end) {
+  $sql .= " AND cd.eta_date BETWEEN '$start 00:00:00' AND '$end 23:59:59'";
+}
+$sql .= " ORDER BY cd.departure_date_port_origin_ec DESC";
+$result = $conexion->query($sql);
 ?>
 
 <!DOCTYPE html>
@@ -38,6 +75,16 @@
     <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" >
     <link rel="stylesheet" href="../assets/css/style-preset.css" >
 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+    .eta-date-picker {
+        transition: border-color 0.3s ease;
+        min-width: 120px;
+    }
+    .eta-date-picker.border-success {
+        border-color: #28a745 !important;
+    }
+    </style>
   </head>
   <!-- [Head] end -->
   <!-- [Body] Start -->
@@ -56,7 +103,7 @@
     <div class="m-header">
       <a href="../dashboard/index.html" class="b-brand text-primary">
         <!-- ========   Change your logo from here   ============ -->
-        <img src="../assets/images/ekologistic.png" alt="logo image" height="70px" width="240px"/>
+        <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="220px"/>
         
       </a>
     </div>
@@ -74,10 +121,10 @@
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">BLs</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Contenedores</a></li>
-        <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Inventarios</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Packing List</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Dashboard Containers</a></li>
+        <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Panel Inventory</a></li>
         <li class="pc-item"><a class="pc-link">Despachos</a></li>
         <li class="pc-item"><a class="pc-link">Palets</a></li>
         <li class="pc-item"><a class="pc-link" >Ordenes de Compra</a></li>
@@ -111,7 +158,7 @@
               <a href="#" class="arrow-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-offset="0,20">
                 <div class="d-flex align-items-center">
                   <div class="flex-grow-1 me-2">
-                    <h6 class="mb-0">Juan Loaiza</h6>
+                    <h6 class="mb-0"><?=ucfirst($user['nombre'])?> <?=ucfirst($user['apellido'])?></h6>
                     <small>Administrador</small>
                   </div>
                   <div class="flex-shrink-0">
@@ -448,14 +495,14 @@
             <div class="row align-items-center">
               <div class="col-md-12">
                 <ul class="breadcrumb">
-                  <li class="breadcrumb-item"><a href="../dashboard/index.html">Inicio</a></li>
+                  <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
                   <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
-                  <li class="breadcrumb-item" aria-current="page">Bls Activos</li>
+                  <li class="breadcrumb-item" aria-current="page">Dashboard Logistic</li>
                 </ul>
               </div>
               <div class="col-md-12">
                 <div class="page-header-title">
-                  <h2 class="mb-0">Panel de BLs</h2>
+                  <h2 class="mb-0">Dashboard Logistic</h2>
                 </div>
               </div>
             </div>
@@ -469,75 +516,76 @@
         <div class="col-md-12 col-xl-12">
     <div class="card table-card">
         <div class="card-header d-flex align-items-center justify-content-between py-3">
-            <h5 class="mb-0"></h5>
-            <button class="btn btn-sm btn-success">
-                <a class="text-white" href="../forms/bls-carga.php">Crear BL</a>
-            </button>
-        </div>
+          <h5 class="mb-0">Contenedores</h5>
+          <div class="d-flex gap-2 align-items-center">
+              <!-- Input para el rango de fechas -->
+              <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
+              <button class="btn btn-sm btn-primary" onclick="aplicarFiltro()">
+                  <i class="ti ti-filter"></i> Filtrar
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="limpiarFiltro()">
+                  <i class="ti ti-x"></i> Limpiar
+              </button>
+          </div>
+      </div>  
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover" id="pc-dt-simple">
+            <table class="table table-hover" id="pc-dt-simple">
                     <thead>
                         <tr>
-                            <th>Número BL</th>
-                            <th>Destino</th>
-                            <th>Contenedores</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
+                            <th>ITEM #</th>
+                            <th>Num OP</th>
+                            <th>Destinity POD</th>
+                            <th>Departure Date <br> Port Origin EC</th>
+                            <th>Booking_BK</th>
+                            <th>Number_Container</th>
+                            <th>Qty_Box</th>
+                            <th>ETA Date</th>
+                            <th>NEW ETA DATE</th>
+                            <th>TOTAL PRICE EC</th>
+                            <th>TOTAL PRICE USA</th>
+                            <th>STATUS</th>
+                          <!--  <th>Acciones</th>-->
                         </tr>
                     </thead>
                     <tbody>
+                        <?php
+                        while ($row = $result->fetch_assoc()) {
+                            $badge_color = match($row['STATUS']) {
+                                'Transito' => 'bg-success',
+                                'Transito Demorado' => 'bg-warning',
+                                default => 'bg-secondary'
+                            };
+                        ?>
                         <tr>
-                            <td>BL-123456</td>
-                            <td>Estados Unidos</td>
-                            <td>5</td>
-                            <td><span class="badge text-bg-success">Completado</span></td>
+                            <td><?= $row['ITEM #'] ?></td>
+                            <td><?= $row['Num OP'] ?></td>
+                            <td><?= $row['Destinity POD'] ?></td>
+                            <td><?= date('d/m/Y', strtotime($row['Departure Date Port Origin EC'])) ?></td>
+                            <td><?= $row['Booking_BK'] ?></td>
+                            <td><?= $row['Number_Container'] ?></td>
+                            <td><?= $row['Qty_Box'] ?></td>
+                            <td><?= date('d/m/Y', strtotime($row['ETA Date'])) ?></td>
                             <td>
-                                <a href="../admins/bls-detalle.php" class="avtar avtar-xs btn-link-secondary">
-                                    <i class="ti ti-eye f-20"></i>
-                                </a>
-                                <a href="../admins/bls-detalle.php" class="avtar avtar-xs btn-link-primary">
-                                    <i class="ti ti-pencil f-20"></i>
-                                </a>
-                                <a href="#" class="avtar avtar-xs btn-link-danger" onclick="confirmDelete('BL-123456')">
-                                    <i class="ti ti-trash f-20"></i>
+                                <input type="text" 
+                                      class="eta-date-picker form-control form-control-sm" 
+                                      data-id="<?= $row['ITEM #'] ?>" 
+                                      value="<?= (!empty($row['NEW ETA DATE']) && $row['NEW ETA DATE'] != '0000-00-00') 
+                                                ? date('d/m/Y', strtotime($row['NEW ETA DATE'])) 
+                                                : '' ?>"
+                                      placeholder="00/00/0000">
+                            </td>
+                            <td>$<?= number_format($row['TOTAL PRICE EC'], 2) ?></td>
+                            <td>$<?= number_format($row['TOTAL PRICE USA'], 2) ?></td>
+                            <td><span class="badge <?= $badge_color ?>"><?= $row['STATUS'] ?></span></td>
+                         <!--   <td>
+                                <a href="editar-contenedor.php?id=<?= $row['ITEM #'] ?>" class="btn btn-icon btn-sm">
+                                    <i class="ti ti-edit"></i>
                                 </a>
                             </td>
+                          -->
                         </tr>
-                        <tr>
-                            <td>BL-789012</td>
-                            <td>Estados Unidos</td>
-                            <td>3</td>
-                            <td><span class="badge text-bg-warning">Pendiente</span></td>
-                            <td>
-                                <a href="../admins/bls-detalle.php" class="avtar avtar-xs btn-link-secondary">
-                                    <i class="ti ti-eye f-20"></i>
-                                </a>
-                                <a href="../admins/bls-detalle.php" class="avtar avtar-xs btn-link-primary">
-                                    <i class="ti ti-pencil f-20"></i>
-                                </a>
-                                <a href="#" class="avtar avtar-xs btn-link-danger" onclick="confirmDelete('BL-789012')">
-                                    <i class="ti ti-trash f-20"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>BL-345678</td>
-                            <td>Estados Unidos</td>
-                            <td>7</td>
-                            <td><span class="badge text-bg-danger">Cancelado</span></td>
-                            <td>
-                                <a href="../admins/bls-detalle.php" class="avtar avtar-xs btn-link-secondary">
-                                    <i class="ti ti-eye f-20"></i>
-                                </a>
-                                <a href="../admins/bls-detalle.php" class="avtar avtar-xs btn-link-primary">
-                                    <i class="ti ti-pencil f-20"></i>
-                                </a>
-                                <a href="#" class="avtar avtar-xs btn-link-danger" onclick="confirmDelete('BL-345678')">
-                                    <i class="ti ti-trash f-20"></i>
-                                </a>
-                            </td>
-                        </tr>
+                        <?php } ?>
                     </tbody>
                 </table>
             </div>
@@ -741,6 +789,105 @@ function confirmDelete(blNumber) {
     </div>
   </div>
 </div>
+<!--ACTUALIZAR FECHA ETA-->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    flatpickr(".eta-date-picker", {
+        dateFormat: "d/m/Y",
+        locale: "es",
+        allowInput: true,
+        placeholder: "00/00/0000",
+        onChange: function(selectedDates, dateStr, instance) {
+            const contenedorId = instance.element.dataset.id;
+            const nuevaFecha = selectedDates[0] ? selectedDates[0].toISOString().split('T')[0] : null;
+            
+            // Si el usuario borra el input
+            if(dateStr === "") {
+                nuevaFecha = null;
+            }
+
+            actualizarFechaETA(contenedorId, nuevaFecha, instance);
+        }
+    });
+
+    async function actualizarFechaETA(id, fecha, instance) {
+        try {
+            const response = await fetch('../api/actualizar_eta.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id: id, fecha: fecha })
+            });
+
+            const result = await response.json();
+            
+            if(!result.success) {
+                // Restaurar valor anterior
+                const originalDate = instance.element.value;
+                instance.setDate(originalDate, true);
+                alert('Error al actualizar: ' + result.error);
+            } else {
+                // Actualizar placeholder si se borró
+                if(!fecha) {
+                    instance.element.value = '';
+                }
+                // Feedback visual
+                instance.element.classList.add('border-success');
+                setTimeout(() => {
+                    instance.element.classList.remove('border-success');
+                }, 2000);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            instance.setDate(instance.element.value, true);
+            alert('Error de conexión');
+        }
+    }
+});
+</script>
+<!-- FILTRO DE FECHA -->
+ 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script> <!-- Soporte en español -->
+<script>
+// Inicializar Flatpickr
+const rangoFechas = flatpickr("#rangoFechas", {
+    mode: "range", // Modo de rango
+    locale: "es", // Idioma español
+    dateFormat: "Y-m-d", // Formato para la URL
+    altInput: true, // Muestra fechas en formato legible
+    altFormat: "d/m/Y", // Formato visual
+    static: true, // Calendario fijo
+    allowInput: false, // Evita edición manual
+    onReady: function(selectedDates, dateStr, instance) {
+        // Restaurar fechas si existen en la URL
+        const params = new URLSearchParams(window.location.search);
+        if(params.has('start') && params.has('end')) {
+            instance.setDate([params.get('start'), params.get('end')]);
+        }
+    }
+});
+
+// Función para aplicar filtro
+function aplicarFiltro() {
+    const fechas = rangoFechas.selectedDates;
+    
+    if (fechas.length === 2) {
+        const start = fechas[0].toISOString().split('T')[0];
+        const end = fechas[1].toISOString().split('T')[0];
+        window.location.href = `?start=${start}&end=${end}`;
+    } else {
+        alert('¡Seleccione un rango de fechas válido!');
+    }
+}
+
+// Función para limpiar filtro
+function limpiarFiltro() {
+    rangoFechas.clear();
+    window.location.href = window.location.pathname;
+}
+</script>
+
+
     <!-- [Page Specific JS] start -->
     <script src="../assets/js/plugins/apexcharts.min.js"></script>
     <script src="../assets/js/plugins/jsvectormap.min.js"></script>
@@ -781,7 +928,6 @@ function confirmDelete(blNumber) {
     
     
     <script>preset_change("preset-1");</script>
-    
   </body>
   <!-- [Body] end -->
 </html>
