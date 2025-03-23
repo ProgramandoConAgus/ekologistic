@@ -5,7 +5,7 @@ require '../dist/vendor/autoload.php';
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 // Nombre del archivo Excel a leer
-$inputFileName = 'archivo.xlsx';
+$inputFileName = 'FORMATO PL - REV 1.xlsx';
 
 try {
     // Cargamos el archivo Excel
@@ -39,12 +39,17 @@ foreach ($rows as $rowIndex => $row) {
     // Aquí simplemente imprimimos todo como <tr><td>...
     echo "<tr>";
     foreach ($row as $cell) {
-        echo "<td>" . htmlspecialchars($cell) . "</td>";
+    
+    echo "<td>" . htmlspecialchars($cell) . "</td>";
     }
+   //echo "<td>" . htmlspecialchars($row[1]) . "</td>";
+    
     echo "</tr>";
+    
 }
 
 echo "</table>";
 echo "</body>";
 echo "</html>";
+
 ?>

@@ -516,18 +516,11 @@ $result = $conexion->query($sql);
         <div class="col-md-12 col-xl-12">
     <div class="card table-card">
         <div class="card-header d-flex align-items-center justify-content-between py-3">
-          <h5 class="mb-0">Contenedores</h5>
-          <div class="d-flex gap-2 align-items-center">
-              <!-- Input para el rango de fechas -->
-              <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
-              <button class="btn btn-sm btn-primary" onclick="aplicarFiltro()">
-                  <i class="ti ti-filter"></i> Filtrar
-              </button>
-              <button class="btn btn-sm btn-secondary" onclick="limpiarFiltro()">
-                  <i class="ti ti-x"></i> Limpiar
-              </button>
-          </div>
-      </div>  
+            <h5 class="mb-0"></h5>
+            <button class="btn btn-sm btn-success">
+                <a class="text-white" href="../forms/bls-carga.php">Crear BL</a>
+            </button>
+        </div>
         <div class="card-body">
             <div class="table-responsive">
             <table class="table table-hover" id="pc-dt-simple">
