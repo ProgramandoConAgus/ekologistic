@@ -9,30 +9,40 @@ $usuario= new Usuario($conexion);
 $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 
-$sql="SELECT 
-    p.IdPacking AS 'ITEM #',
-    MAX(cd.num_op) AS 'Num OP',
-    MAX(cd.destinity_pod) AS 'Destinity POD',
-    MAX(cd.booking_bk) AS 'Booking_BK',
-    MAX(cd.number_container) AS 'Number_Container',
-    SUM(cd.qty_box) AS 'Qty_Box',
-    SUM(cd.total_price_ec) AS 'TOTAL PRICE EC',
-    p.fecha_subida AS 'Date created',
-    DATE_FORMAT(p.fecha_subida, '%H:%i') AS 'Hour',
+// Construcción de la consulta SQL
+$sql = "SELECT 
+    pl.IdPackingList AS 'ITEM #',
+    MAX(c.num_op) AS 'Num OP',
+    MAX(c.Destinity_POD) AS 'Destinity POD',
+    MAX(c.Booking_BK) AS 'Booking_BK',
+    MAX(c.Number_Container) AS 'Number_Container',
+    SUM(i.Qty_Box) AS 'Qty_Box',
+    SUM(i.Total_Price_EC) AS 'TOTAL PRICE EC',
+    pl.Date_Created AS 'Date created',
+    DATE_FORMAT(pl.Date_Created, '%H:%i') AS 'Hour',
     CONCAT(u.nombre, ' ', u.apellido) AS 'User Name',
-    p.excel_path AS 'File Home',
-    p.status AS 'STATUS'
+    pl.path_file AS 'File Home',
+    pl.status AS 'STATUS'
 FROM 
-    packinglist p
+    packing_list pl
 JOIN 
-    usuarios u ON p.idUsuario = u.IdUsuario
+    usuarios u ON pl.IdUsuario = u.IdUsuario
 JOIN 
-    contenedordetalles cd ON p.IdPacking = cd.idPackingList
+    container c ON pl.IdPackingList = c.IdPackingList
+JOIN 
+    items i ON c.IdContainer = i.IdContainer
 GROUP BY 
-    p.IdPacking;";
-$stmt = $conexion->prepare($sql);  
-$stmt->execute();
-$result=$stmt->get_result();
+    pl.IdPackingList;";
+
+try {
+    $stmt = $conexion->prepare($sql);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+} catch (mysqli_sql_exception $e) {
+    echo "Error en la consulta: " . $e->getMessage();
+}
+
 
 ?>
 
@@ -132,11 +142,23 @@ $result=$stmt->get_result();
       <ul class="pc-submenu">
         <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
+        <li class="pc-item pc-hasmenu">
+              <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
+              <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
+                <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="#">Dispatch Inventory (Proximamente)</a> </li>
+              </ul>
+            </li>
+
+        <!--
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Dashboard Containers</a></li>
         <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Panel Inventory</a></li>
         <li class="pc-item"><a class="pc-link">Despachos</a></li>
         <li class="pc-item"><a class="pc-link">Palets</a></li>
         <li class="pc-item"><a class="pc-link" >Ordenes de Compra</a></li>
+  -->
       </ul>
     </li>
     <li class="pc-item pc-hasmenu">
@@ -566,12 +588,20 @@ $result=$stmt->get_result();
         <td><?= $packings['Hour'] ?></td>
         <td><?= $packings['User Name']  ?></td>
         <td>
-            <button class="btn d-flex align-items-center btn-edit-excel" 
-                    data-excel-path="<?= $packings['File Home'] ?>" 
-                    data-packing-id="<?= $packings['ITEM #'] ?>">
-                <i class="ti ti-edit f-30 me-2"></i> Editar Excel
-            </button>
+            <div class="d-flex gap-0">
+                <button class="btn d-flex align-items-center btn-edit-excel" 
+                        data-excel-path="<?= $packings['File Home'] ?>" 
+                        data-packing-id="<?= $packings['ITEM #'] ?>">
+                    <i class="ti ti-edit f-30"></i>
+                </button>
+
+                <a href="<?= $packings['File Home'] ?>" download class="btn d-flex align-items-center btn-download-excel">
+                    <i class="ti ti-download f-30"></i>
+                </a>
+            </div>
         </td>
+
+
         <td><?= $packings['STATUS'] ?></td>
     </tr>
     <?php } ?>

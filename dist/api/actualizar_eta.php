@@ -12,7 +12,7 @@ try {
 
     $input = json_decode(file_get_contents('php://input'), true);
 
-    // Validar datos
+    // Validar datos de entrada
     if (empty($input['id']) || empty($input['fecha'])) {
         throw new Exception('Datos incompletos');
     }
@@ -20,25 +20,26 @@ try {
     $id = filter_var($input['id'], FILTER_SANITIZE_NUMBER_INT);
     $fecha = filter_var($input['fecha'], FILTER_SANITIZE_STRING);
 
-    // Verificar permiso del usuario
+    // Verificar permiso del usuario uniendo container con packing_list
     $stmt = $conexion->prepare("
-        SELECT cd.IdContenedoresDetalles 
-        FROM contenedordetalles cd
-        INNER JOIN contenedor c ON cd.idPackingList = c.idPackingList
-        WHERE cd.IdContenedoresDetalles = ? AND c.idUsuario = ?
+        SELECT c.IdContainer
+        FROM container c
+        INNER JOIN packing_list pl ON c.idPackingList = pl.IdPackingList
+        WHERE c.IdContainer = ? AND pl.IdUsuario = ?
     ");
     $stmt->bind_param("ii", $id, $_SESSION['IdUsuario']);
     $stmt->execute();
+    $result = $stmt->get_result();
     
-    if (!$stmt->get_result()->num_rows) {
+    if ($result->num_rows === 0) {
         throw new Exception('No tienes permisos para editar este registro');
     }
 
-    // Actualizar fecha
+    // Actualizar la fecha en container
     $updateStmt = $conexion->prepare("
-        UPDATE contenedordetalles 
-        SET new_eta_date = ?
-        WHERE IdContenedoresDetalles = ?
+        UPDATE container 
+        SET New_ETA_Date = ?
+        WHERE IdContainer = ?
     ");
     $updateStmt->bind_param("si", $fecha, $id);
     
@@ -55,3 +56,4 @@ try {
         'error' => $e->getMessage()
     ]);
 }
+    

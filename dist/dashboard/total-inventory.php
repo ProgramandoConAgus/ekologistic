@@ -14,52 +14,22 @@ $start = isset($_GET['start']) ? $_GET['start'] : null;
 $end = isset($_GET['end']) ? $_GET['end'] : null;
 
 
-// Habilitar el reporte de errores en MySQLi para lanzar excepciones
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+// Construir consulta base
+$sql = "SELECT 
+  i.IdItem AS 'ITEM #',
+  c.num_op AS 'Num OP',
+  i.Number_PO,
+  i.Customer,
+  i.Description,
+  i.Qty_Box,
+  i.Price_Box_EC AS 'PRICE BOX EC',
+  i.Total_Price_EC AS 'TOTAL PRICE EC',
+  c.status AS 'STATUS'
+FROM container c
+JOIN items i ON c.IdContainer = i.idContainer;
+";
 
-try {
-    // Construir consulta base
-    $sql = "SELECT 
-        i.IdItem AS 'ITEM #',
-        c.Number_Container AS 'Number Container',
-        c.Num_OP AS 'Num OP',
-        c.Forwarder AS 'Forwarder',
-        c.Shipping_Line AS 'Shipping Line',
-        c.Destinity_POD AS 'Destinity POD',
-        c.Departure_Date_Port_Origin_EC AS 'Departure Date Port Origin EC',
-        c.Booking_BK AS 'Booking_BK',
-        COUNT(DISTINCT c.IdContainer) AS 'Total Containers',
-        SUM(i.Qty_Box) AS 'Total Boxes',
-        c.ETA_Date AS 'ETA Date',
-        c.New_ETA_Date AS 'NEW ETA DATE',
-        SUM(i.Total_Price_EC) AS 'TOTAL PRICE EC',
-        SUM(i.Total_Price_USA) AS 'TOTAL PRICE USA',
-        c.Status AS 'status',
-        c.IdContainer
-    FROM 
-        container c
-    JOIN 
-        items i ON c.IdContainer = i.idContainer
-    WHERE 
-        c.Status != 'completo'";
-
-    if ($start && $end) {
-        $sql .= " AND c.ETA_Date BETWEEN '$start 00:00:00' AND '$end 23:59:59'";
-    }
-
-    $sql .= " GROUP BY c.Number_Container 
-              ORDER BY c.Departure_Date_Port_Origin_EC DESC";
-
-    // Ejecutar la consulta
-    $result = $conexion->query($sql);
-
-    // Si llegamos aquí, la consulta se ejecutó correctamente
-    // Procede con la lógica para procesar los resultados
-} catch (mysqli_sql_exception $e) {
-    // Captura el error y muestra un mensaje con el error de MySQL
-    echo "Error en la consulta: " . $e->getMessage();
-}
-
+$result = $conexion->query($sql);
 
 ?>
 
@@ -109,8 +79,6 @@ try {
         border-color: #28a745 !important;
     }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
   </head>
   <!-- [Head] end -->
   <!-- [Body] Start -->
@@ -568,104 +536,50 @@ try {
       </div>  
         <div class="card-body">
             <div class="table-responsive">
-            <table class="table table-hover" id="pc-dt-simple">
-                    <thead>
-                        <tr>
-                            <th>ITEM #</th>
-                            <th>Num OP</th>
-                            <th>Forwarder</th>
-                            <th>Shipping Line</th>
-                            <th>Destinity POD</th>
-                            <th>Departure Date <br> Port Origin EC</th>
-                            <th>Booking_BK</th>
-                            <th>Total Containers</th>
-                            <th>Total Boxes</th>
-                            <th>ETA Date</th>
-                            <th>NEW ETA DATE</th>
-                            <th>TOTAL PRICE EC</th>
-                            <th>TOTAL PRICE USA</th>
-                            <th>STATUS‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ </th>
-                          <!--  <th>Acciones</th>-->
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        while ($row = $result->fetch_assoc()) {
-                            $badge_color = match($row['status']) {
-                                'Transito' => 'bg-success',
-                                'Transito Demorado' => 'bg-warning',
-                                default => 'bg-secondary'
-                            };
-                        ?>  
-                        <tr>
-                            <td><?= $row['ITEM #'] ?></td>
-                            <td><?= $row['Num OP'] ?></td>
-                            <td>
-                                <div class="input-group input-group-sm">
-                                    <input type="text" 
-                                          class="forwarder-input form-control" 
-                                          data-id="<?= $row['IdContainer'] ?>" 
-                                          value="<?= htmlspecialchars($row['Forwarder']) ?>">
-                                    <button class="btn btn-primary save-forwarder" 
-                                            data-id="<?= $row['IdContainer'] ?>" 
-                                            style="display: none;">
-                                        <i class="ti ti-device-floppy"></i> <!-- Icono de guardar -->
-                                    </button>
-                                </div>
-                            </td>
-
-                            <td>
-                                <div class="input-group input-group-sm">
-                                    <input type="text" 
-                                          class="shipping-input form-control" 
-                                          data-id="<?= $row['IdContainer'] ?>" 
-                                          value="<?= htmlspecialchars($row['Shipping Line']) ?>">
-                                    <button class="btn btn-primary save-shipping" 
-                                            data-id="<?= $row['IdContainer'] ?>" 
-                                            style="display: none;">
-                                        <i class="ti ti-device-floppy"></i>
-                                    </button>
-                                </div>
-                            </td>
-
-                            <td><?= $row['Destinity POD'] ?></td>
-                            <td><?= date('d/m/Y', strtotime($row['Departure Date Port Origin EC'])) ?></td>
-                            <td><?= $row['Booking_BK'] ?></td>
-                            <td><?= $row['Total Containers'] ?></td>
-                            <td><?= $row['Total Boxes'] ?></td>
-                            <td><?= date('d/m/Y', strtotime($row['ETA Date'])) ?></td>
-                            <td>
-                              <input type="text" 
-                                    class="eta-date-picker form-control form-control-sm" 
-                                    data-id="<?= $row['IdContainer'] ?>" 
-                                    value="<?= (!empty($row['NEW ETA DATE']) && $row['NEW ETA DATE'] != '0000-00-00') 
-                                                  ? date('d/m/Y', strtotime($row['NEW ETA DATE'])) 
-                                                  : '' ?>"
-                                    placeholder="00/00/0000">
-                            </td>
-
-                            <td>$<?= number_format($row['TOTAL PRICE EC'], 2) ?></td>
-                            <td>$<?= number_format($row['TOTAL PRICE USA'], 2) ?></td>
-                            <td >
-    <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" 
-            data-id="<?= $row['IdContainer'] ?>">
-        <option value="Transit" <?= $row['status'] == 'Transit' ? 'selected' : '' ?>>Transit</option>
-        <option value="Transit Delayed" <?= $row['status'] == 'Transit Delayed' ? 'selected' : '' ?>>Transit Delayed</option>
-        <option value="Completed" <?= $row['status'] == 'Completed' ? 'selected' : '' ?>>Completed</option>
-    </select>
-</td>
-
-                  
-                            <!--   <td>
-                                <a href="editar-contenedor.php?id=<?= $row['ITEM #'] ?>" class="btn btn-icon btn-sm">
-                                    <i class="ti ti-edit"></i>
-                                </a>
-                            </td>
-                          -->
-                        </tr>
-                        <?php } ?>
-                    </tbody>
-                </table>
+              <table class="table table-hover" id="pc-dt-simple">
+                  <thead>
+                      <tr>
+                          <th>ITEM #</th>
+                          <th>Num OP</th>
+                          <th>Number_PO</th>
+                          <th>Customer</th>
+                          <th>Description</th>
+                          <th>Qty_Box</th>
+                          <th>PRICE BOX EC</th>
+                          <th>TOTAL PRICE EC</th>
+                          <th>STATUS</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      <?php while ($row = $result->fetch_assoc()) { 
+                          // Asigna un color de badge según el estado
+                          if($row['STATUS']=='Completed')
+                          {
+                            $row['STATUS']="Inventory";
+                          }
+                          else{
+                            $row['STATUS']="Transit";
+                          }
+                          $badge_color = match($row['STATUS']) {
+                              'Transit' => 'bg-success',
+                              'Inventory' => 'bg-warning',
+                              default => 'bg-secondary'
+                          };
+                      ?>
+                      <tr>
+                          <td><?= $row['ITEM #'] ?></td>
+                          <td><?= $row['Num OP'] ?></td>
+                          <td><?= $row['Number_PO'] ?></td>
+                          <td><?= $row['Customer'] ?></td>
+                          <td><?= $row['Description'] ?></td>
+                          <td><?= $row['Qty_Box'] ?></td>
+                          <td>$<?= number_format($row['PRICE BOX EC'], 2) ?></td>
+                          <td>$<?= number_format($row['TOTAL PRICE EC'], 2) ?></td>
+                          <td><span class="badge <?= $badge_color ?>"><?= $row['STATUS'] ?></span></td>
+                      </tr>
+                      <?php } ?>
+                  </tbody>
+              </table>
             </div>
         </div>
     </div>
@@ -867,99 +781,6 @@ function confirmDelete(blNumber) {
     </div>
   </div>
 </div>
-<!-- ACTUALIZAR STATUS -->
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Guardar cambios en Status
-    document.querySelectorAll('.status-select').forEach(select => {
-        select.addEventListener('change', function () {
-            const id = this.getAttribute('data-id'); // Id del contenedor
-            const value = this.value; // Nuevo valor seleccionado
-
-            actualizarStatus(id, value);
-        });
-    });
-
-    function actualizarStatus(id, value) {
-        fetch('../api/actualizar_status.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, value }) // Enviamos solo id y value
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-              Swal.fire({
-              title: 'Éxito',
-              text: data.message,
-              icon: 'success',
-              confirmButtonText: 'Continuar'
-            });
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-});
-</script>
-
-
-
-
-<!-- ACTUALIZAR FORWARDER Y SHIPPING LINE-->
- <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Función genérica para manejar cambios en los inputs
-    function handleInputChange(inputClass, buttonClass) {
-        document.querySelectorAll(inputClass).forEach(input => {
-            input.addEventListener('input', () => {
-                const id = input.dataset.id;
-                const btn = document.querySelector(`${buttonClass}[data-id="${id}"]`);
-                btn.style.display = 'inline-block';
-            });
-        });
-    }
-
-    // Manejadores para Forwarder y Shipping Line
-    handleInputChange('.forwarder-input', '.save-forwarder');
-    handleInputChange('.shipping-input', '.save-shipping');
-
-    // Función genérica para actualizar datos en la base de datos
-    function handleSaveClick(buttonClass, inputClass, endpoint) {
-        document.querySelectorAll(buttonClass).forEach(button => {
-            button.addEventListener('click', async () => {
-                const id = button.dataset.id;
-                const input = document.querySelector(`${inputClass}[data-id="${id}"]`);
-                const newValue = input.value.trim();
-
-                try {
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: id, value: newValue })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        button.style.display = 'none';
-                    } else {
-                        alert('Error al actualizar: ' + result.error);
-                    }
-                } catch (error) {
-                    alert('Error de conexión');
-                }
-            });
-        });
-    }
-
-    // Aplicar evento de guardar para Forwarder y Shipping Line
-    handleSaveClick('.save-forwarder', '.forwarder-input', '../api/update_forwarder.php');
-    handleSaveClick('.save-shipping', '.shipping-input', '../api/update_shipping.php');
-});
-
-
- </script>
-
 <!--ACTUALIZAR FECHA ETA-->
 <script>
 document.addEventListener('DOMContentLoaded', function() {

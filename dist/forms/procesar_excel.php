@@ -62,40 +62,73 @@ try {
         throw new Exception("Formato de Excel inválido");
     }
 
-    // Insertar en packinglist
+    // Insertar en Packing_List
     $fechaSubida = date('Y-m-d H:i:s');
-    $stmt = $conexion->prepare("INSERT INTO packinglist (idUsuario, fecha_subida, excel_path) VALUES (?, ?, ?)");
-    $stmt->bind_param("iss", $IdUsuario, $fechaSubida, $targetPath);
-    $stmt->execute();
+    // Se asume un status inicial, por ejemplo, 'pendiente'
+    $status = 'pendiente';
+    $stmtPL = $conexion->prepare("INSERT INTO Packing_List (IdUsuario, Date_Created, path_file, status) VALUES (?, ?, ?, ?)");
+    $stmtPL->bind_param("isss", $IdUsuario, $fechaSubida, $targetPath, $status);
+    $stmtPL->execute();
     $idPackingList = $conexion->insert_id;
-    $stmt->close();
+    $stmtPL->close();
 
-    // Obtener datos comunes para contenedor (primer registro de datos, fila 2)
+    // Obtener datos comunes para Container (usando el primer registro, fila 2)
     $primerRegistro = $rows[1];
-    $numeroBooking = $primerRegistro[5] ?? '';
-    $numeroContenedor = $primerRegistro[6] ?? '';
+    $num_op = (int)($primerRegistro[0] ?? 0);
+    $destinity_pod = $primerRegistro[1] ?? '';
+    $incoterm = $primerRegistro[2] ?? '';
+    // Convertir fechas (dispatch, departure, ETA)
+    $dispatchDateVal = null;
+    if (!empty($primerRegistro[3])) {
+        $dispatchDateObj = DateTime::createFromFormat('d/m/Y', $primerRegistro[3]);
+        $dispatchDateVal = $dispatchDateObj ? $dispatchDateObj->format('Y-m-d') : null;
+    }
+    $departureDateVal = null;
+    if (!empty($primerRegistro[4])) {
+        $departureDateObj = DateTime::createFromFormat('d/m/Y', $primerRegistro[4]);
+        $departureDateVal = $departureDateObj ? $departureDateObj->format('Y-m-d') : null;
+    }
+    $etaDateVal = null;
+    if (!empty($primerRegistro[18])) {
+        $etaDateObj = DateTime::createFromFormat('d/m/Y', $primerRegistro[18]);
+        $etaDateVal = $etaDateObj ? $etaDateObj->format('Y-m-d') : null;
+    }
+    $booking_bk = $primerRegistro[5] ?? '';
+    $number_container = $primerRegistro[6] ?? '';
+    $number_commercial_invoice = $primerRegistro[7] ?? '';
 
-    // Insertar en contenedor
-    $stmtContenedor = $conexion->prepare("INSERT INTO contenedor (numeroContenedor, numeroBooking, fecha, idUsuario, idPackingList) VALUES (?, ?, ?, ?, ?)");
-    $fechaContenedor = date('Y-m-d H:i:s');
-    $stmtContenedor->bind_param("sssii", $numeroContenedor, $numeroBooking, $fechaContenedor, $IdUsuario, $idPackingList);
-    $stmtContenedor->execute();
-    $idContenedor = $conexion->insert_id;
-    $stmtContenedor->close();
+    // Insertar en Container
+    $stmtContainer = $conexion->prepare("INSERT INTO Container (
+        IdPackingList, num_op, Booking_BK, Number_Container, Number_Commercial_Invoice, 
+        Destinity_POD, Incoterm, Dispatch_Date_Warehouse_EC, Departure_Date_Port_Origin_EC, ETA_Date
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmtContainer->bind_param(
+        "iissssssss",
+        $idPackingList,
+        $num_op,
+        $booking_bk,
+        $number_container,
+        $number_commercial_invoice,
+        $destinity_pod,
+        $incoterm,
+        $dispatchDateVal,
+        $departureDateVal,
+        $etaDateVal
+    );
+    $stmtContainer->execute();
+    $idContainer = $conexion->insert_id;
+    $stmtContainer->close();
 
-    // Preparar inserción en contenedordetalles
-    $stmtDetalles = $conexion->prepare("INSERT INTO contenedordetalles (
-         num_op, destinity_pod, incoterm, dispatch_date_warehouse_ec, 
-         departure_date_port_origin_ec, booking_bk, number_container, 
-         number_commercial_invoice, code_product_ec, number_lot, customer, 
-         number_po, description, packing_unit, qty_box, weight_neto_per_box_kg, 
-         weight_bruto_per_box_kg, total_weight_kg, eta_date, price_box_ec, 
-         total_price_ec, price_box_usa, total_price_usa, idPackingList
-     ) VALUES (
-         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-     )");
+    // Preparar inserción en Items (por cada línea del Excel)
+    $stmtItems = $conexion->prepare("INSERT INTO Items (
+        IdContainer, Code_Product_EC, Number_Lot, Customer, Number_PO, Description, 
+        Packing_Unit, Qty_Box, Weight_Neto_Per_Box_kg, Weight_Bruto_Per_Box_kg, Total_Weight_kg, 
+        Price_Box_EC, Total_Price_EC, Price_Box_USA, Total_Price_USA
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    // La cadena de tipos es: i, s, s, s, s, s, i, i, d, d, d, d, d, d, d
+    $itemsParamTypes = "isssssiiddddddd";
 
-    // Procesar filas
+    // Procesar filas (a partir de la fila 2, ya que la fila 1 es la cabecera)
     foreach (array_slice($rows, 1) as $row) {
         // Validar fila vacía
         $isEmpty = true;
@@ -107,28 +140,8 @@ try {
         }
         if ($isEmpty) continue;
 
-        // Procesar datos de la fila
-        $num_op = (int)($row[0] ?? 0);
-        $destinity_pod = $row[1] ?? '';
-        $incoterm = $row[2] ?? '';
-
-        // Procesar fechas
-        $dispatchDateVal = null;
-        if (!empty($row[3])) {
-            $dispatchDateObj = DateTime::createFromFormat('d/m/Y', $row[3]);
-            $dispatchDateVal = $dispatchDateObj ? $dispatchDateObj->format('Y-m-d') : null;
-        }
-
-        $departureDateVal = null;
-        if (!empty($row[4])) {
-            $departureDateObj = DateTime::createFromFormat('d/m/Y', $row[4]);
-            $departureDateVal = $departureDateObj ? $departureDateObj->format('Y-m-d') : null;
-        }
-
-        // Resto de campos
-        $booking_bk = $row[5] ?? '';
-        $number_container = $row[6] ?? '';
-        $number_commercial_invoice = $row[7] ?? '';
+        // Cada fila representa un ítem, se extraen los datos:
+        // (Se ignoran campos que ya se usaron en Container)
         $code_product_ec = $row[8] ?? '';
         $number_lot = $row[9] ?? '';
         $customer = $row[10] ?? '';
@@ -139,31 +152,16 @@ try {
         $weight_neto_per_box_kg = (float)($row[15] ?? 0);
         $weight_bruto_per_box_kg = (float)($row[16] ?? 0);
         $total_weight_kg = (float)($row[17] ?? 0);
-
-        // Procesar ETA Date
-        $etaDateVal = null;
-        if (!empty($row[18])) {
-            $etaDateObj = DateTime::createFromFormat('d/m/Y', $row[18]);
-            $etaDateVal = $etaDateObj ? $etaDateObj->format('Y-m-d') : null;
-        }
-
-        // Campos numéricos
+        // Los campos de precio (si vienen en el Excel)
         $priceBoxEC = (float)($row[19] ?? 0);
         $totalPriceEC = (float)($row[20] ?? 0);
         $priceBoxUSA = (float)($row[21] ?? 0);
         $totalPriceUSA = (float)($row[22] ?? 0);
 
-        // Ejecutar inserción
-        $stmtDetalles->bind_param(
-            "isssssssssssssidddsddddi",
-            $num_op,
-            $destinity_pod,
-            $incoterm,
-            $dispatchDateVal,
-            $departureDateVal,
-            $booking_bk,
-            $number_container,
-            $number_commercial_invoice,
+        // Ejecutar inserción en Items
+        $stmtItems->bind_param(
+            $itemsParamTypes,
+            $idContainer,
             $code_product_ec,
             $number_lot,
             $customer,
@@ -174,16 +172,14 @@ try {
             $weight_neto_per_box_kg,
             $weight_bruto_per_box_kg,
             $total_weight_kg,
-            $etaDateVal,
             $priceBoxEC,
             $totalPriceEC,
             $priceBoxUSA,
-            $totalPriceUSA,
-            $idPackingList
+            $totalPriceUSA
         );
-        $stmtDetalles->execute();
+        $stmtItems->execute();
     }
-    $stmtDetalles->close();
+    $stmtItems->close();
 
     $_SESSION['mensaje'] = "Archivo procesado correctamente";
     header("Location: importarpk.php");
