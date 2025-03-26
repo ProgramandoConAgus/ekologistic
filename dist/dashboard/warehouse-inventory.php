@@ -16,6 +16,7 @@ $end = isset($_GET['end']) ? $_GET['end'] : null;
 
 // Construir consulta base
 $sql = "SELECT 
+  i.EntryDate,
   i.IdItem as 'ITEM #',
   c.num_op AS 'Num OP',
   c.Booking_BK,
@@ -72,7 +73,6 @@ $result = $conexion->query($sql);
     <!-- [Template CSS Files] -->
     <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" >
     <link rel="stylesheet" href="../assets/css/style-preset.css" >
-
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
     .eta-date-picker {
@@ -83,6 +83,9 @@ $result = $conexion->query($sql);
         border-color: #28a745 !important;
     }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="./tipografia.css">
+
   </head>
   <!-- [Head] end -->
   <!-- [Body] Start -->
@@ -119,8 +122,8 @@ $result = $conexion->query($sql);
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
               <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
@@ -545,6 +548,7 @@ $result = $conexion->query($sql);
             <table class="table table-hover" id="pc-dt-simple">
                     <thead>
                         <tr>
+                            <th>Entry Date</th>
                             <th>ITEM #</th>
                             <th>Num OP</th>
                             <th>Booking_BK</th>
@@ -564,6 +568,15 @@ $result = $conexion->query($sql);
                            
                         ?>
                         <tr>
+                            <td>
+                                <input type="text" 
+                                    class="entry-date-picker form-control form-control-sm" 
+                                    data-id="<?= $row['ITEM #'] ?>" 
+                                    value="<?= !empty($row['EntryDate']) && $row['EntryDate'] != '0000-00-00' 
+                                                ? date('d/m/Y', strtotime($row['EntryDate'])) 
+                                                : '' ?>"
+                                    placeholder="dd/mm/yyyy">
+                            </td>
                             <td><?= $row['ITEM #']?></td>
                             <td><?= $row['Num OP'] ?></td>
                             <td><?= $row['Booking_BK'] ?></td>
@@ -781,47 +794,42 @@ function confirmDelete(blNumber) {
     </div>
   </div>
 </div>
-<!--ACTUALIZAR FECHA ETA-->
+<!--ACTUALIZAR FECHA ENTRY-->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    flatpickr(".eta-date-picker", {
+    flatpickr(".entry-date-picker", {
         dateFormat: "d/m/Y",
         locale: "es",
         allowInput: true,
-        placeholder: "00/00/0000",
+        placeholder: "dd/mm/yyyy",
         onChange: function(selectedDates, dateStr, instance) {
-            const contenedorId = instance.element.dataset.id;
-            const nuevaFecha = selectedDates[0] ? selectedDates[0].toISOString().split('T')[0] : null;
+            const itemId = instance.element.dataset.id;
+            const nuevaFecha = dateStr; // Usar el string directamente
             
-            // Si el usuario borra el input
-            if(dateStr === "") {
-                nuevaFecha = null;
-            }
-
-            actualizarFechaETA(contenedorId, nuevaFecha, instance);
+            actualizarFechaEntry(itemId, nuevaFecha, instance);
         }
     });
 
-    async function actualizarFechaETA(id, fecha, instance) {
+    async function actualizarFechaEntry(id, fecha, instance) {
         try {
-            const response = await fetch('../api/actualizar_eta.php', {
+            const body = {
+                id: parseInt(id),
+                fecha: fecha || ''
+            };
+
+            const response = await fetch('../api/actualizar_entry.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ id: id, fecha: fecha })
+                body: JSON.stringify(body)
             });
 
             const result = await response.json();
             
-            if(!result.success) {
+            if(!response.ok || !result.success) {
                 // Restaurar valor anterior
-                const originalDate = instance.element.value;
-                instance.setDate(originalDate, true);
-                alert('Error al actualizar: ' + result.error);
+                instance.setDate(instance.input.value, true, 'd/m/Y');
+                alert(result.error || 'Error desconocido');
             } else {
-                // Actualizar placeholder si se borró
-                if(!fecha) {
-                    instance.element.value = '';
-                }
                 // Feedback visual
                 instance.element.classList.add('border-success');
                 setTimeout(() => {
@@ -830,12 +838,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             console.error('Error:', error);
-            instance.setDate(instance.element.value, true);
+            instance.setDate(instance.input.value, true, 'd/m/Y');
             alert('Error de conexión');
         }
     }
 });
 </script>
+
 <!-- FILTRO DE FECHA -->
  
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
