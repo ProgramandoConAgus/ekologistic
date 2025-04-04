@@ -51,19 +51,15 @@ try {
   <!-- [Head] start -->
 
   <head>
-    <title>Home | Light Able Admin & Dashboard Template</title>
+    <title>Dashboard Packing List | Eko Logistic</title>
     <!-- [Meta] -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta
-      name="description"
-      content="Light Able admin and dashboard template offer a variety of UI elements and pages, ensuring your admin panel is both fast and effective."
-    />
-    <meta name="author" content="phoenixcoded" />
 
-    <!-- [Favicon] icon -->
-    <link rel="icon" href="../assets/images/favicon.svg" type="image/x-icon" />
+
+      <!-- [Favicon] icon -->
+  <link rel="icon" href="./assets/images/ekologistic.png" type="image/x-icon" />
 
     <!-- map-vector css -->
     <link rel="stylesheet" href="../assets/css/plugins/jsvectormap.min.css">
@@ -122,7 +118,7 @@ try {
     <div class="m-header">
       <a href="../dashboard/index.html" class="b-brand text-primary">
           <!-- ========   Change your logo from here   ============ -->
-        <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="220px"/>
+        <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="180px"/>
         
         
       </a>
@@ -242,54 +238,6 @@ try {
 <!-- [Mobile Media Block end] -->
 <div class="ms-auto">
   <ul class="list-unstyled">
-    <li class="dropdown pc-h-item d-none d-md-inline-flex">
-      <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
-        aria-haspopup="false" aria-expanded="false">
-        <i class="ph-duotone ph-circles-four"></i>
-      </a>
-      <div class="dropdown-menu dropdown-qta dropdown-menu-end pc-h-dropdown">
-        <div class="overflow-hidden">
-          <div class="qta-links m-n1">
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-shopping-cart"></i>
-              <span>E-commerce</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-lifebuoy"></i>
-              <span>Helpdesk</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-scroll"></i>
-              <span>Invoice</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-books"></i>
-              <span>Online Courses</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-envelope-open"></i>
-              <span>Mail</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-identification-badge"></i>
-              <span>Membership</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-chats-circle"></i>
-              <span>Chat</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-currency-circle-dollar"></i>
-              <span>Plans</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-user-circle"></i>
-              <span>Users</span>
-            </a>
-          </div>
-        </div>
-      </div>
-    </li>
     <li class="dropdown pc-h-item">
       <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
         aria-haspopup="false" aria-expanded="false">
@@ -298,48 +246,15 @@ try {
       <div class="dropdown-menu dropdown-menu-end pc-h-dropdown">
         <a href="#!" class="dropdown-item" onclick="layout_change('dark')">
           <i class="ph-duotone ph-moon"></i>
-          <span>Dark</span>
+          <span>Noche</span>
         </a>
         <a href="#!" class="dropdown-item" onclick="layout_change('light')">
           <i class="ph-duotone ph-sun-dim"></i>
-          <span>Light</span>
+          <span>Dia</span>
         </a>
         <a href="#!" class="dropdown-item" onclick="layout_change_default()">
           <i class="ph-duotone ph-cpu"></i>
-          <span>Default</span>
-        </a>
-      </div>
-    </li>
-    <li class="pc-h-item">
-      <a class="pc-head-link pct-c-btn" href="#" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_pc_layout">
-        <i class="ph-duotone ph-gear-six"></i>
-      </a>
-    </li>
-    <li class="dropdown pc-h-item">
-      <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
-        aria-haspopup="false" aria-expanded="false">
-        <i class="ph-duotone ph-diamonds-four"></i>
-      </a>
-      <div class="dropdown-menu dropdown-menu-end pc-h-dropdown">
-        <a href="#!" class="dropdown-item">
-          <i class="ph-duotone ph-user"></i>
-          <span>My Account</span>
-        </a>
-        <a href="#!" class="dropdown-item">
-          <i class="ph-duotone ph-gear"></i>
-          <span>Settings</span>
-        </a>
-        <a href="#!" class="dropdown-item">
-          <i class="ph-duotone ph-lifebuoy"></i>
-          <span>Support</span>
-        </a>
-        <a href="#!" class="dropdown-item">
-          <i class="ph-duotone ph-lock-key"></i>
-          <span>Lock Screen</span>
-        </a>
-        <a href="#!" class="dropdown-item">
-          <i class="ph-duotone ph-power"></i>
-          <span>Logout</span>
+          <span>Estandar</span>
         </a>
       </div>
     </li>
@@ -347,90 +262,15 @@ try {
       <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
         aria-haspopup="false" aria-expanded="false">
         <i class="ph-duotone ph-bell"></i>
-        <span class="badge bg-success pc-h-badge">3</span>
       </a>
       <div class="dropdown-menu dropdown-notification dropdown-menu-end pc-h-dropdown">
         <div class="dropdown-header d-flex align-items-center justify-content-between">
-          <h5 class="m-0">Notifications</h5>
-          <ul class="list-inline ms-auto mb-0">
-            <li class="list-inline-item">
-              <a href="../application/mail.html" class="avtar avtar-s btn-link-hover-primary">
-                <i class="ti ti-link f-18"></i>
-              </a>
-            </li>
-          </ul>
+          <h5 class="m-0">Avisos</h5>
         </div>
         <div class="dropdown-body text-wrap header-notification-scroll position-relative"
           style="max-height: calc(100vh - 235px)">
           <ul class="list-group list-group-flush">
-            <li class="list-group-item">
-              <p class="text-span">Today</p>
-              <div class="d-flex">
-                <div class="flex-shrink-0">
-                  <img src="../assets/images/user/avatar-2.jpg" alt="user-image" class="user-avtar avtar avtar-s" />
-                </div>
-                <div class="flex-grow-1 ms-3">
-                  <div class="d-flex">
-                    <div class="flex-grow-1 me-3 position-relative">
-                      <h6 class="mb-0 text-truncate">Keefe Bond added new tags to 💪 Design system</h6>
-                    </div>
-                    <div class="flex-shrink-0">
-                      <span class="text-sm">2 min ago</span>
-                    </div>
-                  </div>
-                  <p class="position-relative mt-1 mb-2"><br /><span class="text-truncate">Lorem Ipsum has been the
-                      industry's standard dummy text ever since the 1500s.</span></p>
-                  <span class="badge bg-light-primary border border-primary me-1 mt-1">web design</span>
-                  <span class="badge bg-light-warning border border-warning me-1 mt-1">Dashobard</span>
-                  <span class="badge bg-light-success border border-success me-1 mt-1">Design System</span>
-                </div>
-              </div>
-            </li>
-            <li class="list-group-item">
-              <div class="d-flex">
-                <div class="flex-shrink-0">
-                  <div class="avtar avtar-s bg-light-primary">
-                    <i class="ph-duotone ph-chats-teardrop f-18"></i>
-                  </div>
-                </div>
-                <div class="flex-grow-1 ms-3">
-                  <div class="d-flex">
-                    <div class="flex-grow-1 me-3 position-relative">
-                      <h6 class="mb-0 text-truncate">Message</h6>
-                    </div>
-                    <div class="flex-shrink-0">
-                      <span class="text-sm">1 hour ago</span>
-                    </div>
-                  </div>
-                  <p class="position-relative mt-1 mb-2"><br /><span class="text-truncate">Lorem Ipsum has been the
-                      industry's standard dummy text ever since the 1500s.</span></p>
-                </div>
-              </div>
-            </li>
-            <li class="list-group-item">
-              <p class="text-span">Yesterday</p>
-              <div class="d-flex">
-                <div class="flex-shrink-0">
-                  <div class="avtar avtar-s bg-light-danger">
-                    <i class="ph-duotone ph-user f-18"></i>
-                  </div>
-                </div>
-                <div class="flex-grow-1 ms-3">
-                  <div class="d-flex">
-                    <div class="flex-grow-1 me-3 position-relative">
-                      <h6 class="mb-0 text-truncate">Challenge invitation</h6>
-                    </div>
-                    <div class="flex-shrink-0">
-                      <span class="text-sm">12 hour ago</span>
-                    </div>
-                  </div>
-                  <p class="position-relative mt-1 mb-2"><br /><span class="text-truncate"><strong> Jonny aber </strong>
-                      invites to join the challenge</span></p>
-                  <button class="btn btn-sm rounded-pill btn-outline-secondary me-2">Decline</button>
-                  <button class="btn btn-sm rounded-pill btn-primary">Accept</button>
-                </div>
-              </div>
-            </li>
+            
             <li class="list-group-item">
               <div class="d-flex">
                 <div class="flex-shrink-0">
@@ -441,73 +281,19 @@ try {
                 <div class="flex-grow-1 ms-3">
                   <div class="d-flex">
                     <div class="flex-grow-1 me-3 position-relative">
-                      <h6 class="mb-0 text-truncate">Forms</h6>
+                      <h6 class="mb-0 text-truncate">Recientes</h6>
                     </div>
                     <div class="flex-shrink-0">
-                      <span class="text-sm">2 hour ago</span>
+                      <span class="text-sm">Hace unos minutos</span>
                     </div>
                   </div>
-                  <p class="position-relative mt-1 mb-2">Lorem Ipsum is simply dummy text of the printing and
-                    typesetting industry. Lorem Ipsum has been the industry's standard
-                    dummy text ever since the 1500s.</p>
-                </div>
-              </div>
-            </li>
-            <li class="list-group-item">
-              <div class="d-flex">
-                <div class="flex-shrink-0">
-                  <img src="../assets/images/user/avatar-2.jpg" alt="user-image" class="user-avtar avtar avtar-s" />
-                </div>
-                <div class="flex-grow-1 ms-3">
-                  <div class="d-flex">
-                    <div class="flex-grow-1 me-3 position-relative">
-                      <h6 class="mb-0 text-truncate">Keefe Bond added new tags to 💪 Design system</h6>
-                    </div>
-                    <div class="flex-shrink-0">
-                      <span class="text-sm">2 min ago</span>
-                    </div>
-                  </div>
-                  <p class="position-relative mt-1 mb-2"><br /><span class="text-truncate">Lorem Ipsum has been the
-                      industry's standard dummy text ever since the 1500s.</span></p>
-                  <button class="btn btn-sm rounded-pill btn-outline-secondary me-2">Decline</button>
-                  <button class="btn btn-sm rounded-pill btn-primary">Accept</button>
-                </div>
-              </div>
-            </li>
-            <li class="list-group-item">
-              <div class="d-flex">
-                <div class="flex-shrink-0">
-                  <div class="avtar avtar-s bg-light-success">
-                    <i class="ph-duotone ph-shield-checkered f-18"></i>
-                  </div>
-                </div>
-                <div class="flex-grow-1 ms-3">
-                  <div class="d-flex">
-                    <div class="flex-grow-1 me-3 position-relative">
-                      <h6 class="mb-0 text-truncate">Security</h6>
-                    </div>
-                    <div class="flex-shrink-0">
-                      <span class="text-sm">5 hour ago</span>
-                    </div>
-                  </div>
-                  <p class="position-relative mt-1 mb-2">Lorem Ipsum is simply dummy text of the printing and
-                    typesetting industry. Lorem Ipsum has been the industry's standard
-                    dummy text ever since the 1500s.</p>
+                  <p class="position-relative mt-1 mb-2">Se cambio el estado del contenedor N ° 12345.</p>
                 </div>
               </div>
             </li>
           </ul>
         </div>
-        <div class="dropdown-footer">
-          <div class="row g-3">
-            <div class="col-6">
-              <div class="d-grid"><button class="btn btn-primary">Archive all</button></div>
-            </div>
-            <div class="col-6">
-              <div class="d-grid"><button class="btn btn-outline-secondary">Mark all as read</button></div>
-            </div>
-          </div>
-        </div>
+
       </div>
     </li>
     
@@ -665,170 +451,6 @@ function confirmDelete(blNumber) {
         </div>
       </div>
     </footer>
- <div class="offcanvas border-0 pct-offcanvas offcanvas-end" tabindex="-1" id="offcanvas_pc_layout">
-  <div class="offcanvas-header justify-content-between">
-    <h5 class="offcanvas-title">Settings</h5>
-    <button type="button" class="btn btn-icon btn-link-danger" data-bs-dismiss="offcanvas" aria-label="Close"><i
-        class="ti ti-x"></i></button>
-  </div>
-  <div class="pct-body customizer-body">
-    <div class="offcanvas-body py-0">
-      <ul class="list-group list-group-flush">
-        <li class="list-group-item">
-          <div class="pc-dark">
-            <h6 class="mb-1">Theme Mode</h6>
-            <p class="text-muted text-sm">Choose light or dark mode or Auto</p>
-            <div class="row theme-color theme-layout">
-              <div class="col-4">
-                <div class="d-grid">
-                  <button class="preset-btn btn active" data-value="true" onclick="layout_change('light');">
-                    <span class="btn-label">Light</span>
-                    <span class="pc-lay-icon"><span></span><span></span><span></span><span></span></span>
-                  </button>
-                </div>
-              </div>
-              <div class="col-4">
-                <div class="d-grid">
-                  <button class="preset-btn btn" data-value="false" onclick="layout_change('dark');">
-                    <span class="btn-label">Dark</span>
-                    <span class="pc-lay-icon"><span></span><span></span><span></span><span></span></span>
-                  </button>
-                </div>
-              </div>
-              <div class="col-4">
-                <div class="d-grid">
-                  <button class="preset-btn btn" data-value="default" onclick="layout_change_default();"
-                    data-bs-toggle="tooltip"
-                    title="Automatically sets the theme based on user's operating system's color scheme.">
-                    <span class="btn-label">Default</span>
-                    <span class="pc-lay-icon d-flex align-items-center justify-content-center">
-                      <i class="ph-duotone ph-cpu"></i>
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li class="list-group-item">
-          <h6 class="mb-1">Sidebar Theme</h6>
-          <p class="text-muted text-sm">Choose Sidebar Theme</p>
-          <div class="row theme-color theme-sidebar-color">
-            <div class="col-6">
-              <div class="d-grid">
-                <button class="preset-btn btn" data-value="true" onclick="layout_sidebar_change('dark');">
-                  <span class="btn-label">Dark</span>
-                  <span class="pc-lay-icon"><span></span><span></span><span></span><span></span></span>
-                </button>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="d-grid">
-                <button class="preset-btn btn active" data-value="false" onclick="layout_sidebar_change('light');">
-                  <span class="btn-label">Light</span>
-                  <span class="pc-lay-icon"><span></span><span></span><span></span><span></span></span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li class="list-group-item">
-          <h6 class="mb-1">Accent color</h6>
-          <p class="text-muted text-sm">Choose your primary theme color</p>
-          <div class="theme-color preset-color">
-            <a href="#!" class="active" data-value="preset-1"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-2"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-3"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-4"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-5"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-6"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-7"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-8"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-9"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-10"><i class="ti ti-check"></i></a>
-          </div>
-        </li>
-        <li class="list-group-item">
-          <h6 class="mb-1">Sidebar Caption</h6>
-          <p class="text-muted text-sm">Sidebar Caption Hide/Show</p>
-          <div class="row theme-color theme-nav-caption">
-            <div class="col-6">
-              <div class="d-grid">
-                <button class="preset-btn btn active" data-value="true" onclick="layout_caption_change('true');">
-                  <span class="btn-label">Caption Show</span>
-                  <span
-                    class="pc-lay-icon"><span></span><span></span><span><span></span><span></span></span><span></span></span>
-                </button>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="d-grid">
-                <button class="preset-btn btn" data-value="false" onclick="layout_caption_change('false');">
-                  <span class="btn-label">Caption Hide</span>
-                  <span
-                    class="pc-lay-icon"><span></span><span></span><span><span></span><span></span></span><span></span></span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li class="list-group-item">
-          <div class="pc-rtl">
-            <h6 class="mb-1">Theme Layout</h6>
-            <p class="text-muted text-sm">LTR/RTL</p>
-            <div class="row theme-color theme-direction">
-              <div class="col-6">
-                <div class="d-grid">
-                  <button class="preset-btn btn active" data-value="false" onclick="layout_rtl_change('false');">
-                    <span class="btn-label">LTR</span>
-                    <span class="pc-lay-icon"><span></span><span></span><span></span><span></span></span>
-                  </button>
-                </div>
-              </div>
-              <div class="col-6">
-                <div class="d-grid">
-                  <button class="preset-btn btn" data-value="true" onclick="layout_rtl_change('true');">
-                    <span class="btn-label">RTL</span>
-                    <span class="pc-lay-icon"><span></span><span></span><span></span><span></span></span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li class="list-group-item pc-box-width">
-          <div class="pc-container-width">
-            <h6 class="mb-1">Layout Width</h6>
-            <p class="text-muted text-sm">Choose Full or Container Layout</p>
-            <div class="row theme-color theme-container">
-              <div class="col-6">
-                <div class="d-grid">
-                  <button class="preset-btn btn active" data-value="false" onclick="change_box_container('false')">
-                    <span class="btn-label">Full Width</span>
-                    <span class="pc-lay-icon"><span></span><span></span><span></span><span><span></span></span></span>
-                  </button>
-                </div>
-              </div>
-              <div class="col-6">
-                <div class="d-grid">
-                  <button class="preset-btn btn" data-value="true" onclick="change_box_container('true')">
-                    <span class="btn-label">Fixed Width</span>
-                    <span class="pc-lay-icon"><span></span><span></span><span></span><span><span></span></span></span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li class="list-group-item">
-          <div class="d-grid">
-            <button class="btn btn-light-danger" id="layoutreset">Reset Layout</button>
-          </div>
-        </li>
-      </ul>
-    </div>
-  </div>
-</div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

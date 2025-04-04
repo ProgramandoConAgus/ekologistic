@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Reset Password | Light Able Admin & Dashboard Template</title>
+  <title>Reestablecer contraseña | Eko Logistic</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <!-- [Favicon] icon -->
-  <link rel="icon" href="../assets/images/favicon.svg" type="image/x-icon" />
+   <!-- [Favicon] icon -->
+  <link rel="icon" href="./assets/images/ekologistic.png" type="image/x-icon" />
   <!-- [Google Font : Public Sans] -->
   <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- [Template CSS Files] -->

@@ -1,5 +1,6 @@
 <?php
-
+session_start();
+unset($_SESSION["IdUsuario"]);
 
 ?>
 
@@ -131,7 +132,7 @@
             confirmButtonText: 'Continuar'
           }).then(() => {
             // Redireccionar al dashboard en caso de éxito
-            window.location.href = './dashboard/index.php';
+            window.location.href = './dashboard/panel-packinglist.php';
           });
         } else {
           Swal.fire({
