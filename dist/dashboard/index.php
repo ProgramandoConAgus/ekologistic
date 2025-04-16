@@ -18,48 +18,46 @@ $end = isset($_GET['end']) ? $_GET['end'] : null;
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 try {
-    // Construir consulta base
-    $sql = "SELECT 
-        i.IdItem AS 'ITEM #',
-        c.Number_Container AS 'Number Container',
-        c.Num_OP AS 'Num OP',
-        c.Forwarder AS 'Forwarder',
-        c.Shipping_Line AS 'Shipping Line',
-        c.Destinity_POD AS 'Destinity POD',
-        c.Departure_Date_Port_Origin_EC AS 'Departure Date Port Origin EC',
-        c.Booking_BK AS 'Booking_BK',
-        COUNT(DISTINCT c.IdContainer) AS 'Total Containers',
-        SUM(i.Qty_Box) AS 'Total Boxes',
-        c.ETA_Date AS 'ETA Date',
-        c.New_ETA_Date AS 'NEW ETA DATE',
-        SUM(i.Total_Price_EC) AS 'TOTAL PRICE EC',
-        SUM(i.Total_Price_USA) AS 'TOTAL PRICE USA',
-        c.Status AS 'status',
-        c.IdContainer
-    FROM 
-        container c
-    JOIN 
-        items i ON c.IdContainer = i.idContainer
-    WHERE 
-        c.Status != 'completo'";
+  // Construir consulta base
+  $sql = "SELECT 
+      MAX(i.IdItem) AS 'ITEM #',
+      MAX(c.Number_Container) AS 'Number Container',  -- Se toma el máximo o algún valor representativo
+      MAX(c.num_dae) AS 'Num OP',
+      MAX(c.Forwarder) AS 'Forwarder',
+      MAX(c.Shipping_Line) AS 'Shipping Line',
+      MAX(c.Destinity_POD) AS 'Destinity POD',
+      MAX(c.Departure_Date_Port_Origin_EC) AS 'Departure Date Port Origin EC',
+      c.Booking_BK AS 'Booking_BK',
+      COUNT(DISTINCT c.IdContainer) AS 'Total Containers',
+      SUM(i.Qty_Box) AS 'Total Boxes',
+      MAX(c.ETA_Date) AS 'ETA Date',
+      MAX(c.New_ETA_Date) AS 'NEW ETA DATE',
+      SUM(i.Total_Price_EC) AS 'TOTAL PRICE EC',
+      SUM(i.Total_Price_USA) AS 'TOTAL PRICE USA',
+      MAX(c.Status) AS 'status',
+      c.IdContainer
+  FROM 
+      container c
+  JOIN 
+      items i ON c.IdContainer = i.idContainer
+  WHERE 
+      c.Status != 'completo'";
 
-    if ($start && $end) {
-        $sql .= " AND c.ETA_Date BETWEEN '$start 00:00:00' AND '$end 23:59:59'";
-    }
+  if ($start && $end) {
+      $sql .= " AND c.ETA_Date BETWEEN '$start 00:00:00' AND '$end 23:59:59'";
+  }
 
-    $sql .= " GROUP BY c.Number_Container 
-              ORDER BY c.Departure_Date_Port_Origin_EC DESC";
+  // Agrupar por Booking_BK para consolidar los registros asociados
+  $sql .= " GROUP BY c.Booking_BK
+            ORDER BY MAX(c.Departure_Date_Port_Origin_EC) DESC";
 
-    // Ejecutar la consulta
-    $result = $conexion->query($sql);
+  // Ejecutar la consulta
+  $result = $conexion->query($sql);
 
-    // Si llegamos aquí, la consulta se ejecutó correctamente
-    // Procede con la lógica para procesar los resultados
+  // Proceder con la lógica para procesar los resultados
 } catch (mysqli_sql_exception $e) {
-    // Captura el error y muestra un mensaje con el error de MySQL
-    echo "Error en la consulta: " . $e->getMessage();
+  echo "Error en la consulta: " . $e->getMessage();
 }
-
 
 ?>
 
@@ -357,7 +355,7 @@ try {
                     <thead>
                         <tr>
                             <th>ITEM #</th>
-                            <th>Num OP</th>
+                            <th>Num DAE</th>
                             <th>Forwarder</th>
                             <th>Shipping Line</th>
                             <th>Destinity POD</th>

@@ -18,7 +18,7 @@ $end = isset($_GET['end']) ? $_GET['end'] : null;
 $sql = "SELECT 
   i.EntryDate,
   i.IdItem as 'ITEM #',
-  c.num_op AS 'Num OP',
+  c.num_dae AS 'Num OP',
   c.Booking_BK,
   c.Number_Commercial_Invoice AS 'Number_Commercial Invoice',
   i.Number_Lot AS 'Number LOT',
@@ -337,7 +337,7 @@ $result = $conexion->query($sql);
                         <tr>
                             <th>Entry Date</th>
                             <th>ITEM #</th>
-                            <th>Num OP</th>
+                            <th>Num DAE</th>
                             <th>Booking_BK</th>
                             <th>Number_Commercial_Invoice</th>
                             <th>Number LOT</th>

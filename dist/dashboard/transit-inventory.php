@@ -17,7 +17,7 @@ $end = isset($_GET['end']) ? $_GET['end'] : null;
 // Construir consulta base sin punto y coma al final
 $sql = "SELECT 
   i.IdItem as 'ITEM #',
-  c.num_op AS 'Num OP',
+  c.num_dae AS 'Num OP',
   c.Booking_BK,
   c.Number_Container,
   i.Number_Lot AS 'Number LOT',
@@ -339,7 +339,7 @@ $result = $conexion->query($sql);
                     <thead>
                         <tr>
                             <th>ITEM #</th>
-                            <th>Num OP</th>
+                            <th>Num DAE</th>
                             <th>Booking_BK</th>
                             <th>Number_Container</th>
                             <th>Number LOT</th>

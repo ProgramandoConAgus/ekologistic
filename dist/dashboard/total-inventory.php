@@ -17,7 +17,7 @@ $end = isset($_GET['end']) ? $_GET['end'] : null;
 // Construir consulta base
 $sql = "SELECT 
   i.IdItem AS 'ITEM #',
-  c.num_op AS 'Num OP',
+  c.num_dae AS 'Num OP',
   i.Number_PO,
   i.Customer,
   i.Description,
@@ -289,12 +289,12 @@ $result = $conexion->query($sql);
                 <ul class="breadcrumb">
                   <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
                   <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
-                  <li class="breadcrumb-item" aria-current="page">Dashboard Logistic</li>
+                  <li class="breadcrumb-item" aria-current="page">Total Inventory</li>
                 </ul>
               </div>
               <div class="col-md-12">
                 <div class="page-header-title">
-                  <h2 class="mb-0">Dashboard Logistic</h2>
+                  <h2 class="mb-0">Total Inventory</h2>
                 </div>
               </div>
             </div>
@@ -326,7 +326,7 @@ $result = $conexion->query($sql);
                   <thead>
                       <tr>
                           <th>ITEM #</th>
-                          <th>Num OP</th>
+                          <th>Num DAE</th>
                           <th>Number_PO</th>
                           <th>Customer</th>
                           <th>Description</th>

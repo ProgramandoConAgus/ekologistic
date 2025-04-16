@@ -12,7 +12,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 // Construcción de la consulta SQL
 $sql = "SELECT 
     pl.IdPackingList AS 'ITEM #',
-    MAX(c.num_op) AS 'Num OP',
+    MAX(c.num_dae) AS 'Num OP',
     MAX(c.Destinity_POD) AS 'Destinity POD',
     MAX(c.Booking_BK) AS 'Booking_BK',
     MAX(c.Number_Container) AS 'Number_Container',
@@ -346,7 +346,7 @@ try {
 <thead>
     <tr>
         <th>ITEM #</th>
-        <th>Num OP</th>
+        <th>Num DAE</th>
         <th>Destinity POD</th>
         <th>Booking_BK</th>
         <th>Number_Container</th>
