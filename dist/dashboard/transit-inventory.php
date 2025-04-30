@@ -16,7 +16,8 @@ $end = isset($_GET['end']) ? $_GET['end'] : null;
 
 // Construir consulta base sin punto y coma al final
 $sql = "SELECT 
-  i.IdItem as 'ITEM #',
+  pl.IdPackingList AS 'ITEM #',
+  i.IdItem,
   c.num_op AS 'Num OP',
   c.Booking_BK,
   c.Number_Container,
@@ -31,6 +32,7 @@ $sql = "SELECT
   c.New_ETA_DATE AS 'NEW ETA DATE'
 FROM container c
 JOIN items i ON c.IdContainer = i.idContainer
+JOIN packing_list pl on pl.IdPackingList=c.idPackingList
 Where c.status!='Completed'";
 
 if ($start && $end) {
@@ -38,6 +40,26 @@ if ($start && $end) {
 }
 
 $result = $conexion->query($sql);
+
+
+
+// Contadores totales
+$total_inventory_boxes = 0; // pongo boxes por si despues los quieren ver
+$total_transit_boxes = 0; // pongo boxes por si despues los quieren ver
+$total_price = 0;
+
+// Guardo en array
+$items = [];
+while ($row = $result->fetch_assoc()) {
+    $items[] = $row;
+    
+    $total_price += $row['TOTAL PRICE EC'];
+    
+}
+
+// Reseteo
+$result->data_seek(0);
+
 
 
 ?>
@@ -55,7 +77,7 @@ $result = $conexion->query($sql);
 
 
       <!-- [Favicon] icon -->
-  <link rel="icon" href="./assets/images/ekologistic.png" type="image/x-icon" />
+  <link rel="icon" href="../assets/images/ekologistic.png" type="image/x-icon" />
 
 
     <!-- map-vector css -->
@@ -123,8 +145,8 @@ $result = $conexion->query($sql);
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
               <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
@@ -306,10 +328,36 @@ $result = $conexion->query($sql);
                 </ul>
               </div>
               <div class="col-md-12">
-                <div class="page-header-title">
-                  <h2 class="mb-0">Transit Inventory  </h2>
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="page-header-title">
+            <h2 class="mb-0">Transit Inventory</h2>
+          </div>
+          
+          <div class="d-flex gap-3">
+            <!-- Primera tarjeta -->
+            <div class="card prod-p-card bg-warning mb-0">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="prod-icon">
+                    <i class="ti ti-package text-white f-36"></i>
+                  </div>
+                  <div class="ms-auto text-end text-white">
+                    
+                      <h3 class="mb-0 text-white">
+                          
+                      $<?= number_format($total_price, 2) ?>
+                    </h3>
+                    
+                    <span>Monto Total</span>
+                   
+                  </div>
                 </div>
               </div>
+            </div>
+            
+          </div>
+        </div>
+      </div>
             </div>
           </div>
         </div>
@@ -323,22 +371,75 @@ $result = $conexion->query($sql);
         <div class="card-header d-flex align-items-center justify-content-between py-3">
           <h5 class="mb-0">Contenedores en Tránsito</h5>
           <div class="d-flex gap-2 align-items-center">
-              <!-- Input para el rango de fechas -->
-              <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
-              <button class="btn btn-sm btn-primary" onclick="aplicarFiltro()">
-                  <i class="ti ti-filter"></i> Filtrar
-              </button>
-              <button class="btn btn-sm btn-secondary" onclick="limpiarFiltro()">
+            <div class="d-flex gap-2 align-items-center">
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                  <i class="ti ti-filter"></i> Filtros avanzados
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="limpiarFiltrosAvanzados()">
                   <i class="ti ti-x"></i> Limpiar
-              </button>
+                </button>
+              </div>
           </div>
       </div>  
+       <!-- Modal de filtros -->
+       <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form id="filterForm">
+                  <!-- Filtro por Cliente -->
+                  <div class="mb-3">
+                    <label for="customerFilter" class="form-label">Cliente</label>
+                    <select class="form-select" id="customerFilter">
+                      <option value="">Todos los clientes</option>
+                      <?php
+                      // Resetear el puntero del resultado para obtener valores únicos
+                      $result->data_seek(0);
+                      $customers = [];
+                      while ($row = $result->fetch_assoc()) {
+                        if (!in_array($row['Customer'], $customers)) {
+                          $customers[] = $row['Customer'];
+                          echo '<option value="' . htmlspecialchars($row['Customer']) . '">' . htmlspecialchars($row['Customer']) . '</option>';
+                        }
+                      }
+                      $result->data_seek(0); // Resetear para el bucle principal
+                      ?>
+                    </select>
+                  </div>
+                  
+                  <!-- Filtro por Number PO -->
+                  <div class="mb-3">
+                    <label for="poFilter" class="form-label">Número de PO</label>
+                    <input type="text" class="form-control" id="poFilter" placeholder="Ingrese número de PO">
+                  </div>
+                  
+                  <!-- Filtro por Numero OP (Container) -->
+                  <div class="mb-3">
+                    <label for="containerFilter" class="form-label">Número de Contenedor (OP)</label>
+                    <input type="text" class="form-control" id="containerFilter" placeholder="Ingrese número de contenedor">
+                  </div>
+                  <div class="mb-3">
+                    <label for="containerFilter" class="form-label">Date Created</label><br>
+                    <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="card-body">
             <div class="table-responsive">
-            <table class="table table-hover" id="pc-dt-simple">
+                 <table class="table table-hover" id="pc-dt-simple">
                     <thead>
                         <tr>
-                            <th>ITEM #</th>
                             <th>Num OP</th>
                             <th>Booking_BK</th>
                             <th>Number_Container</th>
@@ -359,7 +460,6 @@ $result = $conexion->query($sql);
                            
                         ?>
                         <tr>
-                            <td><?= $row['ITEM #']?></td>
                             <td><?= $row['Num OP'] ?></td>
                             <td><?= $row['Booking_BK'] ?></td>
                             <td><?= $row['Number_Container'] ?></td>
@@ -372,7 +472,19 @@ $result = $conexion->query($sql);
                             <td>$<?= number_format($row['TOTAL PRICE EC'], 2) ?></td>
                            
                             <td><?= date('d/m/Y', strtotime($row['ETA Date'])) ?></td>
+                            <?php
+                            if ($row['NEW ETA DATE'] != null) {
+                                
+                            
+                            ?>
                             <td><?= date('d/m/Y', strtotime($row['NEW ETA DATE'])) ?></td>
+                            <?php
+                        }else{
+                            ?>
+                            <td>No cargado</td>
+                            <?php
+                        }
+                            ?>
                             <!--
                             <td>
                                 <input type="text" 
@@ -684,6 +796,86 @@ function aplicarFiltro() {
 function limpiarFiltro() {
     rangoFechas.clear();
     window.location.href = window.location.pathname;
+}
+</script>
+<script>
+  async function aplicarFiltrosAvanzados() {
+    const customer = document.getElementById('customerFilter').value;
+    const po = document.getElementById('poFilter').value;
+    const container = document.getElementById('containerFilter').value;
+    const rango = document.getElementById('rangoFechas').value.trim();
+    
+    const params = new URLSearchParams();
+    if (customer) params.append('customer', customer);
+    if (po) params.append('po', po);
+    if (container) params.append('container', container);
+    
+    if (rango) {
+        const partes = rango.split(' a ');
+        if (partes.length === 2) {
+            const [desde, hasta] = partes;
+            params.append('dateFrom', desde);
+            params.append('dateTo', hasta);
+        }
+    }
+
+    try {
+        const res = await fetch(`../api/filters/fetchTransitInventory.php?${params.toString()}`);
+        if (!res.ok) throw new Error(res.statusText);
+        const rows = await res.json();
+
+        const tbody = document.querySelector('#pc-dt-simple tbody');
+        tbody.innerHTML = '';
+
+        rows.forEach(row => {
+            const newEtaDate = row['NEW ETA DATE'] ? 
+                formatPHPDate(row['NEW ETA DATE']) : 
+                'No cargado';
+
+            const tr = `
+            <tr>
+                <td>${row['Num OP'] || ''}</td>
+                <td>${row['Booking_BK'] || ''}</td>
+                <td>${row['Number_Container'] || ''}</td>
+                <td>${row['Number LOT'] || ''}</td>
+                <td>${row['Number_PO'] || ''}</td>
+                <td>${row['Customer'] || ''}</td>
+                <td>${row['Description'] || ''}</td>
+                <td>${row['Qty_Box'] || 0}</td>
+                <td>$${Number(row['PRICE BOX EC'] || 0).toFixed(2)}</td>
+                <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
+                <td>${formatPHPDate(row['ETA Date'])}</td>
+                <td>${newEtaDate}</td>
+            </tr>`;
+            tbody.insertAdjacentHTML('beforeend', tr);
+        });
+
+        // Cerrar modal
+        const modalEl = document.getElementById('filterModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+
+    } catch (err) {
+        console.error('Error al cargar datos:', err);
+    }
+}
+
+// Función para formatear fechas en formato PHP (d/m/Y)
+function formatPHPDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return isNaN(date) ? '' : 
+        `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+}
+
+async function limpiarFiltrosAvanzados() {
+    // Limpiar inputs
+    document.getElementById('customerFilter').value = '';
+    document.getElementById('poFilter').value = '';
+    document.getElementById('containerFilter').value = '';
+    document.getElementById('rangoFechas').value = '';
+
+    await aplicarFiltrosAvanzados(); // Reutilizamos la misma función
 }
 </script>
 

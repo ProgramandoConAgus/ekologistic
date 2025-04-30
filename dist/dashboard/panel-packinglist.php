@@ -59,7 +59,7 @@ try {
 
 
       <!-- [Favicon] icon -->
-  <link rel="icon" href="./assets/images/ekologistic.png" type="image/x-icon" />
+  <link rel="icon" href="../assets/images/ekologistic.png" type="image/x-icon" />
 
     <!-- map-vector css -->
     <link rel="stylesheet" href="../assets/css/plugins/jsvectormap.min.css">
@@ -80,6 +80,9 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Agrega esto en tu <head> -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
     /* Ajustes para el modal y Handsontable */
     .modal-xl {
@@ -98,6 +101,7 @@ try {
     .htCore td {
         white-space: nowrap;
     }
+    
 </style>
 <link rel="stylesheet" href="./tipografia.css">
 </head>
@@ -137,8 +141,8 @@ try {
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
               <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
@@ -333,66 +337,130 @@ try {
           
         <div class="col-md-12 col-xl-12">
     <div class="card table-card">
-        <div class="card-header d-flex align-items-center justify-content-between py-3">
+        <div class="card-header d-flex align-items-center justify-content-end py-3">
             <h5 class="mb-0"></h5>
-            <button class="btn btn-sm btn-success">
+            <div class="d-flex gap-2 align-items-center">
+              <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                <i class="ti ti-filter"></i> Filtros avanzados
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="limpiarFiltrosAvanzados()">
+                <i class="ti ti-x"></i> Limpiar
+              </button>
+            </div>
+            <button style="margin-left:3%;" class="btn btn-sm btn-success">
                 <a class="text-white" href="../forms/importarpk.php">Nuevo Packing List</a>
             </button>
+        </div>
+        <!-- Modal de filtros -->
+        <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form id="filterForm">
+                  <!-- Filtro por Cliente 
+                  <div class="mb-3">
+                    <label for="customerFilter" class="form-label">Cliente</label>
+                    <select class="form-select" id="customerFilter">
+                      <option value="">Todos los clientes</option>
+                      <?php
+                      // Resetear el puntero del resultado para obtener valores únicos
+                      $result->data_seek(0);
+                      $customers = [];
+                      while ($row = $result->fetch_assoc()) {
+                        if (!in_array($row['Customer'], $customers)) {
+                          $customers[] = $row['Customer'];
+                          echo '<option value="' . htmlspecialchars($row['Customer']) . '">' . htmlspecialchars($row['Customer']) . '</option>';
+                        }
+                      }
+                      $result->data_seek(0); // Resetear para el bucle principal
+                      ?>
+                    </select>
+                  </div>
+                  -->
+                  <!-- Filtro por Number PO 
+                  <div class="mb-3">
+                    <label for="poFilter" class="form-label">Número de PO</label>
+                    <input type="text" class="form-control" id="poFilter" placeholder="Ingrese número de PO">
+                  </div>
+                  -->
+                  <!-- Filtro por Numero OP (Container) -->
+                  <div class="mb-3">
+                    <label for="containerFilter" class="form-label">Número de Contenedor (OP)</label>
+                    <input type="text" class="form-control" id="containerFilter" placeholder="Ingrese número de contenedor">
+                  </div>
+                  <div class="mb-3">
+                    <label for="containerFilter" class="form-label">Date Created</label><br>
+                    <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="card-body">
     <div class="table-responsive">
         <table class="table table-hover" id="pc-dt-simple">
            <!-- Encabezados de la tabla -->
-<thead>
-    <tr>
-        <th>ITEM #</th>
-        <th>Num OP</th>
-        <th>Destinity POD</th>
-        <th>Booking_BK</th>
-        <th>Number_Container</th>
-        <th>Qty_Box</th>
-        <th>TOTAL PRICE EC</th>
-        <th>Date created</th>
-        <th>Hour</th>
-        <th>User Name</th>
-        <th>File Home</th>
-        <th>STATUS</th>
-    </tr>
-</thead>
+          <thead>
+              <tr>
+                  <th>Num OP</th>
+                  <th>Destinity POD</th>
+                  <th>Booking_BK</th>
+                  <th>Number_Container</th>
+                  <th>Qty_Box</th>
+                  <th>TOTAL PRICE EC</th>
+                  <th>Date created</th>
+                  <th>Hour</th>
+                  <th>User Name</th>
+                  <th>File Home</th>
+                  <th>STATUS </th>
+              </tr>
+          </thead>
 
-<!-- Cuerpo de la tabla -->
-<tbody>
-    <?php while($packings = $result->fetch_assoc()) { ?>
-    <tr>
-        <td><?= $packings['ITEM #'] ?></td>
-        <td><?= $packings['Num OP'] ?></td>
-        <td><?= $packings['Destinity POD'] ?></td>
-        <td><?= $packings['Booking_BK'] ?></td>
-        <td><?= $packings['Number_Container'] ?></td>
-        <td><?= $packings['Qty_Box'] ?></td>
-        <td><?= number_format($packings['TOTAL PRICE EC'], 2) ?></td>
-        <td><?= date('Y-m-d', strtotime($packings['Date created'])) ?></td>
-        <td><?= $packings['Hour'] ?></td>
-        <td><?= $packings['User Name']  ?></td>
-        <td>
-            <div class="d-flex gap-0">
-                <button class="btn d-flex align-items-center btn-edit-excel" 
-                        data-excel-path="<?= $packings['File Home'] ?>" 
-                        data-packing-id="<?= $packings['ITEM #'] ?>">
-                    <i class="ti ti-edit f-30"></i>
-                </button>
+          <!-- Cuerpo de la tabla -->
+          <tbody>
+              <?php while($packings = $result->fetch_assoc()) { ?>
+              <tr>
+                  <td><?= $packings['Num OP'] ?></td>
+                  <td><?= $packings['Destinity POD'] ?></td>
+                  <td><?= $packings['Booking_BK'] ?></td>
+                  <td><?= $packings['Number_Container'] ?></td>
+                  <td><?= $packings['Qty_Box'] ?></td>
+                  <td><?= number_format($packings['TOTAL PRICE EC'], 2) ?></td>
+                  <td><?= date('d-m-Y', strtotime($packings['Date created'])) ?></td>
+                  <td><?= $packings['Hour'] ?></td>
+                  <td><?= $packings['User Name']  ?></td>
+                  <td>
+                      <div class="d-flex gap-0">
+                          <button class="btn d-flex align-items-center btn-edit-excel" 
+                                  data-excel-path="<?= $packings['File Home'] ?>" 
+                                  data-packing-id="<?= $packings['ITEM #'] ?>">
+                              <i class="ti ti-edit f-30"></i>
+                          </button>
 
-                <a href="<?= $packings['File Home'] ?>" download class="btn d-flex align-items-center btn-download-excel">
-                    <i class="ti ti-download f-30"></i>
-                </a>
-            </div>
-        </td>
-
-
-        <td><?= $packings['STATUS'] ?></td>
-    </tr>
-    <?php } ?>
-</tbody>
+                          <a href="<?= $packings['File Home'] ?>" download class="btn d-flex align-items-center btn-download-excel">
+                              <i class="ti ti-download f-30"></i>
+                          </a>
+                      </div>
+                  </td>
+                  <td >
+                    <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" 
+                      data-id="<?=$packings['ITEM #'] ?>">
+                      <option value="Inicial" <?= $packings['STATUS'] == 'Inicial' ? 'selected' : '' ?>>Inicial</option>
+                      <option value="Completado" <?= $packings['STATUS'] == 'Completado' ? 'selected' : '' ?>>Completado</option>
+                    </select>
+                  </td>
+              </tr>
+              <?php } ?>
+          </tbody>
         </table>
     </div>
 </div>
@@ -418,7 +486,9 @@ try {
     </div>
 </div>
 <!-- Fin Modal edicion-->
-
+ 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script> <!-- Soporte en español -->
 <script>
 function confirmDelete(blNumber) {
     if (confirm(`¿Estás seguro de que quieres eliminar el BL ${blNumber}?`)) {
@@ -426,6 +496,74 @@ function confirmDelete(blNumber) {
         console.log(`BL ${blNumber} eliminado.`);
     }
 }
+// Inicializar Flatpickr con configuración en español y un solo mes
+const rangoFechas = flatpickr("#rangoFechas", {
+    mode: "range",
+    locale: "es",
+    dateFormat: "Y-m-d",  // Formato para backend
+    altInput: true,
+    altFormat: "d/m/Y",   // Formato visual
+    static: true,         // Calendario fijo
+    showMonths: 1,        // Mostrar solo un mes
+    allowInput: false,
+    onReady: function(selectedDates, dateStr, instance) {
+        // Restaurar fechas desde URL
+        const params = new URLSearchParams(window.location.search);
+        if(params.has('dateFrom') && params.has('dateTo')) {
+            instance.setDate([
+                params.get('dateFrom'),
+                params.get('dateTo')
+            ]);
+        }
+    },
+    onChange: function(selectedDates, dateStr, instance) {
+        // Actualizar texto alternativo
+        if(selectedDates.length === 2) {
+            const [start, end] = selectedDates;
+            instance.altInput.value = 
+                instance.formatDate(start, 'd/m/Y') + ' a ' + 
+                instance.formatDate(end, 'd/m/Y');
+        }
+    }
+});
+</script>
+
+<!-- ACTUALIZAR STATUS -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Guardar cambios en Status
+    document.querySelectorAll('.status-select').forEach(select => {
+        select.addEventListener('change', function () {
+            const id = this.getAttribute('data-id'); // Id del packinglist
+            const value = this.value; // Nuevo valor seleccionado
+
+            actualizarStatus(id, value);
+        });
+    });
+
+    function actualizarStatus(id, value) {
+        debugger
+        fetch('../api/actualizar_status_p.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, value }) // Enviamos solo id y value
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+              Swal.fire({
+              title: 'Éxito',
+              text: data.message,
+              icon: 'success',
+              confirmButtonText: 'Continuar'
+            });
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+});
 </script>
 
 </div>
@@ -460,7 +598,7 @@ function confirmDelete(blNumber) {
 
         // Abrir modal con editor
         document.querySelectorAll('.btn-edit-excel').forEach(btn => {
-    btn.addEventListener('click', function() {
+      btn.addEventListener('click', function() {
         currentExcelPath = this.dataset.excelPath;
         currentPackingId = this.dataset.packingId;
         
@@ -492,8 +630,79 @@ function confirmDelete(blNumber) {
                     hot.view.adjustElementsSize();
                 });
             });
-    });
-});
+          });
+      });
+
+        // Guardar cambios
+        document.getElementById('guardarCambios').addEventListener('click', function() {
+            const datos = hot.getData();
+            
+            fetch('../api/guardar_excel.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    path: currentExcelPath,
+                    packingId: currentPackingId,
+                    data: datos
+                })
+            })
+            .then(response => {
+                if(!response.ok) throw new Error('Error al guardar');
+                return response.json();
+            })
+            .then(result => {
+                if(result.success) {
+                    location.reload();
+                } else {
+                    throw new Error(result.error || 'Error desconocido');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al guardar cambios: ' + error.message);
+            });
+        });
+    }); document.addEventListener('DOMContentLoaded', function() {
+        let hot;
+        let currentExcelPath;
+        let currentPackingId;
+
+        // Abrir modal con editor
+        document.querySelectorAll('.btn-edit-excel').forEach(btn => {
+      btn.addEventListener('click', function() {
+        currentExcelPath = this.dataset.excelPath;
+        currentPackingId = this.dataset.packingId;
+        
+        fetch(`../api/leer_excel.php?path=${encodeURIComponent(currentExcelPath)}&packingId=${currentPackingId}`)
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('excelEditor');
+                
+                if(!hot) {
+                    hot = new Handsontable(container, {
+                        data: data,
+                        rowHeaders: true,
+                        colHeaders: true,
+                        contextMenu: true,
+                        licenseKey: 'tu-licencia',
+                        stretchH: 'all', // Ajustar columnas al ancho
+                        width: '100%',
+                        height: '70vh',
+                        manualColumnResize: true,
+                        manualRowResize: true
+                    });
+                } else {
+                    hot.updateSettings({data: data});
+                }
+                
+                // Redimensionar después de mostrar el modal
+                $('#editExcelModal').modal('show').on('shown.bs.modal', function() {
+                    hot.render();
+                    hot.view.adjustElementsSize();
+                });
+            });
+          });
+      });
 
         // Guardar cambios
         document.getElementById('guardarCambios').addEventListener('click', function() {
@@ -526,7 +735,7 @@ function confirmDelete(blNumber) {
         });
     });
     </script>
-    <script>
+  <script>
 // Forzar redimensionamiento al cambiar tamaño de ventana
 window.addEventListener('resize', function() {
     if (hot) {
@@ -535,6 +744,235 @@ window.addEventListener('resize', function() {
     }
 });
 </script>
+
+
+
+
+
+<script>
+
+// Función para inicializar listeners de status
+function initStatusListeners() {
+    document.querySelectorAll('.status-select').forEach(select => {
+        select.removeEventListener('change', handleStatusChange); // Eliminar existentes
+        select.addEventListener('change', handleStatusChange);
+    });
+}
+
+function handleStatusChange() {
+    const id = this.getAttribute('data-id');
+    const value = this.value;
+    actualizarStatus(id, value);
+}
+async function actualizarStatus(id, value) {
+    try {
+        const response = await fetch('../api/actualizar_status_p.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, value })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            Swal.fire({
+                title: 'Éxito',
+                text: data.message,
+                icon: 'success',
+                confirmButtonText: 'Continuar'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: data.error || 'Error desconocido',
+                icon: 'error',
+                confirmButtonText: 'Entendido'
+            });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor',
+            icon: 'error'
+        });
+    }
+}
+
+async function aplicarFiltrosAvanzados() {
+
+const container = document.getElementById('containerFilter').value;
+const rango = document.getElementById('rangoFechas').value.trim();
+
+const params = new URLSearchParams();
+if (container) params.append('container', container);
+
+if (rango) {
+    const partes = rango.split(' a ');
+    if (partes.length === 2) {
+        const [desde, hasta] = partes;
+        params.append('dateFrom', desde);
+        params.append('dateTo', hasta);
+    }
+}
+
+try {
+    const res = await fetch(`../api/filters/fetchPanelPL.php?${params.toString()}`);
+    if (!res.ok) throw new Error(res.statusText);
+    const rows = await res.json();
+
+    const tbody = document.querySelector('#pc-dt-simple tbody');
+    tbody.innerHTML = '';
+
+    rows.forEach(row => {
+        const tr = `
+        <tr>
+            <td>${row['Num OP'] || ''}</td>
+            <td>${row['Destinity POD'] || ''}</td>
+            <td>${row['Booking_BK'] || ''}</td>
+            <td>${row['Number_Container'] || ''}</td>
+            <td>${row['Qty_Box'] || 0}</td>
+            <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
+            <td>${formatDate(row['Date created'])}</td>
+            <td>${row['Hour'] || ''}</td>
+            <td>${row['User Name'] || ''}</td>
+            <td>
+                <div class="d-flex gap-0">
+                    <button class="btn d-flex align-items-center btn-edit-excel" 
+                            data-excel-path="${row['File Home'] || '#'}" 
+                            data-packing-id="${row['ITEM #'] || ''}">
+                        <i class="ti ti-edit f-30"></i>
+                    </button>
+                    <a href="${row['File Home'] || '#'}" download 
+                        class="btn d-flex align-items-center btn-download-excel">
+                        <i class="ti ti-download f-30"></i>
+                    </a>
+                </div>
+            </td>
+            <td>
+                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" 
+                        data-id="${row['ITEM #'] || ''}">
+                    <option value="Inicial" ${row.STATUS === 'Inicial' ? 'selected' : ''}>Inicial</option>
+                    <option value="Completado" ${row.STATUS === 'Completado' ? 'selected' : ''}>Completado</option>
+                </select>
+            </td>
+        </tr>`;
+        tbody.insertAdjacentHTML('beforeend', tr);
+    });
+
+    initStatusListeners();
+    initEditButtons();
+    const modalEl = document.getElementById('filterModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    modal?.hide();
+
+} catch (err) {
+    console.error('Error al cargar datos:', err);
+    Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
+}
+}
+
+function formatDate(dateString) {
+if (!dateString) return '';
+const date = new Date(dateString);
+return isNaN(date) ? '' : 
+    `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
+}
+
+async function limpiarFiltrosAvanzados() {
+  document.getElementById('containerFilter').value = '';
+  document.getElementById('rangoFechas').value = '';
+
+  try {
+      const res = await fetch(`../api/filters/fetchPanelPL.php`);
+      if (!res.ok) throw new Error(res.statusText);
+      const rows = await res.json();
+
+      const tbody = document.querySelector('#pc-dt-simple tbody');
+      tbody.innerHTML = '';
+
+      rows.forEach(row => {
+        const tr = `
+        <tr>
+            <td>${row['Num OP'] || ''}</td>
+            <td>${row['Destinity POD'] || ''}</td>
+            <td>${row['Booking_BK'] || ''}</td>
+            <td>${row['Number_Container'] || ''}</td>
+            <td>${row['Qty_Box'] || 0}</td>
+            <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
+            <td>${formatDate(row['Date created'])}</td>
+            <td>${row['Hour'] || ''}</td>
+            <td>${row['User Name'] || ''}</td>
+            <td>
+                <div class="d-flex gap-0">
+                    <button class="btn d-flex align-items-center btn-edit-excel" 
+                            data-excel-path="${row['File Home'] || '#'}" 
+                            data-packing-id="${row['ITEM #'] || ''}">
+                        <i class="ti ti-edit f-30"></i>
+                    </button>
+                    <a href="${row['File Home'] || '#'}" download 
+                        class="btn d-flex align-items-center btn-download-excel">
+                        <i class="ti ti-download f-30"></i>
+                    </a>
+                </div>
+            </td>
+            <td>
+                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" 
+                        data-id="${row['ITEM #'] || ''}">
+                    <option value="Inicial" ${row.STATUS === 'Inicial' ? 'selected' : ''}>Inicial</option>
+                    <option value="Completado" ${row.STATUS === 'Completado' ? 'selected' : ''}>Completado</option>
+                </select>
+            </td>
+        </tr>`;
+        tbody.insertAdjacentHTML('beforeend', tr);
+      });
+
+      initStatusListeners();
+      initEditButtons();
+      const modalEl = document.getElementById('filterModal');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal?.hide();
+
+  } catch (err) {
+      console.error('Error al cargar datos:', err);
+      Swal.fire('Error', 'No se pudieron resetear los filtros', 'error');
+  }
+}
+
+// Inicialización al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+initStatusListeners();
+initEditButtons();
+});
+
+// Función para botones de edición (ejemplo básico)
+function initEditButtons() {
+document.querySelectorAll('.btn-edit-excel').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const packingId = this.dataset.packingId;
+        const excelPath = this.dataset.excelPath;
+        // Lógica de edición aquí
+        console.log('Editar:', packingId, excelPath);
+    });
+});
+}
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     <!-- [Page Specific JS] start -->
     <script src="../assets/js/plugins/apexcharts.min.js"></script>
@@ -550,11 +988,6 @@ window.addEventListener('resize', function() {
     <script src="../assets/js/fonts/custom-font.js"></script>
     <script src="../assets/js/pcoded.js"></script>
     <script src="../assets/js/plugins/feather.min.js"></script>
-
-    
-    
-    
-    
     <script>layout_change('light');</script>
     
     

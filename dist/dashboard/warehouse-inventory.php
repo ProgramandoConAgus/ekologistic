@@ -3,9 +3,14 @@ session_start();
 include('../usuarioClass.php');
 include("../con_db.php");
 $IdUsuario=$_SESSION["IdUsuario"];
+if (!isset($_SESSION['IdUsuario'])) {
+  header("Location: ../");
+}
 if(!$_SESSION["IdUsuario"]){
   header("Location: ../");
 }
+
+
 $usuario= new Usuario($conexion);
 
 $user=$usuario->obtenerUsuarioPorId($IdUsuario);
@@ -16,8 +21,9 @@ $end = isset($_GET['end']) ? $_GET['end'] : null;
 
 // Construir consulta base
 $sql = "SELECT 
+  pl.IdPackingList AS 'ITEM #',
   i.EntryDate,
-  i.IdItem as 'ITEM #',
+  i.IdItem,
   c.num_op AS 'Num OP',
   c.Booking_BK,
   c.Number_Commercial_Invoice AS 'Number_Commercial Invoice',
@@ -27,14 +33,33 @@ $sql = "SELECT
   i.Description,
   i.Qty_Box,
   i.Price_Box_EC AS 'PRICE BOX EC',
-  i.Total_Price_EC AS 'TOTAL PRICE EC'
+  i.Total_Price_EC AS 'TOTAL PRICE EC',
+  c.Number_Container AS 'Number_Container'
 FROM container c
 JOIN items i ON c.IdContainer = i.idContainer
+JOIN packing_list pl on pl.IdPackingList=c.idPackingList
 WHERE c.status='Completed';
 ";
 
 
 $result = $conexion->query($sql);
+
+// Contadores totales
+$total_inventory_boxes = 0; // pongo boxes por si despues los quieren ver
+$total_transit_boxes = 0; // pongo boxes por si despues los quieren ver
+$total_price = 0;
+
+// Guardo en array
+$items = [];
+while ($row = $result->fetch_assoc()) {
+    $items[] = $row;
+    
+    $total_price += $row['TOTAL PRICE EC'];
+    
+}
+
+// Reseteo
+$result->data_seek(0);
 
 ?>
 
@@ -51,7 +76,7 @@ $result = $conexion->query($sql);
 
 
        <!-- [Favicon] icon -->
-  <link rel="icon" href="./assets/images/ekologistic.png" type="image/x-icon" />
+  <link rel="icon" href="../assets/images/ekologistic.png" type="image/x-icon" />
 
 
     <!-- map-vector css -->
@@ -119,8 +144,8 @@ $result = $conexion->query($sql);
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
               <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
@@ -301,11 +326,37 @@ $result = $conexion->query($sql);
                   <li class="breadcrumb-item" aria-current="page">Warehouse Inventory</li>
                 </ul>
               </div>
-              <div class="col-md-12">
-                <div class="page-header-title">
-                  <h2 class="mb-0">Warehouse Inventory</h2>
+               <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="page-header-title">
+            <h2 class="mb-0">Warehouse Inventory</h2>
+          </div>
+          
+          <div class="d-flex gap-3">
+            <!-- Primera tarjeta -->
+            <div class="card prod-p-card bg-warning mb-0">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="prod-icon">
+                    <i class="ti ti-package text-white f-36"></i>
+                  </div>
+                  <div class="ms-auto text-end text-white">
+                    
+                      <h3 class="mb-0 text-white">
+                          
+                      $<?= number_format($total_price, 2) ?>
+                    </h3>
+                    
+                    <span>Monto Total</span>
+                   
+                  </div>
                 </div>
               </div>
+            </div>
+            
+          </div>
+        </div>
+      </div>
             </div>
           </div>
         </div>
@@ -318,27 +369,81 @@ $result = $conexion->query($sql);
     <div class="card table-card">
         <div class="card-header d-flex align-items-center justify-content-between py-3">
           <h5 class="mb-0"></h5>
-          <!--
-          <div class="d-flex gap-2 align-items-center">-->
-              <!-- Input para el rango de fechas --><!--
-              <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
-              <button class="btn btn-sm btn-primary" onclick="aplicarFiltro()">
-                  <i class="ti ti-filter"></i> Filtrar
-              </button>
-              <button class="btn btn-sm btn-secondary" onclick="limpiarFiltro()">
+          <div class="d-flex gap-2 align-items-center">
+            <div class="d-flex gap-2 align-items-center">
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                  <i class="ti ti-filter"></i> Filtros avanzados
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="limpiarFiltrosAvanzados()">
                   <i class="ti ti-x"></i> Limpiar
-              </button>
-          </div>-->
+                </button>
+              </div>
+          </div>
       </div>  
+      <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form id="filterForm">
+                  <!-- Filtro por Cliente -->
+                  <div class="mb-3">
+                    <label for="customerFilter" class="form-label">Cliente</label>
+                    <select class="form-select" id="customerFilter">
+                      <option value="">Todos los clientes</option>
+                      <?php
+                      // Resetear el puntero del resultado para obtener valores únicos
+                      $result->data_seek(0);
+                      $customers = [];
+                      while ($row = $result->fetch_assoc()) {
+                        if (!in_array($row['Customer'], $customers)) {
+                          $customers[] = $row['Customer'];
+                          echo '<option value="' . htmlspecialchars($row['Customer']) . '">' . htmlspecialchars($row['Customer']) . '</option>';
+                        }
+                      }
+                      $result->data_seek(0); // Resetear para el bucle principal
+                      ?>
+                    </select>
+                  </div>
+                  
+                  <!-- Filtro por Number PO -->
+                  <div class="mb-3">
+                    <label for="poFilter" class="form-label">Número de PO</label>
+                    <input type="text" class="form-control" id="poFilter" placeholder="Ingrese número de PO">
+                  </div>
+                  
+                  <!-- Filtro por Numero OP (Container) -->
+                  <div class="mb-3">
+                    <label for="containerFilter" class="form-label">Número de Contenedor (OP)</label>
+                    <input type="text" class="form-control" id="containerFilter" placeholder="Ingrese número de contenedor">
+                  </div>
+                  <!--
+                  <div class="mb-3">
+                    <label for="containerFilter" class="form-label">Date Created</label><br>
+                    <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
+                  </div>
+                    -->
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="card-body">
             <div class="table-responsive">
             <table class="table table-hover" id="pc-dt-simple">
                     <thead>
                         <tr>
                             <th>Entry Date</th>
-                            <th>ITEM #</th>
                             <th>Num OP</th>
                             <th>Booking_BK</th>
+                            <th>Number_Container</th>
                             <th>Number_Commercial_Invoice</th>
                             <th>Number LOT</th>
                             <th>Number_PO</th>
@@ -358,15 +463,15 @@ $result = $conexion->query($sql);
                             <td>
                                 <input type="text" 
                                     class="entry-date-picker form-control form-control-sm" 
-                                    data-id="<?= $row['ITEM #'] ?>" 
+                                    data-id="<?= $row['IdItem'] ?>" 
                                     value="<?= !empty($row['EntryDate']) && $row['EntryDate'] != '0000-00-00' 
                                                 ? date('d/m/Y', strtotime($row['EntryDate'])) 
                                                 : '' ?>"
                                     placeholder="dd/mm/yyyy">
                             </td>
-                            <td><?= $row['ITEM #']?></td>
                             <td><?= $row['Num OP'] ?></td>
                             <td><?= $row['Booking_BK'] ?></td>
+                            <td><?= $row['Number_Container'] ?></td>
                             <td><?= $row['Number_Commercial Invoice'] ?></td>
                             <td><?= $row['Number LOT']?></td>
                             <td><?= $row['Number_PO'] ?></td>
@@ -583,53 +688,56 @@ function confirmDelete(blNumber) {
 </div>
 <!--ACTUALIZAR FECHA ENTRY-->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    flatpickr(".entry-date-picker", {
-        dateFormat: "d/m/Y",
-        locale: "es",
-        allowInput: true,
-        placeholder: "dd/mm/yyyy",
-        onChange: function(selectedDates, dateStr, instance) {
-            const itemId = instance.element.dataset.id;
-            const nuevaFecha = dateStr; // Usar el string directamente
-            
-            actualizarFechaEntry(itemId, nuevaFecha, instance);
+
+async function actualizarFechaEntry(id, fecha, instance) {
+    try {
+        const body = {
+            id: parseInt(id),
+            fecha: fecha || ''
+        };
+
+        const response = await fetch('../api/actualizar_entry.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+
+        const result = await response.json();
+        
+        if(!response.ok || !result.success) {
+            instance.setDate(instance.input.value, true, 'd/m/Y');
+            Swal.fire('Error', result.error || 'Error al actualizar', 'error');
+        } else {
+            instance.element.classList.add('border-success');
+            setTimeout(() => {
+                instance.element.classList.remove('border-success');
+            }, 2000);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        instance.setDate(instance.input.value, true, 'd/m/Y');
+        Swal.fire('Error', 'Error de conexión', 'error');
+        
+    }
+}
+
+// Inicializar datepickers
+function initEntryDatePickers() {
+    document.querySelectorAll('.entry-date-picker').forEach(input => {
+        if (!input._flatpickr) {
+            flatpickr(input, {
+                dateFormat: "d/m/Y",
+                locale: "es",
+                allowInput: true,
+                placeholder: "dd/mm/yyyy",
+                onChange: function(selectedDates, dateStr, instance) {
+                    const itemId = instance.element.dataset.id;
+                    actualizarFechaEntry(itemId, dateStr, instance);
+                }
+            });
         }
     });
-
-    async function actualizarFechaEntry(id, fecha, instance) {
-        try {
-            const body = {
-                id: parseInt(id),
-                fecha: fecha || ''
-            };
-
-            const response = await fetch('../api/actualizar_entry.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(body)
-            });
-
-            const result = await response.json();
-            
-            if(!response.ok || !result.success) {
-                // Restaurar valor anterior
-                instance.setDate(instance.input.value, true, 'd/m/Y');
-                alert(result.error || 'Error desconocido');
-            } else {
-                // Feedback visual
-                instance.element.classList.add('border-success');
-                setTimeout(() => {
-                    instance.element.classList.remove('border-success');
-                }, 2000);
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            instance.setDate(instance.input.value, true, 'd/m/Y');
-            alert('Error de conexión');
-        }
-    }
-});
+}
 </script>
 
 <!-- FILTRO DE FECHA -->
@@ -673,6 +781,97 @@ function limpiarFiltro() {
     rangoFechas.clear();
     window.location.href = window.location.pathname;
 }
+</script>
+
+
+
+
+<script>
+  function formatPHPDate(dateString) {
+    if (!dateString || dateString === '0000-00-00') return '';
+    
+    // Convertir fecha PHP (Y-m-d) a Date object
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(`${year}-${month}-${day}`);
+    
+    return isNaN(date) ? '' : 
+        `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+}
+async function aplicarFiltrosAvanzados() {
+    const customer = document.getElementById('customerFilter').value;
+    const po = document.getElementById('poFilter').value;
+    const container = document.getElementById('containerFilter').value;
+    
+    const params = new URLSearchParams();
+    if (customer) params.append('customer', customer);
+    if (po) params.append('po', po);
+    if (container) params.append('container', container);
+
+    try {
+        const res = await fetch(`../api/filters/fetchWarehouseInventory.php?${params.toString()}`);
+        if (!res.ok) throw new Error(res.statusText);
+        const rows = await res.json();
+
+        const tbody = document.querySelector('#pc-dt-simple tbody');
+        tbody.innerHTML = '';
+
+        rows.forEach(row => {
+          const entryDate = formatPHPDate(row['EntryDate']);
+
+
+            const tr = `
+            <tr>
+                <td>
+                    <input type="text" 
+                        class="entry-date-picker form-control form-control-sm" 
+                        data-id="${row['IdItem'] || ''}" 
+                        value="${entryDate}" 
+                        placeholder="dd/mm/yyyy">
+                </td>
+                <td>${row['Num OP'] || ''}</td>
+                <td>${row['Booking_BK'] || ''}</td>
+                <td>${row['Number_Container'] || ''}</td>
+                <td>${row['Number_Commercial Invoice'] || ''}</td>
+                <td>${row['Number LOT'] || ''}</td>
+                <td>${row['Number_PO'] || ''}</td>
+                <td>${row['Customer'] || ''}</td>
+                <td>${row['Description'] || ''}</td>
+                <td>${row['Qty_Box'] || 0}</td>
+                <td>$${Number(row['PRICE BOX EC'] || 0).toFixed(2)}</td>
+                <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
+            </tr>`;
+            tbody.insertAdjacentHTML('beforeend', tr);
+        });
+        initEntryDatePickers();
+
+        // Cerrar modal
+        const modalEl = document.getElementById('filterModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+
+    } catch (err) {
+        console.error('Error al cargar datos:', err);
+    }
+}
+
+function formatPHPDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return isNaN(date) ? '' : 
+        `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+}
+
+async function limpiarFiltrosAvanzados() {
+    document.getElementById('customerFilter').value = '';
+    document.getElementById('poFilter').value = '';
+    document.getElementById('containerFilter').value = '';
+    initEntryDatePickers();
+
+    await aplicarFiltrosAvanzados();
+}
+document.addEventListener('DOMContentLoaded', function() {
+    initEntryDatePickers();
+});
 </script>
 
 

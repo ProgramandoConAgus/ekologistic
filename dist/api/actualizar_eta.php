@@ -25,9 +25,9 @@ try {
         SELECT c.IdContainer
         FROM container c
         INNER JOIN packing_list pl ON c.idPackingList = pl.IdPackingList
-        WHERE c.IdContainer = ? AND pl.IdUsuario = ?
+        WHERE c.IdContainer = ? 
     ");
-    $stmt->bind_param("ii", $id, $_SESSION['IdUsuario']);
+    $stmt->bind_param("i", $id);
     $stmt->execute();
     $result = $stmt->get_result();
     

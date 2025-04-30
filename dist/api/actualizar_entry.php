@@ -36,13 +36,13 @@ try {
         FROM items i
         INNER JOIN container c ON i.IdContainer = c.IdContainer
         INNER JOIN packing_list pl ON c.idPackingList = pl.IdPackingList
-        WHERE i.IdItem = ? AND pl.IdUsuario = ?
+        WHERE i.IdItem = ?
     ");
-    $stmt->bind_param("ii", $idItem, $_SESSION['IdUsuario']);
+    $stmt->bind_param("i", $idItem);
     $stmt->execute();
     
     if ($stmt->get_result()->num_rows === 0) {
-        throw new Exception('Item no encontrado o sin permisos', 403);
+        throw new Exception('Item no encontrado o sin permisos: '.$idItem  , 403);
     }
 
     // Actualizar con posible NULL
