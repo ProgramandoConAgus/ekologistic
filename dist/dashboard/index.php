@@ -351,41 +351,50 @@ try {
               <i class="ti ti-x"></i> Limpiar
             </button>
           </div>
-      </div>  
+      </div>    
       <!-- Modal de filtros -->
-<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form id="filterForm">
-          <!-- Filtro por Number PO 
-          <div class="mb-3">
-            <label for="poFilter" class="form-label">Número de PO</label>
-            <input type="text" class="form-control" id="poFilter" placeholder="Ingrese número de PO">
-          </div>
-          -->
-          <!-- Filtro por Numero OP (Container) -->
-          <div class="mb-3">
-            <label for="containerFilter" class="form-label">Num OP</label>
-            <input type="text" class="form-control" id="containerFilter" placeholder="Ingrese número de contenedor">
-          </div>
-          <div class="mb-3">
-            <label for="containerFilter" class="form-label">ETA DATE</label><br>
-            <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
+      <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        </form>
+            <div class="modal-body">
+              <form id="filterForm">
+                <!-- Filtro por Num OP -->
+                <div class="mb-3">
+                  <label for="numOpFilter" class="form-label">Num OP</label>
+                  <input type="text" class="form-control" id="numOpFilter" placeholder="Ingrese número de OP">
+                </div>
+
+                <!-- Filtro por Destiny POD -->
+                <div class="mb-3">
+                  <label for="destinyFilter" class="form-label">Destiny POD</label>
+                  <input type="text" class="form-control" id="destinyFilter" placeholder="Ingrese Destiny POD">
+                </div>
+
+                <!-- Filtro por ETA Date -->
+                <div class="mb-3">
+                  <label for="rangoFechas" class="form-label">ETA Date</label><br>
+                  <input
+                    type="text"
+                    id="rangoFechas"
+                    class="form-control form-control-sm"
+                    placeholder="Seleccione rango"
+                    style="max-width: 220px;"
+                    readonly>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+              <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
-      </div>
-    </div>
-  </div>
-</div>
+
         <div class="card-body">
             <div class="table-responsive">
             <table class="table table-hover" id="pc-dt-simple">
@@ -1015,58 +1024,42 @@ function handleSaveClick(buttonClass, inputClass, endpoint) {
     });
 }
 
-async function aplicarFiltrosAvanzados() {
-  const container = document.getElementById("containerFilter").value;
-  const rango = document.getElementById("rangoFechas").value.trim(); // Limpiar espacios
-  const params = new URLSearchParams();
+// filtros.js
 
-  if (container) params.append("container", container);
+// Función para convertir texto de fecha a ISO
+function toISODate(str) {
+  let d, m, y;
+  if (str.includes("-")) {
+    [y, m, d] = str.split("-");
+  } else if (str.includes("/")) {
+    [d, m, y] = str.split("/");
+  }
+  if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
+  y = y.padStart(4, "20");             // Asegura año 4 dígitos
+  return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+
+async function aplicarFiltrosAvanzados() {
+  const numOp   = document.getElementById("numOpFilter").value.trim();
+  const destiny = document.getElementById("destinyFilter").value.trim();
+  const rango   = document.getElementById("rangoFechas").value.trim();
+  const params  = new URLSearchParams();
+
+  if (numOp)   params.append("container", numOp);
+  if (destiny) params.append("destiny", destiny);
 
   if (rango) {
-    console.log("Valor de rango:", rango);
-
-    // 1. Separar por " a " (formato en español)
     const partes = rango.split(" a ").map(s => s.trim());
-    console.log("Partes después de split:", partes);
-
     if (partes.length === 2) {
-      const toISO = (str) => {
-        // 2. Intentar detectar formato automáticamente
-        let [d, m, y] = [];
-        
-        // Caso 1: Formato YYYY-MM-DD (guiones)
-        if (str.includes("-")) {
-          const parts = str.split("-");
-          if (parts.length === 3) [y, m, d] = parts; // Asume orden YYYY-MM-DD
-        }
-        
-        // Caso 2: Formato DD/MM/YYYY (barras)
-        else if (str.includes("/")) {
-          const parts = str.split("/");
-          if (parts.length === 3) [d, m, y] = parts; // Asume orden DD/MM/YYYY
-        }
-
-        // Validación numérica
-        if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
-
-        // Asegurar 4 dígitos para el año
-        y = y.padStart(4, "20"); // Ej: "25" -> "2025"
-
-        // Formatear a ISO
-        return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-      };
-
-      const desdeISO = toISO(partes[0]);
-      const hastaISO = toISO(partes[1]);
-      console.log("Fechas convertidas:", { desdeISO, hastaISO });
-
+      const desdeISO = toISODate(partes[0]);
+      const hastaISO = toISODate(partes[1]);
       if (desdeISO) params.append("dateFrom", desdeISO);
       if (hastaISO) params.append("dateTo", hastaISO);
     } else {
-      console.error("Formato inválido. Usa: 'YYYY-MM-DD a YYYY-MM-DD' o 'DD/MM/YYYY a DD/MM/YYYY'");
+      console.error("Formato de rango inválido. Usa 'YYYY-MM-DD a YYYY-MM-DD' o 'DD/MM/YYYY a DD/MM/YYYY'.");
     }
   }
-  console.log(params)
+
   try {
     const res = await fetch(`../api/filters/fetchIndex.php?${params.toString()}`);
     if (!res.ok) throw new Error(res.statusText);
@@ -1074,182 +1067,170 @@ async function aplicarFiltrosAvanzados() {
 
     const tbody = document.querySelector('#pc-dt-simple tbody');
     tbody.innerHTML = '';
-
-    
-    containers.forEach(container => {
-      const badgeColor = matchStatusColor(container.status);
-      const tr = `
-        <tr>
-          <td>${container['Num OP']}</td>
-          <td>
-            <div class="input-group input-group-sm">
-              <input type="text"
-                    class="forwarder-input form-control"
-                    data-id="${container.IdContainer}"
-                    value="${container.Forwarder || ''}">
-              <button class="btn btn-primary save-forwarder"
-                      data-id="${container.IdContainer}"
-                      style="display: none;">
-                <i class="ti ti-device-floppy"></i>
-              </button>
-            </div>
-          </td>
-          <td>
-            <div class="input-group input-group-sm">
-              <input type="text"
-                    class="shipping-input form-control"
-                    data-id="${container.IdContainer}"
-                    value="${container['Shipping Line'] || ''}">
-              <button class="btn btn-primary save-shipping"
-                      data-id="${container.IdContainer}"
-                      style="display: none;">
-                <i class="ti ti-device-floppy"></i>
-              </button>
-            </div>
-          </td>
-          <td>${container['Destinity POD']}</td>
-          <td>${formatDate(container['Departure Port Origin EC'].replace(/-/g, '/'))}</td>
-          <td>${container.Booking_BK}</td>
-          <td>${container['Number Container']}</td>
-          <td>${container['Total Boxes']}</td>
-          <td>${formatDate(container['ETA Date'].replace(/-/g, '/'))}</td>
-          <td>
+    containers.forEach(c => {
+    const tr = `
+      <tr>
+        <td>${c['Num OP']}</td>
+        <td>
+          <div class="input-group input-group-sm">
             <input type="text"
-                  class="eta-date-picker form-control form-control-sm"
-                  data-id="${container.IdContainer}"
-                  value="${
-                    container['NEW ETA DATE']
-                      ? formatDate(container['NEW ETA DATE'].replace(/-/g, '/'))
-                      : ''
-                  }"
-                  placeholder="00/00/0000">
-          </td>
-          <td>$${formatCurrency(container['TOTAL PRICE EC'])}</td>
-          <td>$${formatCurrency(container['TOTAL PRICE USA'])}</td>
-          <td>
-            <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
-                    data-id="${container.IdContainer}">
-              <option value="Transit" ${container.status === 'Transit' ? 'selected' : ''}>Transit</option>
-              <option value="Transit Delayed" ${container.status === 'Transit Delayed' ? 'selected' : ''}>Transit Delayed</option>
-              <option value="Completed" ${container.status === 'Completed' ? 'selected' : ''}>Completed</option>
-            </select>
-          </td>
-        </tr>`;
-      tbody.insertAdjacentHTML('beforeend', tr);
+                  class="forwarder-input form-control"
+                  data-id="${c.IdContainer}"
+                  value="${c.Forwarder || ''}">
+            <button class="btn btn-primary save-forwarder"
+                    data-id="${c.IdContainer}"
+                    style="display: none;">
+              <i class="ti ti-device-floppy"></i>
+            </button>
+          </div>
+        </td>
+        <td>
+          <div class="input-group input-group-sm">
+            <input type="text"
+                  class="shipping-input form-control"
+                  data-id="${c.IdContainer}"
+                  value="${c['Shipping Line'] || ''}">
+            <button class="btn btn-primary save-shipping"
+                    data-id="${c.IdContainer}"
+                    style="display: none;">
+              <i class="ti ti-device-floppy"></i>
+            </button>
+          </div>
+        </td>
+        <td>${c['Destinity POD']}</td>
+        <td>${formatDate(c['Departure Port Origin EC'].replace(/-/g, '/'))}</td>
+        <td>${c.Booking_BK}</td>
+        <td>${c['Number Container']}</td>
+        <td>${c['Total Boxes']}</td>
+        <td>${formatDate(c['ETA Date'].replace(/-/g, '/'))}</td>
+        <td>
+          <input type="text"
+                class="eta-date-picker form-control form-control-sm"
+                data-id="${c.IdContainer}"
+                value="${
+                  c['NEW ETA DATE']
+                    ? formatDate(c['NEW ETA DATE'].replace(/-/g, '/'))
+                    : ''
+                }"
+                placeholder="00/00/0000">
+        </td>
+        <td>$${formatCurrency(c['TOTAL PRICE EC'])}</td>
+        <td>$${formatCurrency(c['TOTAL PRICE USA'])}</td>
+        <td>
+          <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
+                  data-id="${c.IdContainer}">
+            <option value="Transit" ${c.status === 'Transit' ? 'selected' : ''}>Transit</option>
+            <option value="Transit Delayed" ${c.status === 'Transit Delayed' ? 'selected' : ''}>Transit Delayed</option>
+            <option value="Completed" ${c.status === 'Completed' ? 'selected' : ''}>Completed</option>
+          </select>
+        </td>
+      </tr>`;
+    tbody.insertAdjacentHTML('beforeend', tr);
+  });
 
-    });
 
-    // Cerrar modal
+    // Cerrar modal y re-inicializar
     bootstrap.Modal.getInstance(document.getElementById('filterModal')).hide();
-
-    // Re-inicializar pickers y listeners
     initStatusListeners();
     initInputHandlers();
     initDatePickers();
+  } catch (err) {
+    console.error('Error al aplicar filtros:', err);
   }
-  catch (err) {
-    console.error('Error al cargar datos:', err);
-  }
-  
 }
-
 
 async function limpiarFiltrosAvanzados() {
-   // Destruir datepickers existentes
-   document.querySelectorAll('.eta-date-picker').forEach(input => {
-        if (input._flatpickr) {
-            input._flatpickr.destroy();
-        }
-    });
+  // Reset inputs
+  document.getElementById("numOpFilter").value   = '';
+  document.getElementById("destinyFilter").value = '';
+  document.getElementById("rangoFechas").value   = '';
 
-  document.getElementById('containerFilter').value = '';
-  
-  const params = new URLSearchParams();
- 
+  // Destruir pickers
+  document.querySelectorAll('.eta-date-picker').forEach(inp => {
+    if (inp._flatpickr) inp._flatpickr.destroy();
+  });
 
   try {
-    const res = await fetch(`../api/filters/fetchIndex.php?${params.toString()}`);
+    const res = await fetch(`../api/filters/fetchIndex.php`);
     if (!res.ok) throw new Error(res.statusText);
     const containers = await res.json();
 
     const tbody = document.querySelector('#pc-dt-simple tbody');
     tbody.innerHTML = '';
-
-    containers.forEach(container => {
-      console.log();
-
-      const badgeColor = matchStatusColor(container.status);
-      const tr = `
-        <tr>
-          <td>${container['Num OP']}</td>
-          <td>
-            <div class="input-group input-group-sm">
-              <input type="text"
-                    class="forwarder-input form-control"
-                    data-id="${container.IdContainer}"
-                    value="${container.Forwarder || ''}">
-              <button class="btn btn-primary save-forwarder"
-                      data-id="${container.IdContainer}"
-                      style="display: none;">
-                <i class="ti ti-device-floppy"></i>
-              </button>
-            </div>
-          </td>
-          <td>
-            <div class="input-group input-group-sm">
-              <input type="text"
-                    class="shipping-input form-control"
-                    data-id="${container.IdContainer}"
-                    value="${container['Shipping Line'] || ''}">
-              <button class="btn btn-primary save-shipping"
-                      data-id="${container.IdContainer}"
-                      style="display: none;">
-                <i class="ti ti-device-floppy"></i>
-              </button>
-            </div>
-          </td>
-          <td>${container['Destinity POD']}</td>
-          <td>${formatDate(container['Departure Port Origin EC'].replace(/-/g, '/'))}</td>
-          <td>${container.Booking_BK}</td>
-          <td>${container['Number Container']}</td>
-          <td>${container['Total Boxes']}</td>
-          <td>${formatDate(container['ETA Date'].replace(/-/g, '/'))}</td>
-          <td>
+    containers.forEach(c => {
+    const tr = `
+      <tr>
+        <td>${c['Num OP']}</td>
+        <td>
+          <div class="input-group input-group-sm">
             <input type="text"
-                  class="eta-date-picker form-control form-control-sm"
-                  data-id="${container.IdContainer}"
-                  value="${
-                    container['NEW ETA DATE']
-                      ? formatDate(container['NEW ETA DATE'].replace(/-/g, '/'))
-                      : ''
-                  }"
-                  placeholder="00/00/0000">
-          </td>
-          <td>$${formatCurrency(container['TOTAL PRICE EC'])}</td>
-          <td>$${formatCurrency(container['TOTAL PRICE USA'])}</td>
-          <td>
-            <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
-                    data-id="${container.IdContainer}">
-              <option value="Transit" ${container.status === 'Transit' ? 'selected' : ''}>Transit</option>
-              <option value="Transit Delayed" ${container.status === 'Transit Delayed' ? 'selected' : ''}>Transit Delayed</option>
-              <option value="Completed" ${container.status === 'Completed' ? 'selected' : ''}>Completed</option>
-            </select>
-          </td>
-        </tr>`;
-      tbody.insertAdjacentHTML('beforeend', tr);
-    });
+                  class="forwarder-input form-control"
+                  data-id="${c.IdContainer}"
+                  value="${c.Forwarder || ''}">
+            <button class="btn btn-primary save-forwarder"
+                    data-id="${c.IdContainer}"
+                    style="display: none;">
+              <i class="ti ti-device-floppy"></i>
+            </button>
+          </div>
+        </td>
+        <td>
+          <div class="input-group input-group-sm">
+            <input type="text"
+                  class="shipping-input form-control"
+                  data-id="${c.IdContainer}"
+                  value="${c['Shipping Line'] || ''}">
+            <button class="btn btn-primary save-shipping"
+                    data-id="${c.IdContainer}"
+                    style="display: none;">
+              <i class="ti ti-device-floppy"></i>
+            </button>
+          </div>
+        </td>
+        <td>${c['Destinity POD']}</td>
+        <td>${formatDate(c['Departure Port Origin EC'].replace(/-/g, '/'))}</td>
+        <td>${c.Booking_BK}</td>
+        <td>${c['Number Container']}</td>
+        <td>${c['Total Boxes']}</td>
+        <td>${formatDate(c['ETA Date'].replace(/-/g, '/'))}</td>
+        <td>
+          <input type="text"
+                class="eta-date-picker form-control form-control-sm"
+                data-id="${c.IdContainer}"
+                value="${
+                  c['NEW ETA DATE']
+                    ? formatDate(c['NEW ETA DATE'].replace(/-/g, '/'))
+                    : ''
+                }"
+                placeholder="00/00/0000">
+        </td>
+        <td>$${formatCurrency(c['TOTAL PRICE EC'])}</td>
+        <td>$${formatCurrency(c['TOTAL PRICE USA'])}</td>
+        <td>
+          <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
+                  data-id="${c.IdContainer}">
+            <option value="Transit" ${c.status === 'Transit' ? 'selected' : ''}>Transit</option>
+            <option value="Transit Delayed" ${c.status === 'Transit Delayed' ? 'selected' : ''}>Transit Delayed</option>
+            <option value="Completed" ${c.status === 'Completed' ? 'selected' : ''}>Completed</option>
+          </select>
+        </td>
+      </tr>`;
+    tbody.insertAdjacentHTML('beforeend', tr);
+  });
+
+
+    // Cerrar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('filterModal'));
+    if (modal) modal.hide();
+
     initStatusListeners();
     initInputHandlers();
     initDatePickers();
-    // También cerrar modal si quieres (opcional)
-    const modalEl = document.getElementById('filterModal');
-    const modal   = bootstrap.Modal.getInstance(modalEl);
-    if (modal) modal.hide();
-
   } catch (err) {
-    console.error('Error al cargar datos:', err);
+    console.error('Error al limpiar filtros:', err);
   }
 }
+
 
 
 // Helper functions

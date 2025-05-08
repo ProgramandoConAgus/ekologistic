@@ -34,11 +34,12 @@ $sql = "SELECT
   i.Qty_Box,
   i.Price_Box_EC AS 'PRICE BOX EC',
   i.Total_Price_EC AS 'TOTAL PRICE EC',
+  i.Total_Price_USA AS 'TOTAL PRICE USA',
   c.Number_Container AS 'Number_Container'
 FROM container c
 JOIN items i ON c.IdContainer = i.idContainer
-JOIN packing_list pl on pl.IdPackingList=c.idPackingList
-WHERE c.status='Completed';
+JOIN packing_list pl ON pl.IdPackingList = c.idPackingList
+WHERE c.status = 'Completed';
 ";
 
 
@@ -452,6 +453,7 @@ $result->data_seek(0);
                             <th>Qty_Box</th>
                             <th>Price Box Ec</th>
                             <th>TOTAL PRICE EC</th>
+                            <th>TOTAL PRICE USA</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -480,7 +482,7 @@ $result->data_seek(0);
                             <td><?= $row['Qty_Box'] ?></td>
                             <td>$<?= number_format($row['PRICE BOX EC'], 2) ?></td>
                             <td>$<?= number_format($row['TOTAL PRICE EC'], 2) ?></td>
-                            
+                            <td>$<?= number_format($row['TOTAL PRICE USA'], 2) ?></td>
                         </tr>
                         <?php } ?>
                     </tbody>
