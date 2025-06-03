@@ -6,17 +6,17 @@ $IdUsuario=$_SESSION["IdUsuario"];
 if(!$_SESSION["IdUsuario"]){
   header("Location: ../");
 }
-$usuario= new Usuario($conexion);
 
-$user=$usuario->obtenerUsuarioPorId($IdUsuario);
-
+// Primero ejecutamos la consulta original como ya lo tienes
+$usuario = new Usuario($conexion);
+$user = $usuario->obtenerUsuarioPorId($IdUsuario);
 $start = isset($_GET['start']) ? $_GET['start'] : null;
 $end = isset($_GET['end']) ? $_GET['end'] : null;
 
-
 // Construir consulta base
 $sql = "SELECT 
-  i.IdItem AS 'ITEM #',
+  pl.IdPackingList AS 'ITEM #',
+  i.IdItem,
   c.num_op AS 'Num OP',
   i.Number_PO,
   i.Customer,
@@ -26,10 +26,36 @@ $sql = "SELECT
   i.Total_Price_EC AS 'TOTAL PRICE EC',
   c.status AS 'STATUS'
 FROM container c
-JOIN items i ON c.IdContainer = i.idContainer;
+JOIN items i ON c.IdContainer = i.idContainer
+JOIN packing_list pl on pl.IdPackingList=c.idPackingList;
 ";
-
 $result = $conexion->query($sql);
+
+// Contadores totales
+$total_inventory_boxes = 0; // pongo boxes por si despues los quieren ver
+$total_transit_boxes = 0; // pongo boxes por si despues los quieren ver
+$total_inventory_price = 0;
+$total_transit_price = 0;
+
+// Guardo en array
+$items = [];
+while ($row = $result->fetch_assoc()) {
+    $items[] = $row;
+    
+    
+    if ($row['STATUS'] == 'Completed') {
+        $status = "Inventory";
+        $total_inventory_boxes += $row['Qty_Box'];
+        $total_inventory_price += $row['TOTAL PRICE EC'];
+    } else {
+        $status = "Transit";
+        $total_transit_boxes += $row['Qty_Box'];
+        $total_transit_price += $row['TOTAL PRICE EC'];
+    }
+}
+
+// Reseteo
+$result->data_seek(0);
 
 ?>
 
@@ -45,7 +71,7 @@ $result = $conexion->query($sql);
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
       <!-- [Favicon] icon -->
-  <link rel="icon" href="./assets/images/ekologistic.png" type="image/x-icon" />
+  <link rel="icon" href="../assets/images/ekologistic.png" type="image/x-icon" />
 
 
     <!-- map-vector css -->
@@ -74,7 +100,30 @@ $result = $conexion->query($sql);
     .eta-date-picker.border-success {
         border-color: #28a745 !important;
     }
+    /* Estilos para las tarjetas de resumen */
+    .prod-p-card {
+      border-radius: 10px;
+      margin-bottom: 0;
+    }
+
+    .prod-p-card .card-body {
+      padding: 15px;
+    }
+
+    .prod-icon {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .f-36 {
+      font-size: 36px;
+    }
     </style>
+   <link  rel="stylesheet"  href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"/>
+    <link rel="stylesheet" href="./tipografia.css">
   </head>
   <!-- [Head] end -->
   <!-- [Body] Start -->
@@ -111,15 +160,15 @@ $result = $conexion->query($sql);
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
               <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
                 <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="#">Dispatch Inventory (Proximamente)</a> </li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
               </ul>
             </li>
 
@@ -141,7 +190,7 @@ $result = $conexion->query($sql);
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link">Exports</a></li>
+        <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
         <li class="pc-item"><a class="pc-link">Imports</a></li>
         <li class="pc-item"><a class="pc-link">Despachos</a></li>
         <li class="pc-item"><a class="pc-link">Consolidados</a></li>
@@ -281,51 +330,147 @@ $result = $conexion->query($sql);
     <!-- [ Main Content ] start -->
     <div class="pc-container">
       <div class="pc-content">
-        <!-- [ breadcrumb ] start -->
-        <div class="page-header">
-          <div class="page-block">
-            <div class="row align-items-center">
-              <div class="col-md-12">
-                <ul class="breadcrumb">
-                  <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
-                  <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
-                  <li class="breadcrumb-item" aria-current="page">Dashboard Logistic</li>
-                </ul>
+       <!-- [ breadcrumb ] start -->
+<div class="page-header">
+  <div class="page-block">
+    <div class="row align-items-center">
+      <div class="col-md-12">
+        <ul class="breadcrumb">
+          <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
+          <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
+          <li class="breadcrumb-item" aria-current="page">Total Inventory</li>
+        </ul>
+      </div>
+      <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="page-header-title">
+            <h2 class="mb-0">Total Inventory</h2>
+          </div>
+          
+          <div class="d-flex gap-3">
+            <!-- Primera tarjeta -->
+            <div class="card prod-p-card bg-warning mb-0">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="prod-icon">
+                    <i class="ti ti-package text-white f-36"></i>
+                  </div>
+                  <div class="ms-auto text-end text-white">
+                    
+                      <h3 class="mb-0 text-white">
+                          
+                      $<?= number_format($total_inventory_price, 2) ?>
+                    </h3>
+                    
+                    <span>Monto en Inventario</span>
+                   
+                  </div>
+                </div>
               </div>
-              <div class="col-md-12">
-                <div class="page-header-title">
-                  <h2 class="mb-0">Dashboard Logistic</h2>
+            </div>
+            
+            <!-- Segunda tarjeta -->
+            <div class="card prod-p-card bg-primary mb-0">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="prod-icon">
+                    <i class="ti ti-truck text-white f-36"></i>
+                  </div>
+                  <div class="ms-auto text-end text-white">
+                   <h3 class="mb-0 text-white">
+                        $<?= number_format($total_transit_price, 2) ?>
+                    </h3>
+                     <span>Monto en Tránsito</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <!-- [ breadcrumb ] end -->
+      </div>
+    </div>
+  </div>
+</div>
+<!-- [ breadcrumb ] end -->
         <!-- [ Main Content ] start -->
         <div class="row">
        
           
         <div class="col-md-12 col-xl-12">
     <div class="card table-card">
+        <!-- Reemplazar la sección del input por un botón que abra el modal -->
         <div class="card-header d-flex align-items-center justify-content-between py-3">
           <h5 class="mb-0">Contenedores en Tránsito</h5>
           <div class="d-flex gap-2 align-items-center">
-              <!-- Input para el rango de fechas -->
-              <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
-              <button class="btn btn-sm btn-primary" onclick="aplicarFiltro()">
-                  <i class="ti ti-filter"></i> Filtrar
-              </button>
-              <button class="btn btn-sm btn-secondary" onclick="limpiarFiltro()">
-                  <i class="ti ti-x"></i> Limpiar
-              </button>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+              <i class="ti ti-filter"></i> Filtros avanzados
+            </button>
+            <button class="btn btn-sm btn-secondary" onclick="limpiarFiltrosAvanzados()">
+              <i class="ti ti-x"></i> Limpiar
+            </button>
+            <button id="btnDescargarVisible" class="btn btn-sm btn-success">
+              <i class="ti ti-download"></i> Descargar Excel
+            </button>
           </div>
-      </div>  
+
+        </div>
+
+<!-- Modal de filtros -->
+<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="filterForm">
+          <!-- Filtro por Cliente -->
+          <div class="mb-3">
+            <label for="customerFilter" class="form-label">Cliente</label>
+            <select class="form-select" id="customerFilter">
+              <option value="">Todos los clientes</option>
+              <?php
+              // Resetear el puntero del resultado para obtener valores únicos
+              $result->data_seek(0);
+              $customers = [];
+              while ($row = $result->fetch_assoc()) {
+                if (!in_array($row['Customer'], $customers)) {
+                  $customers[] = $row['Customer'];
+                  echo '<option value="' . htmlspecialchars($row['Customer']) . '">' . htmlspecialchars($row['Customer']) . '</option>';
+                }
+              }
+              $result->data_seek(0); // Resetear para el bucle principal
+              ?>
+            </select>
+          </div>
+          
+          <!-- Filtro por Number PO -->
+          <div class="mb-3">
+            <label for="poFilter" class="form-label">Número de PO</label>
+            <input type="text" class="form-control" id="poFilter" placeholder="Ingrese número de PO">
+          </div>
+          
+          <!-- Filtro por Numero OP (Container) -->
+          <div class="mb-3">
+            <label for="containerFilter" class="form-label">Número de Contenedor (OP)</label>
+            <input type="text" class="form-control" id="containerFilter" placeholder="Ingrese número de contenedor">
+          </div>
+          
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
+      </div>
+    </div>
+  </div>
+</div>
         <div class="card-body">
             <div class="table-responsive">
               <table class="table table-hover" id="pc-dt-simple">
                   <thead>
                       <tr>
-                          <th>ITEM #</th>
                           <th>Num OP</th>
                           <th>Number_PO</th>
                           <th>Customer</th>
@@ -347,13 +492,12 @@ $result = $conexion->query($sql);
                             $row['STATUS']="Transit";
                           }
                           $badge_color = match($row['STATUS']) {
-                              'Transit' => 'bg-success',
+                              'Transit' => 'bg-primary',
                               'Inventory' => 'bg-warning',
                               default => 'bg-secondary'
                           };
                       ?>
                       <tr>
-                          <td><?= $row['ITEM #'] ?></td>
                           <td><?= $row['Num OP'] ?></td>
                           <td><?= $row['Number_PO'] ?></td>
                           <td><?= $row['Customer'] ?></td>
@@ -568,103 +712,143 @@ function confirmDelete(blNumber) {
   </div>
 </div>
 <!--ACTUALIZAR FECHA ETA-->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    flatpickr(".eta-date-picker", {
-        dateFormat: "d/m/Y",
-        locale: "es",
-        allowInput: true,
-        placeholder: "00/00/0000",
-        onChange: function(selectedDates, dateStr, instance) {
-            const contenedorId = instance.element.dataset.id;
-            const nuevaFecha = selectedDates[0] ? selectedDates[0].toISOString().split('T')[0] : null;
-            
-            // Si el usuario borra el input
-            if(dateStr === "") {
-                nuevaFecha = null;
-            }
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
 
-            actualizarFechaETA(contenedorId, nuevaFecha, instance);
-        }
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script>
+document.getElementById("btnDescargarVisible").addEventListener("click", function () {
+  Swal.fire({
+    title: 'Generating Excel...',
+    text: 'Please wait a moment.',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  const table = document.getElementById("pc-dt-simple");
+  const ws = XLSX.utils.table_to_sheet(table, { raw: true });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Data");
+
+  const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([wbout], { type: "application/octet-stream" });
+
+  // 👉 Nombre dinámico con fecha actual
+  const today = new Date();
+  const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
+  const fileName = `total_inventory_summary_${formattedDate}.xlsx`;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  Swal.close();
+  Swal.fire({
+    icon: 'success',
+    title: 'Downloaded!',
+    text: 'The Excel file was created successfully.',
+    timer: 2000,
+    showConfirmButton: false
+  });
+});
+</script>
+
+
+
+<script>
+async function aplicarFiltrosAvanzados() {
+  const customer  = document.getElementById('customerFilter').value;
+  const po        = document.getElementById('poFilter').value;
+  const container = document.getElementById('containerFilter').value;
+
+  const params = new URLSearchParams();
+  if (customer)  params.append('customer', customer);
+  if (po)        params.append('po', po);
+  if (container) params.append('container', container);
+
+  try {
+    const res = await fetch(`../api/filters/fetchTotalInventory.php?${params.toString()}`);
+    if (!res.ok) throw new Error(res.statusText);
+    const rows = await res.json();
+
+    const tbody = document.querySelector('#pc-dt-simple tbody');
+    tbody.innerHTML = '';
+
+    rows.forEach(row => {
+      const badgeClass = row.STATUS === 'Transit' ? 'bg-primary' : 'bg-warning';
+      const tr = `
+        <tr>
+          <td>${row['Num OP']}</td>
+          <td>${row['Number_PO']}</td>
+          <td>${row['Customer']}</td>
+          <td>${row['Description']}</td>
+          <td>${row['Qty_Box']}</td>
+          <td>$${Number(row['PRICE BOX EC']).toFixed(2)}</td>
+          <td>$${Number(row['TOTAL PRICE EC']).toFixed(2)}</td>
+          <td><span class="badge ${badgeClass}">${row.STATUS}</span></td>
+        </tr>`;
+      tbody.insertAdjacentHTML('beforeend', tr);
     });
 
-    async function actualizarFechaETA(id, fecha, instance) {
-        try {
-            const response = await fetch('../api/actualizar_eta.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ id: id, fecha: fecha })
-            });
+    // Cerrar modal (Bootstrap 5)
+    const modalEl = document.getElementById('filterModal');
+    const modal   = bootstrap.Modal.getInstance(modalEl);
+    modal.hide();
 
-            const result = await response.json();
-            
-            if(!result.success) {
-                // Restaurar valor anterior
-                const originalDate = instance.element.value;
-                instance.setDate(originalDate, true);
-                alert('Error al actualizar: ' + result.error);
-            } else {
-                // Actualizar placeholder si se borró
-                if(!fecha) {
-                    instance.element.value = '';
-                }
-                // Feedback visual
-                instance.element.classList.add('border-success');
-                setTimeout(() => {
-                    instance.element.classList.remove('border-success');
-                }, 2000);
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            instance.setDate(instance.element.value, true);
-            alert('Error de conexión');
-        }
-    }
-});
-</script>
-<!-- FILTRO DE FECHA -->
- 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script> <!-- Soporte en español -->
-<script>
-// Inicializar Flatpickr
-const rangoFechas = flatpickr("#rangoFechas", {
-    mode: "range", // Modo de rango
-    locale: "es", // Idioma español
-    dateFormat: "Y-m-d", // Formato para la URL
-    altInput: true, // Muestra fechas en formato legible
-    altFormat: "d/m/Y", // Formato visual
-    static: true, // Calendario fijo
-    allowInput: false, // Evita edición manual
-    onReady: function(selectedDates, dateStr, instance) {
-        // Restaurar fechas si existen en la URL
-        const params = new URLSearchParams(window.location.search);
-        if(params.has('start') && params.has('end')) {
-            instance.setDate([params.get('start'), params.get('end')]);
-        }
-    }
-});
-
-// Función para aplicar filtro
-function aplicarFiltro() {
-    const fechas = rangoFechas.selectedDates;
-    
-    if (fechas.length === 2) {
-        const start = fechas[0].toISOString().split('T')[0];
-        const end = fechas[1].toISOString().split('T')[0];
-        window.location.href = `?start=${start}&end=${end}`;
-    } else {
-        alert('¡Seleccione un rango de fechas válido!');
-    }
+  } catch (err) {
+    console.error('Error al cargar datos:', err);
+  }
 }
 
-// Función para limpiar filtro
-function limpiarFiltro() {
-    rangoFechas.clear();
-    window.location.href = window.location.pathname;
-}
-</script>
+async function limpiarFiltrosAvanzados() {
+  // Limpiar los inputs
+  document.getElementById('customerFilter').value = '';
+  document.getElementById('poFilter').value = '';
+  document.getElementById('containerFilter').value = '';
 
+  const params = new URLSearchParams();
+  // No se agregan filtros porque están vacíos
+
+  try {
+    const res = await fetch(`../api/filters/fetchTotalInventory.php?${params.toString()}`);
+    if (!res.ok) throw new Error(res.statusText);
+    const rows = await res.json();
+
+    const tbody = document.querySelector('#pc-dt-simple tbody');
+    tbody.innerHTML = '';
+
+    rows.forEach(row => {
+      const badgeClass = row.STATUS === 'Transit' ? 'bg-primary' : 'bg-warning';
+      const tr = `
+        <tr>
+          <td>${row['Num OP']}</td>
+          <td>${row['Number_PO']}</td>
+          <td>${row['Customer']}</td>
+          <td>${row['Description']}</td>
+          <td>${row['Qty_Box']}</td>
+          <td>$${Number(row['PRICE BOX EC']).toFixed(2)}</td>
+          <td>$${Number(row['TOTAL PRICE EC']).toFixed(2)}</td>
+          <td><span class="badge ${badgeClass}">${row.STATUS}</span></td>
+        </tr>`;
+      tbody.insertAdjacentHTML('beforeend', tr);
+    });
+
+    // También cerrar modal si quieres (opcional)
+    const modalEl = document.getElementById('filterModal');
+    const modal   = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+
+  } catch (err) {
+    console.error('Error al cargar datos:', err);
+  }
+}
+
+</script>
 
     <!-- [Page Specific JS] start -->
     <script src="../assets/js/plugins/apexcharts.min.js"></script>
@@ -706,6 +890,7 @@ function limpiarFiltro() {
     
     
     <script>preset_change("preset-1");</script>
+    
   </body>
   <!-- [Body] end -->
 </html>

@@ -15,17 +15,16 @@ try {
     $excelPath = $_GET['path'] ?? '';
     $packingId = $_GET['packingId'] ?? 0;
 
-    // Validar que el usuario tenga permiso usando la nueva tabla packing_list
+    // Validar permisos con packing_list
     $stmt = $conexion->prepare("SELECT IdUsuario FROM packing_list WHERE IdPackingList = ?");
     $stmt->bind_param("i", $packingId);
     $stmt->execute();
     $result = $stmt->get_result();
-    
-    if ($result->num_rows === 0 || $result->fetch_assoc()['IdUsuario'] != $_SESSION['IdUsuario']) {
+    if ($result->num_rows === 0 ) {
         throw new Exception('No tienes permisos para editar este registro');
     }
 
-    // Validar existencia del archivo
+    // Verificar existencia del archivo
     if (!file_exists($excelPath)) {
         throw new Exception('Archivo no encontrado');
     }

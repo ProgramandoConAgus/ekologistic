@@ -1,9 +1,9 @@
 <?php
 
 $servidor="localhost";
-$usuario="root";
-$contraseña="";
-$baseDatos="ecopacking";
+$usuario="u981249563_ekologistic";
+$contraseña="Ek0l0g1st1c";
+$baseDatos="u981249563_ekologisticdb";
 
 //Crear conexion
 

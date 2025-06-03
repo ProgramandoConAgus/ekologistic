@@ -5,171 +5,190 @@ require_once '../vendor/autoload.php';
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
-// Verificar autenticación y método POST (si es necesario)
+header('Content-Type: application/json');
+
+// 1) Autenticación y método
 if (!isset($_SESSION['IdUsuario']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    die('Acceso denegado');
+    http_response_code(403);
+    echo json_encode(['success'=>false,'error'=>'Acceso denegado']);
+    exit();
 }
 $IdUsuario = $_SESSION['IdUsuario'];
 
+// 2) Leer input
 $input = json_decode(file_get_contents('php://input'), true);
-
-// Validar datos de entrada
 if (empty($input['path']) || empty($input['data']) || empty($input['packingId'])) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Datos incompletos']);
+    echo json_encode(['success'=>false,'error'=>'Datos incompletos']);
+    exit();
+}
+$excelPath = $input['path'];
+$rows      = $input['data'];
+$packingId = (int)$input['packingId'];
+
+// 3) Verificar permisos
+$stmt = $conexion->prepare("SELECT IdUsuario FROM packing_list WHERE IdPackingList = ?");
+$stmt->bind_param("i", $packingId);
+$stmt->execute();
+$res = $stmt->get_result();
+if ($res->num_rows === 0 ) {
+    http_response_code(403);
+    echo json_encode(['success'=>false,'error'=>'No tienes permisos']);
     exit();
 }
 
+// 4) Iniciar transacción
+$conexion->begin_transaction();
+
 try {
-    // Verificar permisos en packing_list
-    $stmt = $conexion->prepare("SELECT IdUsuario FROM packing_list WHERE IdPackingList = ?");
-    $stmt->bind_param("i", $input['packingId']);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows === 0 || $result->fetch_assoc()['IdUsuario'] != $IdUsuario) {
-        throw new Exception('No tienes permisos para editar este registro');
-    }
+    // 5) Reescribir el Excel
+    $spreadsheet = IOFactory::load($excelPath);
+    $sheet       = $spreadsheet->getActiveSheet();
+    $sheet->fromArray($rows, null, 'A1', true, false);
+    $ext         = strtolower(pathinfo($excelPath, PATHINFO_EXTENSION));
+    $writerType  = $ext === 'xls' ? 'Xls' : 'Xlsx';
+    $writer      = IOFactory::createWriter($spreadsheet, $writerType);
+    $writer->save($excelPath);
 
-    // Convertir datos del Excel que ya se han recibido (en $input['data'])
-    $rows = $input['data'];
-    
-    // Validar estructura (por ejemplo, que la cabecera sea la esperada)
-    if (count($rows) < 2 || trim($rows[0][0]) !== 'Num OP') {
-        throw new Exception("Formato de Excel inválido");
-    }
+    // 6) Borrar datos antiguos
+    $stmtDelItems = $conexion->prepare("
+        DELETE i FROM items i
+        JOIN container c ON i.idContainer = c.IdContainer
+        WHERE c.idPackingList = ?
+    ");
+    $stmtDelItems->bind_param("i", $packingId);
+    $stmtDelItems->execute();
 
-    // Opcional: Actualizar el archivo Excel si se requiere
-    // (Aquí se asume que ya se ha guardado el archivo o se usa el contenido enviado)
+    $stmtDelCont = $conexion->prepare("DELETE FROM container WHERE idPackingList = ?");
+    $stmtDelCont->bind_param("i", $packingId);
+    $stmtDelCont->execute();
 
-    // Iniciar transacción
-    $conexion->begin_transaction();
+    // 7) Insertar nuevo container
+    $first = $rows[1] ?? [];
 
-    // Eliminar registros existentes para este packing
-    $stmtDeleteItems = $conexion->prepare("DELETE FROM items WHERE idContainer IN (SELECT IdContainer FROM (SELECT IdContainer FROM container WHERE idPackingList = ?) AS temp)");
-    $stmtDeleteItems->bind_param("i", $input['packingId']);
-    $stmtDeleteItems->execute();
+    // variables intermedias
+    $num_op          = (int)   ($first[1]  ?? 0);
+    $num_dae         =         ($first[2]  ?? '');
+    $dest_pod        =         ($first[3]  ?? '');
+    $forwarder       =         ($first[4]  ?? '');
+    $ship_line       =         ($first[5]  ?? '');
+    $incoterm        =         ($first[6]  ?? '');
+    $dispatch_date   = convertirFecha($first[7]);  // Dispatch
+    $departure_date  = convertirFecha($first[8]);  // ¡Convertir aquí también!
+    $booking_bl      =         ($first[9]  ?? '');
+    $container_num   =         ($first[10] ?? '');
+    $invoice_num     =         ($first[11] ?? '');
+    $eta_date        = convertirFecha($first[22]); // ETA
 
-    $stmtDeleteContainer = $conexion->prepare("DELETE FROM container WHERE idPackingList = ?");
-    $stmtDeleteContainer->bind_param("i", $input['packingId']);
-    $stmtDeleteContainer->execute();
-
-    // Tomar la primera fila (o la fila que contenga los datos generales) para insertar en container
-    $primerRegistro = $rows[1];
-    $num_op = (int)($primerRegistro[0] ?? 0);
-    $destinity_pod = $primerRegistro[1] ?? '';
-    $incoterm = $primerRegistro[2] ?? '';
-    
-    // Convertir fechas (dispatch, departure, ETA)
-    $dispatchDateVal = null;
-    if (!empty($primerRegistro[3])) {
-        $dispatchDateObj = DateTime::createFromFormat('d/m/Y', $primerRegistro[3]);
-        $dispatchDateVal = $dispatchDateObj ? $dispatchDateObj->format('Y-m-d') : null;
-    }
-    $departureDateVal = null;
-    if (!empty($primerRegistro[4])) {
-        $departureDateObj = DateTime::createFromFormat('d/m/Y', $primerRegistro[4]);
-        $departureDateVal = $departureDateObj ? $departureDateObj->format('Y-m-d') : null;
-    }
-    $etaDateVal = null;
-    if (!empty($primerRegistro[18])) {
-        $etaDateObj = DateTime::createFromFormat('d/m/Y', $primerRegistro[18]);
-        $etaDateVal = $etaDateObj ? $etaDateObj->format('Y-m-d') : null;
-    }
-    $booking_bk = $primerRegistro[5] ?? '';
-    $number_container = $primerRegistro[6] ?? '';
-    $number_commercial_invoice = $primerRegistro[7] ?? '';
-
-    // Insertar en Container (único registro)
-    $stmtContainer = $conexion->prepare("INSERT INTO container (
-        idPackingList, num_op, Destinity_POD, Incoterm, Dispatch_Date_Warehouse_EC, 
-        Departure_Date_Port_Origin_EC, Booking_BK, Number_Container, Number_Commercial_Invoice, ETA_Date
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmtContainer->bind_param(
-        "iissssssss",
-        $input['packingId'],
+    $stmtCont = $conexion->prepare("
+        INSERT INTO container (
+            idPackingList,
+            num_op,
+            num_dae,
+            Destinity_POD,
+            Forwarder,
+            Shipping_Line,
+            Incoterm,
+            Dispatch_Date_Warehouse_EC,
+            Departure_Date_Port_Origin_EC,
+            Booking_BK,
+            Number_Container,
+            Number_Commercial_Invoice,
+            ETA_Date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    $stmtCont->bind_param(
+        "iisssssssssss",
+        $packingId,
         $num_op,
-        $destinity_pod,
+        $num_dae,
+        $dest_pod,
+        $forwarder,
+        $ship_line,
         $incoterm,
-        $dispatchDateVal,
-        $departureDateVal,
-        $booking_bk,
-        $number_container,
-        $number_commercial_invoice,
-        $etaDateVal
+        $dispatch_date,
+        $departure_date,
+        $booking_bl,
+        $container_num,
+        $invoice_num,
+        $eta_date
     );
-    if (!$stmtContainer->execute()) {
-        throw new Exception('Error al insertar en container: ' . $stmtContainer->error);
-    }
+    $stmtCont->execute();
     $idContainer = $conexion->insert_id;
-    $stmtContainer->close();
 
-    // Preparar inserción en Items para cada fila (a partir de la fila 2, ya que la fila 1 es la cabecera)
-    $stmtItems = $conexion->prepare("INSERT INTO items (
-        idContainer, Code_Product_EC, Number_Lot, Customer, Number_PO, Description, 
-        Packing_Unit, Qty_Box, Weight_Neto_Per_Box_kg, Weight_Bruto_Per_Box_kg, Total_Weight_kg, 
-        Price_Box_EC, Total_Price_EC, Price_Box_USA, Total_Price_USA
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $itemsParamTypes = "isssssiiddddddd";
+    // 8) Insertar items como antes
+    $stmtItems = $conexion->prepare("
+        INSERT INTO items (
+            idContainer,
+            Code_Product_EC,
+            Number_Lot,
+            Customer,
+            Number_PO,
+            Description,
+            Packing_Unit,
+            Qty_Box,
+            Weight_Neto_Per_Box_kg,
+            Weight_Bruto_Per_Box_kg,
+            Total_Weight_kg,
+            Price_Box_EC,
+            Total_Price_EC,
+            Price_Box_USA,
+            Total_Price_USA
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    $types = "isssssiiddddddd";
 
-    // Procesar cada fila de detalle
     foreach (array_slice($rows, 1) as $row) {
-        // Validar fila vacía
-        $isEmpty = true;
-        foreach ($row as $cell) {
-            if (!empty(trim($cell ?? ''))) {
-                $isEmpty = false;
+        $empty = true;
+        foreach ($row as $c) {
+            if (trim((string)$c) !== "" && trim((string)$c) !== ".") {
+                $empty = false;
                 break;
             }
         }
-        if ($isEmpty) continue;
-        
-        // Extraer datos para items (se omiten los campos que ya se usaron en container)
-        $code_product_ec = $row[8] ?? '';
-        $number_lot = $row[9] ?? '';
-        $customer = $row[10] ?? '';
-        $number_po = $row[11] ?? '';
-        $description = $row[12] ?? '';
-        $packing_unit = $row[13] ?? '';
-        $qty_box = (int)($row[14] ?? 0);
-        $weight_neto_per_box_kg = (float)($row[15] ?? 0);
-        $weight_bruto_per_box_kg = (float)($row[16] ?? 0);
-        $total_weight_kg = (float)($row[17] ?? 0);
-        $priceBoxEC = (float)($row[19] ?? 0);
-        $totalPriceEC = (float)($row[20] ?? 0);
-        $priceBoxUSA = (float)($row[21] ?? 0);
-        $totalPriceUSA = (float)($row[22] ?? 0);
-        
+        if ($empty) continue;
+
+        // intermedias para bind
+        $c12 = $row[12] ?? '';
+        $c13 = $row[13] ?? '';
+        $c14 = $row[14] ?? '';
+        $c15 = $row[15] ?? '';
+        $c16 = $row[16] ?? '';
+        $c17 = $row[17] ?? '';
+        $c18 = (int)   ($row[18] ?? 0);
+        $c19 = (float) ($row[19] ?? 0);
+        $c20 = (float) ($row[20] ?? 0);
+        $c21 = (float) ($row[21] ?? 0);
+        $c23 = (float) ($row[23] ?? 0);
+        $c24 = (float) ($row[24] ?? 0);
+        $c25 = (float) ($row[25] ?? 0);
+        $c26 = (float) ($row[26] ?? 0);
+
         $stmtItems->bind_param(
-            $itemsParamTypes,
+            $types,
             $idContainer,
-            $code_product_ec,
-            $number_lot,
-            $customer,
-            $number_po,
-            $description,
-            $packing_unit,
-            $qty_box,
-            $weight_neto_per_box_kg,
-            $weight_bruto_per_box_kg,
-            $total_weight_kg,
-            $priceBoxEC,
-            $totalPriceEC,
-            $priceBoxUSA,
-            $totalPriceUSA
+            $c12, $c13, $c14, $c15, $c16, $c17,
+            $c18, $c19, $c20, $c21, $c23, $c24, $c25, $c26
         );
-        if (!$stmtItems->execute()) {
-            throw new Exception('Error al insertar en items: ' . $stmtItems->error);
-        }
+        $stmtItems->execute();
     }
-    $stmtItems->close();
+
+    // 9) Commit
     $conexion->commit();
-    
-    echo json_encode(['success' => true]);
-    
+    echo json_encode(['success'=>true]);
+    exit();
+
 } catch (Exception $e) {
     $conexion->rollback();
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    echo json_encode(['success'=>false,'error'=>$e->getMessage()]);
+    exit();
 }
-?>
+
+// helper
+function convertirFecha($v) {
+    $v = trim((string)$v);
+    if ($v === "" || $v === ".") return null;
+    $d = DateTime::createFromFormat('d/m/Y', $v);
+    return $d ? $d->format('Y-m-d') : null;
+}

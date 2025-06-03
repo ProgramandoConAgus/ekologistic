@@ -17,6 +17,7 @@ $sql = "
         c.Booking_BK,
         d.numero_lote                        AS Lot_Number,
         d.fecha_entrada                      AS Entry_Date,
+        d.fecha_salida                       AS Out_Date,
         c.Number_Commercial_Invoice          AS Number_Commercial_Invoice,
         d.numero_parte                       AS Code_Product_EC,
         d.descripcion                        AS Description,
@@ -33,8 +34,10 @@ $sql = "
     INNER JOIN dispatch d
         ON c.Number_Commercial_Invoice = d.numero_factura
        AND c.Number_Container         = d.notas
-    WHERE d.estado = 'En Almacén'
+    WHERE d.estado = 'Cargado'
+    
     ORDER BY c.num_op, d.numero_parte
+    
 ";
 $result = $conexion->query($sql);
 
@@ -60,7 +63,7 @@ try {
   <!-- [Head] start -->
 
   <head>
-    <title>Dashboard WareHouse Inventory | Eko Logistic</title>
+    <title>Dashboard Dispatch Inventory | Eko Logistic</title>
     <!-- [Meta] -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -329,12 +332,12 @@ try {
                 <ul class="breadcrumb">
                   <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
                   <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
-                  <li class="breadcrumb-item" aria-current="page">Dashboard Warehouse Inventory</li>
+                  <li class="breadcrumb-item" aria-current="page">Dashboard Dispatch Inventory</li>
                 </ul>
               </div>
               <div class="col-md-12">
                 <div class="page-header-title">
-                  <h2 class="mb-0">Dashboard Warehouse Inventory</h2>
+                  <h2 class="mb-0">Dashboard Dispatch Inventory</h2>
                 </div>
               </div>
             </div>
@@ -357,9 +360,6 @@ try {
                 <i class="ti ti-x"></i> Limpiar
               </button>
             </div>-->
-            <button style="margin-left:3%;" class="btn btn-sm btn-success">
-                <a class="text-white" href="../forms/importardispatch.php">Nuevo Dispatch Inventory</a>
-            </button>
         </div>
         <!-- Modal de filtros -->
         <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
@@ -422,9 +422,10 @@ try {
           <thead>
             
                <tr>
-                   <th>NUM OP</th>
+                <th>NUM OP</th>
                 <th>Number_Container</th>
                 <th>Entry Date</th>
+                <th>Dispatch Date</th>
                 <th>Lot_Number</th>
                 <th>Booking_BK</th>
                 <th>Number_Commercial_Invoice</th>
@@ -450,6 +451,7 @@ try {
                 <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
                 <td><?= htmlspecialchars($row['Number_Container']) ?></td>
                 <td><?= htmlspecialchars($row['Entry_Date']) ?></td>
+                <td><?= htmlspecialchars($row['Out_Date']) ?></td>
                 <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
                 <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
                 <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
@@ -478,10 +480,8 @@ try {
 
     </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script> <!-- Soporte en español -->
-
 <!-- ACTUALIZAR STATUS -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -519,7 +519,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
-
 </div>
 
         </div>
@@ -544,11 +543,21 @@ document.addEventListener('DOMContentLoaded', function () {
       </div>
     </footer>
 
+<script>
+// Forzar redimensionamiento al cambiar tamaño de ventana
+
+window.addEventListener('resize', function() {
+    if (hot) {
+        hot.render();
+        hot.view.adjustElementsSize();
+    }
+});
+</script>
 
 
 
 
-<!--
+
 <script>
 
 // Función para inicializar listeners de status
@@ -723,7 +732,6 @@ document.querySelectorAll('.btn-edit-excel').forEach(btn => {
 });
 }
 </script>
--->
 
 
 

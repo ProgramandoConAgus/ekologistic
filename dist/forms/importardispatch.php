@@ -12,7 +12,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 <html lang="en">
   <!-- [Head] start -->
   <head>
-    <title>Importar Packing List | Eko Logistic</title>
+    <title>Importar Dispatch Inventory | Eko Logistic</title>
     <!-- [Meta] -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -40,7 +40,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
     <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" >
     <link rel="stylesheet" href="../assets/css/style-preset.css" >
     <link rel="stylesheet" href="../dashboard/tipografia.css">
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   </head>
   <!-- [Head] end -->
   <!-- [Body] Start -->
@@ -83,7 +83,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
                 <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="#">Dispatch Inventory (Proximamente)</a> </li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
               </ul>
             </li>
 
@@ -256,13 +256,13 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
               <div class="col-md-12">
                 <ul class="breadcrumb">
                   <li class="breadcrumb-item"><a href="../dashboard/index.html">Inicio</a></li>
-                  <li class="breadcrumb-item"><a href="javascript: void(0)">Packing List</a></li>
+                  <li class="breadcrumb-item"><a href="javascript: void(0)">Dispatch Inventory</a></li>
                   <li class="breadcrumb-item" aria-current="page">Subir</li>
                 </ul>
               </div>
               <div class="col-md-12">
                 <div class="page-header-title">
-                  <h2 class="mb-0">Subir Packing List</h2>
+                  <h2 class="mb-0">Subir Dispatch</h2>
                 </div>
               </div>
             </div>
@@ -276,7 +276,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
             <div class="col-sm-12">
                 <div class="card">
                     <div class="card-header">
-                        <h5>Importar Packing List</h5>
+                        <h5>Importar Dispatch Inventory</h5>
                     </div>
                     <!-- En importarpk.php -->
 <div class="card-body">
@@ -286,11 +286,11 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
     </div>
     <?php endif; ?>
 
-    <form action="procesar_excel.php" method="POST" enctype="multipart/form-data">
-        <div class="mb-3">
-            <input type="file" name="excel" class="form-control" accept=".xlsx" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Subir y Procesar</button>
+    <form id="dispatch-form" enctype="multipart/form-data">
+      <div class="mb-3">
+        <input type="file" name="excel" class="form-control" accept=".xlsx" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Subir y Procesar</button>
     </form>
 </div>
                 </div>
@@ -514,6 +514,51 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
     </div>
   </div>
 </div>
+<script>
+    document.getElementById('dispatch-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = new FormData(form);
+
+      try {
+        // Mostrar loading
+        Swal.fire({
+          title: 'Procesando...',
+          text: 'Por favor espera mientras se importa el archivo.',
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading()
+        });
+
+        const resp = await fetch('procesar_excel_dispatch.php', {
+          method: 'POST',
+          body: data
+        });
+        const json = await resp.json();
+        Swal.close();
+
+        if (json.success) {
+          Swal.fire({
+            icon: 'success',
+            title: '¡Listo!',
+            text: json.message
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: json.message || 'Ocurrió un problema.'
+          });
+        }
+      } catch (err) {
+        console.error(err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de red',
+          text: 'No se pudo conectar con el servidor.'
+        });
+      }
+    });
+  </script>
 
     <!-- [Page Specific JS] start -->
     <!-- file-upload Js -->
