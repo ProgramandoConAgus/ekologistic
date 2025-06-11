@@ -51,7 +51,7 @@ try {
     }
 
     $sql .= " GROUP BY c.Number_Container 
-              ORDER BY c.Departure_Date_Port_Origin_EC DESC";
+              ORDER BY pl.IdPackingList DESC";
 
     // Ejecutar la consulta
     $result = $conexion->query($sql);
@@ -84,6 +84,11 @@ try {
     <link rel="stylesheet" href="../assets/css/plugins/jsvectormap.min.css">
     <!-- [Google Font : Public Sans] icon -->
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- DataTables con estilo Bootstrap 5 -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <!-- [Tabler Icons] https://tablericons.com -->
     <link rel="stylesheet" href="../assets/fonts/tabler-icons.min.css" >
@@ -106,7 +111,40 @@ try {
     .eta-date-picker.border-success {
         border-color: #28a745 !important;
     }
-    </style>
+    
+  /* Centrar el paginador */
+  #pc-dt-simple_paginate {
+    text-align: center !important;
+    float: none !important;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Asegura que el scroll solo afecte a la tabla */
+  .table-wrapper {
+    overflow-x: auto;
+  }
+
+  /* Centrar el paginador */
+  #pc-dt-simple_wrapper .dataTables_paginate {
+    margin-top: 1rem;
+    display: flex !important;
+    justify-content: center !important;
+  }
+
+  /* Evitar que el paginador esté dentro del área con scroll */
+  #pc-dt-simple_wrapper {
+    overflow-x: visible;
+  }
+</style>
+<style>
+  #custom-paginator {
+    display: flex;
+    justify-content: center;
+  }
+</style>
+
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="./tipografia.css">
   </head>
@@ -395,8 +433,8 @@ try {
         </div>
       </div>
 
-        <div class="card-body">
-            <div class="table-responsive">
+      <div class="card-body">
+          <div class="table-responsive">
             <table class="table table-hover" id="pc-dt-simple">
                     <thead>
                         <tr>
@@ -494,6 +532,7 @@ try {
                     </tbody>
                 </table>
             </div>
+            <!--<div id="custom-paginator" class="mt-3"></div>-->
         </div>
     </div>
 </div>
@@ -1233,6 +1272,32 @@ function matchStatusColor(status) {
   }
 }
 </script>
+
+<!--Paginador
+<script>
+$(document).ready(function () {
+  const table = $('#pc-dt-simple').DataTable({
+    paging: true,
+    pageLength: 10,
+    lengthChange: false,
+    info: false,
+    searching: false,
+    language: {
+      paginate: {
+        previous: "«",
+        next: "»"
+      }
+    }
+  });
+
+  // Clonar y mover el paginador al contenedor personalizado
+  const originalPaginator = $('#pc-dt-simple_paginate').detach();
+  $('#custom-paginator').append(originalPaginator);
+});
+</script>
+
+-->
+
     <!-- [Page Specific JS] start -->
     <script src="../assets/js/plugins/apexcharts.min.js"></script>
     <script src="../assets/js/plugins/jsvectormap.min.js"></script>

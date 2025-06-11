@@ -3,7 +3,9 @@ session_start();
 include('../usuarioClass.php');
 include("../con_db.php");
 $IdUsuario=$_SESSION["IdUsuario"];
-
+if(!$_SESSION["IdUsuario"]){
+  header("Location: ../");
+}
 $usuario= new Usuario($conexion);
 
 $user=$usuario->obtenerUsuarioPorId($IdUsuario);
@@ -28,7 +30,8 @@ $sql = "
         d.ancho_in                           AS Broad_in,
         d.altura_in                          AS Height_in,
         d.peso_lb                            AS Weight_lb,
-        d.estado                             AS Status
+        d.estado                             AS Status,
+        d.recibo_almacen
     FROM container c
     INNER JOIN dispatch d
         ON c.Number_Commercial_Invoice = d.numero_factura
@@ -422,9 +425,10 @@ try {
           <thead>
             
                <tr>
-                   <th>NUM OP</th>
+                <th>NUM OP</th>
                 <th>Number_Container</th>
                 <th>Entry Date</th>
+                <th>Warehouse Receipt</th>
                 <th>Lot_Number</th>
                 <th>Booking_BK</th>
                 <th>Number_Commercial_Invoice</th>
@@ -450,6 +454,8 @@ try {
                 <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
                 <td><?= htmlspecialchars($row['Number_Container']) ?></td>
                 <td><?= htmlspecialchars($row['Entry_Date']) ?></td>
+                <td><?= htmlspecialchars($row['recibo_almacen']) ?></td>
+
                 <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
                 <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
                 <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>

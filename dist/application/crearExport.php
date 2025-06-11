@@ -1,5 +1,12 @@
 <?php
+session_start();
+include('../usuarioClass.php');
+include("../con_db.php");
+$IdUsuario=$_SESSION["IdUsuario"];
 
+$usuario= new Usuario($conexion);
+
+$user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 ?>
 
@@ -36,6 +43,8 @@
 <!-- [Template CSS Files] -->
 <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" >
 <link rel="stylesheet" href="../assets/css/style-preset.css" >
+<!-- SweetAlert2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   </head>
   <!-- [Head] end -->
@@ -265,7 +274,6 @@
 </div>
 
         <!-- [ breadcrumb ] end -->
-<!-- Acordate de incluir Bootstrap Icons si no lo tenés -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
 <div class="container mt-5">
@@ -274,142 +282,140 @@
 
       <!-- Dropdowns -->
       <div class="row mb-4">
-        <div class="col-md-6">
-          <label for="bookingSelect" class="form-label">N° Booking</label>
-          <select id="bookingSelect" class="form-select">
-            <option selected>Seleccionar...</option>
-            <option>BK001</option>
-            <option>BK002</option>
-            <option>BK003</option>
-          </select>
-        </div>
-        <div class="col-md-6">
-          <label for="invoiceSelect" class="form-label">Commercial Invoice</label>
-          <select id="invoiceSelect" class="form-select">
-            <option selected>Seleccionar...</option>
-            <option>INV001</option>
-            <option>INV002</option>
-            <option>INV003</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Accordions -->
-      <div class="accordion" id="incotermAccordion">
-
-        <!-- Accordion 1 -->
-        <div class="accordion-item">
-          <h2 class="accordion-header" id="headingFCA">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFCA" aria-expanded="true" aria-controls="collapseFCA">
-              FCA - Free Carrier
-            </button>
-          </h2>
-          <div id="collapseFCA" class="accordion-collapse collapse show" aria-labelledby="headingFCA" data-bs-parent="#incotermAccordion">
-            <div class="accordion-body">
-              <table class="table table-hover table-borderless mb-0">
-                <thead>
-                  <tr>
-                    <th>Descripción</th>
-                    <th>Cantidad</th>
-                    <th>Valor U.</th>
-                    <th>Valor T.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Cancelación Booking x cnt</td>
-                    <td><input type="number" class="form-control form-control-sm" value="1" min="0" /></td>
-                    <td><input type="text" class="form-control form-control-sm" value="$50,00" /></td>
-                    <td><input type="text" class="form-control form-control-sm" value="$50,00" /></td>
-                  </tr>
-                  <tr>
-                    <td>Ingreso Terminal Portuaria x cnt</td>
-                    <td><input type="number" class="form-control form-control-sm" value="1" min="0" /></td>
-                    <td><input type="text" class="form-control form-control-sm" value="$180,00" /></td>
-                    <td><input type="text" class="form-control form-control-sm" value="$180,00" /></td>
-                  </tr>
-                </tbody>
-              </table>
-              <h5 class="mt-4 text-center text-success fw-bold">Total Incoterm FCA: $8,214.00</h5>
-            </div>
+        <div class="row">
+          <!-- Select Booking -->
+          <div class="col-md-6 mb-3">
+            <label for="bookingSelect" class="form-label">Booking</label>
+            <select id="bookingSelect" class="form-select">
+              <option selected>Seleccionar...</option>
+              <?php
+                $query = "SELECT DISTINCT c.Booking_BK 
+                          FROM container c 
+                          INNER JOIN dispatch d 
+                          ON c.Number_Commercial_Invoice = d.numero_factura 
+                          AND c.Number_Container = d.notas 
+                          WHERE d.estado = 'Cargado' 
+                          ORDER BY c.num_op, d.numero_parte";
+                $result = $conexion->query($query);
+                while($row = $result->fetch_assoc()) { 
+              ?>
+                <option value="<?= htmlspecialchars($row['Booking_BK']) ?>">
+                  <?= htmlspecialchars($row['Booking_BK']) ?>
+                </option>
+              <?php } ?>
+            </select>
           </div>
-        </div>
 
-        <!-- Accordion 2 -->
-        <div class="accordion-item">
-          <h2 class="accordion-header" id="headingFOB">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFOB" aria-expanded="false" aria-controls="collapseFOB">
-              FOB - Free On Board
-            </button>
-          </h2>
-          <div id="collapseFOB" class="accordion-collapse collapse" aria-labelledby="headingFOB" data-bs-parent="#incotermAccordion">
-            <div class="accordion-body">
-              <table class="table table-hover table-borderless mb-0">
-                <thead>
-                  <tr>
-                    <th>Descripción</th>
-                    <th>Cantidad</th>
-                    <th>Valor U.</th>
-                    <th>Valor T.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Carga en barco</td>
-                    <td><input type="number" class="form-control form-control-sm" value="1" min="0" /></td>
-                    <td><input type="text" class="form-control form-control-sm" value="$100,00" /></td>
-                    <td><input type="text" class="form-control form-control-sm" value="$100,00" /></td>
-                  </tr>
-                </tbody>
-              </table>
-              <h5 class="mt-4 text-center text-success fw-bold">Total Incoterm FOB: $500.00</h5>
-            </div>
-          </div>
-        </div>
-
-        <!-- Accordion 3 -->
-        <div class="accordion-item">
-          <h2 class="accordion-header" id="headingCFR">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCFR" aria-expanded="false" aria-controls="collapseCFR">
-              CFR - Cost and Freight
-            </button>
-          </h2>
-          <div id="collapseCFR" class="accordion-collapse collapse" aria-labelledby="headingCFR" data-bs-parent="#incotermAccordion">
-            <div class="accordion-body">
-              <table class="table table-hover table-borderless mb-0">
-                <thead>
-                  <tr>
-                    <th>Descripción</th>
-                    <th>Cantidad</th>
-                    <th>Valor U.</th>
-                    <th>Valor T.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Flete internacional</td>
-                    <td><input type="number" class="form-control form-control-sm" value="1" min="0" /></td>
-                    <td><input type="text" class="form-control form-control-sm" value="$1,000,00" /></td>
-                    <td><input type="text" class="form-control form-control-sm" value="$1,000,00" /></td>
-                  </tr>
-                </tbody>
-              </table>
-              <h5 class="mt-4 text-center text-success fw-bold">Total Incoterm CFR: $1,000.00</h5>
-            </div>
+          <!-- Select Invoice -->
+          <div class="col-md-6 mb-3">
+            <label for="invoiceSelect" class="form-label">Commercial Invoice</label>
+            <select id="invoiceSelect" class="form-select" disabled>
+              <option selected>Seleccionar...</option>
+              <!-- Se autocompleta con Javascript (buscar comentario de "Completador de select")  -->
+            </select>
           </div>
         </div>
 
       </div>
 
-      <!-- Botones -->
-      <div class="d-flex justify-content-between mt-4">
-        <button type="button" class="btn btn-primary" onclick="history.back()">← Volver</button>
-        <button type="button" class="btn btn-success">Guardar</button>
-      </div>
+      <?php
+// 1) Obtenemos todos los Incoterms
+$incoterms = [];
+$res = $conexion->query("
+  SELECT IdTipoIncoterm, NombreTipoIncoterm
+  FROM tipoincoterm
+  ORDER BY IdTipoIncoterm
+");
+while ($inc = $res->fetch_assoc()) {
+  $incoterms[] = $inc;
+}
+?>
 
-    </div>
-  </div>
+<!-- 2) Select dinámico -->
+<div class="mb-4">
+  <label for="incotermSelect" class="form-label">Elige Incoterm:</label>
+  <select id="incotermSelect" class="form-select">
+    <option value="">-- Selecciona --</option>
+    <?php foreach ($incoterms as $inc): ?>
+      <option value="<?= $inc['IdTipoIncoterm'] ?>">
+        <?= htmlspecialchars($inc['NombreTipoIncoterm']) ?>
+      </option>
+    <?php endforeach; ?>
+  </select>
 </div>
+
+<!-- 3) Contenedores dinámicos -->
+<div id="incotermContainer">
+  <?php foreach ($incoterms as $inc): ?>
+    <div class="incoterm-item" data-incoterm="<?= $inc['IdTipoIncoterm'] ?>" style="display: none;">
+      <h5 class="mt-3"><?= htmlspecialchars($inc['NombreTipoIncoterm']) ?></h5>
+      <table class="table table-hover table-borderless mb-0">
+        <thead>
+          <tr>
+            <th>Descripción</th>
+            <th>Cantidad</th>
+            <th>Valor U.</th>
+            <th>Valor T.</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php
+            // En lugar de solo NombreItems, traemos también el Id
+            $items = $conexion->query(
+              "SELECT IdItemsLiquidacionExport, NombreItems 
+              FROM itemsliquidacionexport 
+              WHERE IdTipoIncoterm = {$inc['IdTipoIncoterm']}"
+            );
+            while ($row = $items->fetch_assoc()):
+              
+          ?>
+            <tr data-item-id="<?= $row['IdItemsLiquidacionExport'] ?>">
+              <td><?= htmlspecialchars($row['NombreItems']) ?></td>
+              <td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>
+              <td>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">$</span>
+                  <input type="text" class="form-control valor-unitario" value="0,00">
+                </div>
+              </td>
+              <td>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">$</span>
+                  <input type="text" class="form-control valor-total" value="0,00" readonly>
+                </div>
+              </td>
+            </tr>
+          <?php endwhile; ?>
+
+        </tbody>
+      </table>
+      <h5 class="mt-4 text-success fw-bold">
+        Total <?= htmlspecialchars($inc['NombreTipoIncoterm']) ?>: $
+        <span class="total-incoterm" data-incoterm-total="<?= $inc['IdTipoIncoterm'] ?>">0,00</span>
+      </h5>
+    </div>
+  <?php endforeach; ?>
+</div>
+
+<!-- Botones y Total General -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
+  <button class="btn btn-primary" onclick="window.location.href = '../admins/exportsPanel.php'">Volver</button>
+  <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
+    Total General: $0,00
+  </h5>
+  <button type="button" class="btn btn-success">Guardar</button>
+</div>
+
+<!-- Script para mostrar/ocultar -->
+<script>
+  const sel = document.getElementById('incotermSelect');
+  const bloques = document.querySelectorAll('.incoterm-item');
+  sel.addEventListener('change', () => {
+    bloques.forEach(b => {
+      b.style.display = (b.dataset.incoterm === sel.value) ? 'block' : 'none';
+    });
+  });
+</script>
 
 
 
@@ -439,6 +445,157 @@
 <script src="../assets/js/fonts/custom-font.js"></script>
 <script src="../assets/js/pcoded.js"></script>
 <script src="../assets/js/plugins/feather.min.js"></script>
+<!--Completador de select-->
+<script>
+  document.getElementById('bookingSelect').addEventListener('change', function () {
+    const booking = this.value;
+    const invoiceSelect = document.getElementById('invoiceSelect');
+
+    // Limpiar y desactivar el segundo select
+    invoiceSelect.innerHTML = '<option selected>Seleccionar...</option>';
+    invoiceSelect.disabled = true;
+
+    if (booking && booking !== 'Seleccionar...') {
+      fetch(`../api/exports/get_invoices.php?booking=${encodeURIComponent(booking)}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.length > 0) {
+            data.forEach(invoice => {
+              const option = document.createElement('option');
+              option.value = invoice;
+              option.textContent = invoice;
+              option.selected=true;
+              invoiceSelect.appendChild(option);
+            });
+            invoiceSelect.disabled = false;
+          } else {
+            const opt = document.createElement('option');
+            opt.text = 'Sin facturas disponibles';
+            opt.disabled = true;
+            invoiceSelect.appendChild(opt);
+          }
+        })
+        .catch(error => {
+          console.error('Error al cargar facturas:', error);
+        });
+    }
+  });
+</script>
+
+
+
+<!--Autocalcular totales-->
+<!-- 1) Cálculo dinámico de totales -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  function formatCurrency(value) {
+    let parts = value.toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return parts.join(',');
+  }
+
+  function parseCurrency(str) {
+    return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+  }
+
+  function recalculate() {
+    document.querySelectorAll('tr[data-item-id]').forEach(tr => {
+      const qty = parseFloat(tr.querySelector('.cantidad').value) || 0;
+      const vu  = parseCurrency(tr.querySelector('.valor-unitario').value);
+      const vt  = qty * vu;
+      tr.querySelector('.valor-total').value = formatCurrency(vt);
+    });
+
+    document.querySelectorAll('.incoterm-item').forEach(container => {
+      const incTot = Array.from(container.querySelectorAll('.valor-total'))
+        .reduce((sum, input) => sum + parseCurrency(input.value), 0);
+      container.querySelector('.total-incoterm').textContent = formatCurrency(incTot);
+    });
+
+    const totalGeneral = Array.from(document.querySelectorAll('.total-incoterm'))
+      .reduce((sum, span) => sum + parseCurrency(span.textContent), 0);
+    document.getElementById('totalGeneral').innerHTML = 'Total General: $' + formatCurrency(totalGeneral);
+  }
+
+  document.getElementById('incotermContainer')
+    .addEventListener('input', e => {
+      if (e.target.matches('.cantidad') || e.target.matches('.valor-unitario')) {
+        recalculate();
+      }
+    });
+
+  recalculate();
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const bookingEl  = document.getElementById('bookingSelect');
+  const invoiceEl  = document.getElementById('invoiceSelect');
+  const selectEl   = document.getElementById('incotermSelect');
+  const btnGuardar = document.querySelector('.btn-success');
+
+  btnGuardar.addEventListener('click', () => {
+    const booking   = bookingEl.value.trim();
+    const invoice   = invoiceEl.value.trim();
+    const incotermId= selectEl.value;
+
+    if (!booking || !invoice || !incotermId) {
+      return Swal.fire({
+        icon: 'warning',
+        title: 'Faltan datos',
+        text: 'Completa Booking, Invoice e Incoterm antes de guardar.'
+      });
+    }
+
+    const bloque = document.querySelector(`.incoterm-item[data-incoterm="${incotermId}"]`);
+    if (!bloque) return;
+
+    const items = [];
+    bloque.querySelectorAll('tbody tr').forEach(tr => {
+      // 1) Leemos el itemId del data-attribute
+      const itemId = parseInt(tr.dataset.itemId, 10);
+
+      // 2) Descripción y valores
+      const descripcion   = tr.children[0].textContent.trim();
+      const rawCant       = tr.querySelector('.cantidad').value;
+      const rawVU         = tr.querySelector('.valor-unitario').value;
+
+      const cantidad      = rawCant === '' ? null : parseFloat(rawCant.replace(',', '.')) || 0;
+      const valorUnitario = rawVU === '' ? null : parseFloat(rawVU.replace(',', '.')) || 0;
+      const valorTotal    = (cantidad || 0) * (valorUnitario || 0);
+
+      items.push({
+        incotermId,
+        itemId,            // <-- aquí enviamos el ID real
+        descripcion,
+        cantidad,
+        valorUnitario,
+        valorTotal
+      });
+    });
+
+    fetch('../api/exports/guardarliquidacionexport.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ booking, invoice, items })
+    })
+    .then(r => r.json())
+    .then(resp => {
+      if (resp.success) {
+        Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Correcto.' })
+          .then(() => location.reload());
+      } else {
+        Swal.fire({ icon: 'error', title: 'Error', text: resp.message });
+      }
+    })
+    .catch(() => {
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Error del servidor.' });
+    });
+  });
+});
+</script>
+
 
 
 

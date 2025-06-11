@@ -1,6 +1,47 @@
 <?php
+session_start();
+include('../usuarioClass.php');
+include("../con_db.php");
 
+$IdUsuario = $_SESSION["IdUsuario"];
+$usuario = new Usuario($conexion);
+$user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
+$idExport = $_GET["ExportID"] ?? 0;
+
+$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM exports WHERE ExportsID = ?");
+$stmt->bind_param("i", $idExport);
+$stmt->execute();
+$exportData = $stmt->get_result()->fetch_assoc();
+
+// Consulta para los incoterms y sus ítems
+$query = "
+SELECT 
+  t.NombreTipoIncoterm,
+  i.IdIncoterms,
+  il.NombreItems,
+  ii.Cantidad,
+  ii.ValorUnitario,
+  (ii.Cantidad * ii.ValorUnitario) AS ValorTotal
+FROM incoterms i
+JOIN itemsliquidacionexportincoterms ii ON ii.IdItemsLiquidacionExportIncoterms  = i.IdItemsLiquidacionExportIncoterms 
+JOIN itemsliquidacionexport il ON il.IdItemsLiquidacionExport = ii.IdItemsLiquidacionExport
+JOIN tipoincoterm t ON il.IdTipoIncoterm = t.IdTipoIncoterm
+WHERE i.IdExports = ?
+ORDER BY i.IdIncoterms, il.NombreItems
+";
+
+$stmt = $conexion->prepare($query);
+$stmt->bind_param("i", $idExport);
+$stmt->execute();
+$result = $stmt->get_result();
+
+$incoterms = [];
+while ($row = $result->fetch_assoc()) {
+  $nombre = $row['NombreTipoIncoterm'];
+  if (!isset($incoterms[$nombre])) $incoterms[$nombre] = [];
+  $incoterms[$nombre][] = $row;
+}
 ?>
 
 
@@ -273,96 +314,87 @@
     <div class="row mb-4">
       <div class="col-md-6">
         <label class="form-label fw-bold">N° Booking</label>
-        <div class="form-control bg-light">BK20240521</div>
+        <div class="form-control bg-light"><?= $exportData['Booking_BK'] ?></div>
       </div>
       <div class="col-md-6">
         <label class="form-label fw-bold">Commercial Invoice</label>
-        <div class="form-control bg-light">INV-45896</div>
+        <div class="form-control bg-light"><?= $exportData['Number_Commercial_Invoice'] ?></div>
       </div>
     </div>
 
     <div class="accordion" id="incotermAccordion">
-      <div class="accordion-item">
-        <h2 class="accordion-header" id="headingFCA">
-          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFCA" aria-expanded="true" aria-controls="collapseFCA">
-            FCA - Free Carrier
-          </button>
-        </h2>
-        <div id="collapseFCA" class="accordion-collapse collapse show" aria-labelledby="headingFCA" data-bs-parent="#incotermAccordion">
-          <div class="accordion-body">
-            <table class="table table-hover table-borderless mb-0">
-              <thead>
-                <tr>
-                  <th>Descripción</th>
-                  <th>Cantidad</th>
-                  <th>Valor U.</th>
-                  <th>Valor T.</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Cancelación Booking x cnt</td>
-                  <td>1</td>
-                  <td>$50,00</td>
-                  <td>$50,00</td>
-                </tr>
-                <tr>
-                  <td>Ingreso Terminal Portuaria x cnt</td>
-                  <td>1</td>
-                  <td>$180,00</td>
-                  <td>$180,00</td>
-                </tr>
-                <tr>
-                  <td>Drayage Port to WH - truck 40ft hc</td>
-                  <td>1</td>
-                  <td>$450,00</td>
-                  <td>$450,00</td>
-                </tr>
-              </tbody>
-            </table>
-            <h5 class="mt-4 text-center text-success fw-bold">
-              Total Incoterm FCA: $8,214.00
-            </h5>
+      <?php 
+      $index = 0;
+      foreach ($incoterms as $nombreIncoterm => $items):
+        $accordionId = "collapse$index";
+        $headingId = "heading$index";
+        $total = 0;
+      ?>
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="<?= $headingId ?>">
+            <button class="accordion-button <?= $index !== 0 ? 'collapsed' : '' ?>" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $accordionId ?>" aria-expanded="<?= $index === 0 ? 'true' : 'false' ?>" aria-controls="<?= $accordionId ?>">
+              <?= $nombreIncoterm ?>
+            </button>
+          </h2>
+          <div id="<?= $accordionId ?>" class="accordion-collapse collapse <?= $index === 0 ? 'show' : '' ?>" aria-labelledby="<?= $headingId ?>" data-bs-parent="#incotermAccordion">
+            <div class="accordion-body">
+              <table class="table table-hover table-borderless mb-0">
+                <thead>
+                  <tr>
+                    <th>Descripción</th>
+                    <th>Cantidad</th>
+                    <th>Valor U.</th>
+                    <th>Valor T.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($items as $item): 
+                    $total += $item['ValorTotal'];
+                  ?>
+                  <tr>
+                    <td><?= $item['NombreItems'] ?></td>
+                    <td><input type="number" class="form-control form-control-sm cantidad" value="<?= $item['Cantidad'] ?>" min="0" /></td>
+                    <td>
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text">$</span>
+                        <input type="text" class="form-control valor-unitario" value="<?= number_format($item['ValorUnitario'], 2, ',', '.') ?>" />
+                      </div>
+                    </td>
+                    <td>
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text">$</span>
+                        <input type="text" class="form-control valor-total" value="<?= number_format($item['ValorTotal'], 2, ',', '.') ?>" readonly />
+                      </div>
+                    </td>
+                  </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+              <h5 class="mt-4 text-center text-success fw-bold">
+                Total Incoterm <?= $nombreIncoterm ?>: $<?= number_format($total, 2, ',', '.') ?>
+              </h5>
+            </div>
           </div>
         </div>
-      </div>
-
-      <!-- Accordion 2 -->
-      <div class="accordion-item">
-        <h2 class="accordion-header" id="headingFOB">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFOB" aria-expanded="false" aria-controls="collapseFOB">
-            FOB - Free on Board
-          </button>
-        </h2>
-        <div id="collapseFOB" class="accordion-collapse collapse" aria-labelledby="headingFOB" data-bs-parent="#incotermAccordion">
-          <div class="accordion-body">
-            <p>Contenido de incoterm FOB.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Accordion 3 -->
-      <div class="accordion-item">
-        <h2 class="accordion-header" id="headingCIF">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCIF" aria-expanded="false" aria-controls="collapseCIF">
-            CIF - Cost, Insurance & Freight
-          </button>
-        </h2>
-        <div id="collapseCIF" class="accordion-collapse collapse" aria-labelledby="headingCIF" data-bs-parent="#incotermAccordion">
-          <div class="accordion-body">
-            <p>Contenido de incoterm CIF.</p>
-          </div>
-        </div>
-      </div>
+      <?php 
+      $index++;
+      endforeach; 
+      ?>
     </div>
 
-    <!-- Botones abajo -->
-    <div class="d-flex justify-content-between mt-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
       <button class="btn btn-primary" onclick="history.back()">← Volver</button>
-      <button class="btn btn-info">Editar</button>
+
+      <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
+        Total General: $0,00
+      </h5>
+
+      <button id="btnGuardar" class="btn btn-info">Editar</button>
     </div>
+
   </div>
 </div>
+
 
 
       </div>
@@ -384,14 +416,114 @@
         </div>
       </div>
     </footer>
- <!-- Required Js -->
-<script src="../assets/js/plugins/popper.min.js"></script>
-<script src="../assets/js/plugins/simplebar.min.js"></script>
-<script src="../assets/js/plugins/bootstrap.min.js"></script>
-<script src="../assets/js/fonts/custom-font.js"></script>
-<script src="../assets/js/pcoded.js"></script>
-<script src="../assets/js/plugins/feather.min.js"></script>
+    <!-- Required Js -->
+    <script src="../assets/js/plugins/popper.min.js"></script>
+    <script src="../assets/js/plugins/simplebar.min.js"></script>
+    <script src="../assets/js/plugins/bootstrap.min.js"></script>
+    <script src="../assets/js/fonts/custom-font.js"></script>
+    <script src="../assets/js/pcoded.js"></script>
+    <script src="../assets/js/plugins/feather.min.js"></script>
 
+<!--Sweet alert-->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Calcular totales automaticamente-->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.querySelectorAll('.accordion-item').forEach(accordion => {
+  const rows = accordion.querySelectorAll('tbody tr');
+  const totalIncotermDisplay = accordion.querySelector('h5');
+  const totalGeneralDisplay = document.getElementById('totalGeneral');
+
+  const actualizarTotalGeneral = () => {
+    let totalGeneral = 0;
+
+    document.querySelectorAll('.valor-total').forEach(input => {
+      const valor = parseFloat(input.value.replace(',', '.')) || 0;
+      totalGeneral += valor;
+    });
+
+    totalGeneralDisplay.textContent = `Total General: $${totalGeneral.toFixed(2).replace('.', ',')}`;
+  };
+
+  const calcularTotalIncoterm = () => {
+    let totalIncoterm = 0;
+
+    rows.forEach(row => {
+      const cantidadInput = row.querySelector('.cantidad');
+      const valorUInput = row.querySelector('.valor-unitario');
+      const totalInput = row.querySelector('.valor-total');
+
+      const cantidad = parseFloat(cantidadInput.value.replace(',', '.')) || 0;
+      const valorUnitario = parseFloat(valorUInput.value.replace(',', '.')) || 0;
+      const total = cantidad * valorUnitario;
+
+      totalInput.value = total.toFixed(2).replace('.', ',');
+      totalIncoterm += total;
+    });
+
+    totalIncotermDisplay.textContent = `Total Incoterm: $${totalIncoterm.toFixed(2).replace('.', ',')}`;
+    actualizarTotalGeneral();
+  };
+
+  rows.forEach(row => {
+    const cantidadInput = row.querySelector('.cantidad');
+    const valorUInput = row.querySelector('.valor-unitario');
+
+    cantidadInput.addEventListener('input', calcularTotalIncoterm);
+    valorUInput.addEventListener('input', calcularTotalIncoterm);
+  });
+});
+
+// Forzar cálculo inicial al cargar la página
+window.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.cantidad, .valor-unitario').forEach(input => {
+    input.dispatchEvent(new Event('input'));
+  });
+});
+</script>
+
+
+
+<!-- Actualizar datos-->
+<script>
+document.getElementById('btnGuardar').addEventListener('click', () => {
+  const data = [];
+  const accItems = document.querySelectorAll('.accordion-item');
+
+  accItems.forEach((accItem, index) => {
+    const incoterm = accItem.querySelector('.accordion-button').textContent.trim();
+    const rows = accItem.querySelectorAll('tbody tr');
+
+    rows.forEach(row => {
+      const nombreItem = row.cells[0].textContent.trim();
+      const cantidad = row.querySelector('.cantidad').value;
+      const valorUnitario = row.querySelectorAll('.valor-unitario')[0].value.replace('.', '').replace(',', '.');
+
+      data.push({
+        incoterm: incoterm,
+        nombreItem: nombreItem,
+        cantidad: parseInt(cantidad),
+        valorUnitario: parseFloat(valorUnitario)
+      });
+    });
+  });
+
+  fetch('../api/exports/actualizarliquidacionexport.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ datos: data })
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.success) {
+      Swal.fire('Guardado', 'Los cambios fueron actualizados con éxito', 'success').then(() => location.reload());
+    } else {
+      Swal.fire('Error', res.message || 'No se pudo guardar', 'error');
+    }
+  })
+  .catch(err => Swal.fire('Error', 'Error de red o del servidor', 'error'));
+});
+</script>
 
 
 

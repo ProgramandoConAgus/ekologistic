@@ -1,6 +1,47 @@
 <?php
+session_start();
+include('../usuarioClass.php');
+include("../con_db.php");
 
+$IdUsuario = $_SESSION["IdUsuario"];
+$usuario = new Usuario($conexion);
+$user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
+$idExport = $_GET["ExportID"] ?? 0;
+
+$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM exports WHERE ExportsID = ?");
+$stmt->bind_param("i", $idExport);
+$stmt->execute();
+$exportData = $stmt->get_result()->fetch_assoc();
+
+// Consulta para los incoterms y sus ítems
+$query = "
+SELECT 
+  t.NombreTipoIncoterm,
+  i.IdIncoterms,
+  il.NombreItems,
+  ii.Cantidad,
+  ii.ValorUnitario,
+  (ii.Cantidad * ii.ValorUnitario) AS ValorTotal
+FROM incoterms i
+JOIN itemsliquidacionexportincoterms ii ON ii.IdItemsLiquidacionExportIncoterms  = i.IdItemsLiquidacionExportIncoterms 
+JOIN itemsliquidacionexport il ON il.IdItemsLiquidacionExport = ii.IdItemsLiquidacionExport
+JOIN tipoincoterm t ON il.IdTipoIncoterm = t.IdTipoIncoterm
+WHERE i.IdExports = ?
+ORDER BY i.IdIncoterms, il.NombreItems
+";
+
+$stmt = $conexion->prepare($query);
+$stmt->bind_param("i", $idExport);
+$stmt->execute();
+$result = $stmt->get_result();
+
+$incoterms = [];
+while ($row = $result->fetch_assoc()) {
+  $nombre = $row['NombreTipoIncoterm'];
+  if (!isset($incoterms[$nombre])) $incoterms[$nombre] = [];
+  $incoterms[$nombre][] = $row;
+}
 ?>
 
 
@@ -267,107 +308,72 @@
         <!-- [ breadcrumb ] end -->
 <!-- Acordate de incluir Bootstrap Icons si no lo tenés -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-
 <div class="container mt-5">
   <div class="card shadow p-4">
+    <!-- Booking & Invoice -->
     <div class="row mb-4">
       <div class="col-md-6">
         <label class="form-label fw-bold">N° Booking</label>
-        <div class="form-control bg-light">BK20240521</div>
+        <div id="booking" class="form-control bg-light"><?= $exportData['Booking_BK'] ?></div>
       </div>
       <div class="col-md-6">
         <label class="form-label fw-bold">Commercial Invoice</label>
-        <div class="form-control bg-light">INV-45896</div>
+        <div id="commercial_Invoice" class="form-control bg-light"><?= $exportData['Number_Commercial_Invoice'] ?></div>
       </div>
     </div>
 
-    <div class="accordion" id="incotermAccordion">
-      <div class="accordion-item">
-        <h2 class="accordion-header" id="headingFCA">
-          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFCA" aria-expanded="true" aria-controls="collapseFCA">
-            FCA - Free Carrier
-          </button>
-        </h2>
-        <div id="collapseFCA" class="accordion-collapse collapse show" aria-labelledby="headingFCA" data-bs-parent="#incotermAccordion">
-          <div class="accordion-body">
-            <table class="table table-hover table-borderless mb-0">
-              <thead>
-                <tr>
-                  <th>Descripción</th>
-                  <th>Cantidad</th>
-                  <th>Valor U.</th>
-                  <th>Valor T.</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Cancelación Booking x cnt</td>
-                  <td>1</td>
-                  <td>$50,00</td>
-                  <td>$50,00</td>
-                </tr>
-                <tr>
-                  <td>Ingreso Terminal Portuaria x cnt</td>
-                  <td>1</td>
-                  <td>$180,00</td>
-                  <td>$180,00</td>
-                </tr>
-                <tr>
-                  <td>Drayage Port to WH - truck 40ft hc</td>
-                  <td>1</td>
-                  <td>$450,00</td>
-                  <td>$450,00</td>
-                </tr>
-              </tbody>
-            </table>
-            <h5 class="mt-4 text-center text-success fw-bold">
-              Total Incoterm FCA: $8,214.00
-            </h5>
-          </div>
+    <!-- Bloques dinámicos de Incoterm -->
+    <div id="incotermContainer">
+      <?php foreach ($incoterms as $nombreIncoterm => $items): 
+        // calculas aquí mismo el total de este Incoterm
+        $totalInc = array_sum(array_column($items, 'ValorTotal'));
+      ?>
+        <div class="incoterm-item mb-4" data-incoterm="<?= htmlspecialchars($nombreIncoterm) ?>">
+          <h5 class="mt-3"><?= htmlspecialchars($nombreIncoterm) ?></h5>
+          <table class="table table-hover table-borderless mb-2">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th>Cantidad</th>
+                <th>Valor U.</th>
+                <th>Valor T.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($items as $item): ?>
+              <tr>
+                <td><?= htmlspecialchars($item['NombreItems']) ?></td>
+                <td><?= $item['Cantidad'] ?></td>
+                <td>$<?= number_format($item['ValorUnitario'], 2, ',', '.') ?></td>
+                <td>$<?= number_format($item['ValorTotal'],   2, ',', '.') ?></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+          <h6 class="text-success fw-bold">
+            Total <?= htmlspecialchars($nombreIncoterm) ?>: $
+            <?= number_format($totalInc, 2, ',', '.') ?>
+          </h6>
         </div>
-      </div>
-
-      <!-- Accordion 2 -->
-      <div class="accordion-item">
-        <h2 class="accordion-header" id="headingFOB">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFOB" aria-expanded="false" aria-controls="collapseFOB">
-            FOB - Free on Board
-          </button>
-        </h2>
-        <div id="collapseFOB" class="accordion-collapse collapse" aria-labelledby="headingFOB" data-bs-parent="#incotermAccordion">
-          <div class="accordion-body">
-            <p>Contenido de incoterm FOB.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Accordion 3 -->
-      <div class="accordion-item">
-        <h2 class="accordion-header" id="headingCIF">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCIF" aria-expanded="false" aria-controls="collapseCIF">
-            CIF - Cost, Insurance & Freight
-          </button>
-        </h2>
-        <div id="collapseCIF" class="accordion-collapse collapse" aria-labelledby="headingCIF" data-bs-parent="#incotermAccordion">
-          <div class="accordion-body">
-            <p>Contenido de incoterm CIF.</p>
-          </div>
-        </div>
-      </div>
+      <?php endforeach; ?>
     </div>
 
-    <!-- Botones abajo -->
-    <div class="d-flex justify-content-between mt-4">
+    <!-- Total General y Descarga -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
       <button class="btn btn-primary" onclick="history.back()">← Volver</button>
-      <button class="btn btn-success">Descargar en Excel</button>
+      <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
+        Total General: $<?= number_format($totalInc, 2, ',', '.') ?>
+      </h5>
+      <button onclick="descargarExcel()" class="btn btn-success">Descargar en Excel</button>
     </div>
   </div>
 </div>
 
 
-      </div>
-    </div>
-    <!-- [ Main Content ] end -->
+
+
+<!-- [ Main Content ] end -->
+
    <footer class="pc-footer">
       <div class="footer-wrapper container-fluid">
         <div class="row">
@@ -391,6 +397,111 @@
 <script src="../assets/js/fonts/custom-font.js"></script>
 <script src="../assets/js/pcoded.js"></script>
 <script src="../assets/js/plugins/feather.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+<script>
+function descargarExcel() {
+  const wb      = XLSX.utils.book_new();
+  const ws_data = [];
+
+  // Booking e Invoice
+  const bookingEl = document.getElementById('booking');
+  const invoiceEl = document.getElementById('commercial_Invoice');
+  const booking   = bookingEl?.textContent.trim() || '';
+  const invoice   = invoiceEl?.textContent.trim() || '';
+
+  ws_data.push(['N° Booking', booking]);
+  ws_data.push(['Commercial Invoice', invoice]);
+  ws_data.push([]);
+
+  // Recorremos cada incoterm-item
+  document.querySelectorAll('.incoterm-item').forEach(block => {
+    const h5    = block.querySelector('h5');
+    const filas = Array.from(block.querySelectorAll('tbody tr'));
+    if (!h5 || filas.length === 0) return;
+
+    const incName = h5.textContent.trim();
+    const n       = filas.length;
+
+    // Definimos las secciones según tu lógica
+    let secciones = [];
+    if (n === 3) {
+      secciones = [{ title: incName, rows: filas }];
+    } else if (n === 12) {
+      secciones = [
+        { title: 'FCA Ec', rows: filas.slice(0, 3) },
+        { title: 'FOB Ec', rows: filas.slice(3) }
+      ];
+    } else if (n >= 15) {
+      secciones = [
+        { title: 'FCA Ec',       rows: filas.slice(0, 3) },
+        { title: 'FOB Ec',       rows: filas.slice(3, n-3) },
+        { title: 'CFR/CIF Ec', rows: filas.slice(n-3) }
+      ];
+    } else {
+      // en otros casos, un solo bloque con el nombre original
+      secciones = [{ title: incName, rows: filas }];
+    }
+
+    // Exportamos cada sección
+    secciones.forEach(sec => {
+      let subtotal = 0;
+      ws_data.push([`Incoterm: ${sec.title}`]);
+      ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.']);
+
+      sec.rows.forEach(tr => {
+        const desc    = tr.children[0].textContent.trim();
+        const cant    = tr.children[1].textContent.trim();
+        const rawU    = tr.children[2].textContent.replace(/[^0-9,\.]/g,'').trim();
+        const rawT    = tr.children[3].textContent.replace(/[^0-9,\.]/g,'').trim();
+        const numT    = parseFloat(rawT.replace(/\./g,'').replace(',','.'))||0;
+        subtotal     += numT;
+
+        ws_data.push([desc, cant, rawU, rawT]);
+      });
+
+      ws_data.push([
+        `Total ${sec.title}`, '', '', 
+        subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})
+      ]);
+      ws_data.push([]);
+    });
+  });
+
+  if (ws_data.length <= 3) {
+    return alert('No hay datos para exportar.');
+  }
+
+  // Crear hoja y estilos
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  const range = XLSX.utils.decode_range(ws['!ref']);
+
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    const A = ws[`A${R+1}`];
+    if (A && typeof A.v === 'string') {
+      if (A.v.startsWith('Incoterm:')) {
+        A.s = { fill:{fgColor:{rgb:'C6EFCE'}}, font:{bold:true} };
+      }
+      if (A.v === 'Descripción') {
+        for (let C = 0; C < 4; ++C) {
+          const cell = ws[`${String.fromCharCode(65+C)}${R+1}`];
+          if (cell) cell.s = { fill:{fgColor:{rgb:'FFF2CC'}}, font:{bold:true} };
+        }
+      }
+    }
+  }
+
+  ws['!cols'] = [
+    {wch:30},{wch:10},{wch:15},{wch:15}
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Exportación');
+  XLSX.writeFile(wb, 'exportacion.xlsx');
+}
+</script>
+
 
 
 

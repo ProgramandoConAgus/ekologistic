@@ -1,5 +1,14 @@
 <?php
+session_start();
+include('../usuarioClass.php');
+include("../con_db.php");
+$IdUsuario=$_SESSION["IdUsuario"];
+if(!$_SESSION["IdUsuario"]){
+  header("Location: ../");
+}
+$usuario= new Usuario($conexion);
 
+$user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 ?>
 
@@ -36,8 +45,21 @@
   <!-- [Template CSS Files] -->
   <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" >
   <link rel="stylesheet" href="../assets/css/style-preset.css" >
-  
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<style>
+.badge-select {
+  border: none;
+  min-height: 30px;
+  color: #fff; 
+  transition: background-color .2s;
+}
+
+.badge-select.draft { background-color: #6c757d !important; }
+.badge-select.final { background-color: #0d6efd !important; }
+.badge-select.total { background-color: #198754 !important; }
+
+</style>
 
 </head>
 <!-- [Head] end -->
@@ -287,50 +309,51 @@
             </tr>
           </thead>
           <tbody>
+            <?php 
+            $query = "SELECT ExportsID, Booking_BK,Number_Commercial_Invoice,status ,creation_date FROM exports WHERE status!=4 ORDER BY creation_date";
+            $result = $conexion->query($query);
+            while($row = $result->fetch_assoc()) { 
+              $fechaOriginal = $row['creation_date'];
+              $fecha = date('d/m/Y', strtotime($fechaOriginal));
+              $hora = date('h:i A', strtotime($fechaOriginal));
+            ?>
             <tr>
-              <td>BK-20230501</td>
-              <td>CI-123456</td>
-              <td>2023/02/07 <span class="text-muted text-sm d-block">09:05 PM</span></td>
-              <td><span class="badge bg-success">Liquidado total</span></td>
+              <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
+              <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
+              <td><?= $fecha ?> <span class="text-muted text-sm d-block"><?= $hora ?></span></td>
               <td>
-                <a href="../application/detalleLiquidacionExport.php" class="text-primary me-2"><i class="ti ti-eye"></i></a>
-                <a href="../application/editarLiquidacionExport.php" class="text-warning me-2"><i class="ti ti-edit"></i></a>
-                <a href="../application/borrarLiquidacionExport.php" class="text-danger"><i class="ti ti-trash"></i></a>
+              <select 
+                class="badge-select badge" 
+                data-export-id="<?=$row['ExportsID']?>" 
+                style="appearance:none; width:70%; margin-left:-15%">
+                <?php
+                  $queryselect  = "SELECT IdEstados, nombre FROM estadosliquidacion";
+                  $resultselect = $conexion->query($queryselect);
+                  while ($row2 = $resultselect->fetch_assoc()) {
+                    if ($row2['IdEstados'] == 4) continue;
+                    $isSel = ($row['status'] == $row2['IdEstados']) ? ' selected' : '';
+                ?>
+                  <option value="<?=$row2['IdEstados']?>" <?=$isSel?>>
+                    <?=$row2['nombre']?>
+                  </option>
+                <?php } ?>
+              </select>
+
+              </td>
+              <td>
+                <a href="../application/detalleLiquidacionExport.php?ExportID=<?=$row["ExportsID"]?>" class="text-primary me-2"><i class="ti ti-eye"></i></a>
+                <?php 
+                  $isDisabled = ($row['status'] == 3);
+                  $href = $isDisabled ? '' : 'href="../application/editarLiquidacionExport.php?ExportID='.$row["ExportsID"].'"';
+                  $classes = 'text-warning me-2' . ($isDisabled ? ' disabled text-muted' : '');
+                ?>
+                <a <?= $href ?> class="<?= $classes ?>" <?= $isDisabled ? 'aria-disabled="true" tabindex="-1"' : '' ?>><i class="ti ti-edit"></i></a>
+                <button class="btn-eliminar text-danger border-0 bg-transparent p-0" data-id="<?= $row["ExportsID"] ?>" title="Eliminar"><i class="ti ti-trash"></i></button>
               </td>
             </tr>
-            <tr>
-              <td>BK-20230715</td>
-              <td>CI-789654</td>
-              <td>2023/05/12 <span class="text-muted text-sm d-block">03:30 PM</span></td>
-              <td><span class="badge bg-warning text-dark">No liquidado</span></td>
-              <td>
-                <a href="../application/detalleLiquidacionExport.php" class="text-primary me-2"><i class="ti ti-eye"></i></a>
-               <a href="../application/editarLiquidacionExport.php" class="text-warning me-2"><i class="ti ti-edit"></i></a>
-                <a href="../application/borrarLiquidacionExport.php" class="text-danger"><i class="ti ti-trash"></i></a>
-              </td>
-            </tr>
-            <tr>
-              <td>BK-20230920</td>
-              <td>CI-456321</td>
-              <td>2023/09/20 <span class="text-muted text-sm d-block">11:15 AM</span></td>
-              <td><span class="badge bg-success">Liquidado total</span></td>
-              <td>
-                <a href="../application/detalleLiquidacionExport.php" class="text-primary me-2"><i class="ti ti-eye"></i></a>
-                <a href="../application/editarLiquidacionExport.php" class="text-warning me-2"><i class="ti ti-edit"></i></a>
-                <a href="../application/borrarLiquidacionExport.php" class="text-danger"><i class="ti ti-trash"></i></a>
-              </td>
-            </tr>
-            <tr>
-              <td>BK-20231010</td>
-              <td>CI-321789</td>
-              <td>2023/10/10 <span class="text-muted text-sm d-block">08:45 AM</span></td>
-              <td><span class="badge bg-warning text-dark">No liquidado</span></td>
-              <td>
-                <a href="../application/detalleLiquidacionExport.php" class="text-primary me-2"><i class="ti ti-eye"></i></a>
-                 <a href="../application/editarLiquidacionExport.php" class="text-warning me-2"><i class="ti ti-edit"></i></a>
-                <a href="../application/borrarLiquidacionExport.php" class="text-danger"><i class="ti ti-trash"></i></a>
-              </td>
-            </tr>
+            <?php
+            }
+            ?>
           </tbody>
         </table>
       </div>
@@ -368,8 +391,139 @@
 <script src="../assets/js/pcoded.js"></script>
 <script src="../assets/js/plugins/feather.min.js"></script>
 
+<!-- Cambiar colores select -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.badge-select').forEach(select => {
+    const applyClass = () => {
+      select.classList.remove('draft','final','total');
+      if (select.value === '1') select.classList.add('draft');
+      else if (select.value === '2') select.classList.add('final');
+      else if (select.value === '3') select.classList.add('total');
+    };
+    select.addEventListener('change', applyClass);
+    applyClass();  
+  });
+});
+</script>
 
 
+
+<!--Borrar Export-->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.btn-eliminar').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const exportID = btn.getAttribute('data-id');
+      if (!exportID) {
+        console.error("No se encontró el ExportID en el botón.");
+        return;
+      }
+
+      Swal.fire({
+        title: '¿Estás seguro?',
+        text: "Por favor, ingresa la razón por la que quieres eliminar esta exportación:",
+        icon: 'warning',
+        input: 'text',
+        inputPlaceholder: 'Razón de la eliminación',
+        inputAttributes: {
+          'aria-label': 'Razón de la eliminación'
+        },
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        inputValidator: (value) => {
+          if (!value) {
+            return '¡Necesitas escribir una razón!';
+          }
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const reason = result.value;
+
+          fetch('../api/exports/borrarliquidacionexport.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `ExportID=${encodeURIComponent(exportID)}&reason=${encodeURIComponent(reason)}`
+          })
+          .then(res => res.text())
+          .then(data => {
+            if (data.trim() === 'OK') {
+              Swal.fire(
+                'Eliminado',
+                'La exportación fue eliminada correctamente.',
+                'success'
+              ).then(() => {
+                window.location.reload();
+              });
+            } else {
+              Swal.fire('Error', data, 'error');
+            }
+          })
+          .catch(err => {
+            console.error(err);
+            Swal.fire('Error', 'Ocurrió un error inesperado.', 'error');
+          });
+        }
+      });
+    });
+  });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.badge-select').forEach(select => {
+    select.addEventListener('change', () => {
+      const newStatus = select.value;
+      const exportID  = select.dataset.exportId;
+      
+      if (!exportID) {
+        console.error('No encontré el export-id en el select.');
+        return;
+      }
+
+      // Muestra un loading mientras actualiza
+      Swal.fire({
+        title: 'Actualizando estado…',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      fetch('../api/exports/actualizarEstado.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `ExportID=${encodeURIComponent(exportID)}&status=${encodeURIComponent(newStatus)}`
+      })
+      .then(res => res.text())
+      .then(text => {
+        Swal.close();
+        if (text.trim() === 'OK') {
+          Swal.fire('¡Listo!', 'Estado actualizado correctamente.', 'success')
+            .then(() => {
+              window.location.reload();
+            });
+        } else {
+          Swal.fire('Error', text, 'error');
+        }
+      })
+      .catch(err => {
+        Swal.close();
+        console.error(err);
+        Swal.fire('Error', 'Ocurrió un error al conectar con el servidor.', 'error');
+      });
+    });
+  });
+});
+</script>
 
 
 <script>layout_change('light');</script>
