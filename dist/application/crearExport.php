@@ -319,102 +319,202 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
       </div>
 
       <?php
-// 1) Obtenemos todos los Incoterms
-$incoterms = [];
-$res = $conexion->query("
-  SELECT IdTipoIncoterm, NombreTipoIncoterm
-  FROM tipoincoterm
-  ORDER BY IdTipoIncoterm
-");
-while ($inc = $res->fetch_assoc()) {
-  $incoterms[] = $inc;
-}
-?>
+      // 1) Obtenemos todos los Incoterms
+      $incoterms = [];
+      $res = $conexion->query("
+        SELECT IdTipoIncoterm, NombreTipoIncoterm
+        FROM tipoincoterm
+        ORDER BY IdTipoIncoterm
+      ");
+      while ($inc = $res->fetch_assoc()) {
+        $incoterms[] = $inc;
+      }
+      ?>
 
-<!-- 2) Select dinámico -->
-<div class="mb-4">
-  <label for="incotermSelect" class="form-label">Elige Incoterm:</label>
-  <select id="incotermSelect" class="form-select">
-    <option value="">-- Selecciona --</option>
-    <?php foreach ($incoterms as $inc): ?>
-      <option value="<?= $inc['IdTipoIncoterm'] ?>">
-        <?= htmlspecialchars($inc['NombreTipoIncoterm']) ?>
-      </option>
-    <?php endforeach; ?>
-  </select>
-</div>
+      <!-- 2) Select dinámico -->
+      <div class="mb-4">
+        <label for="incotermSelect" class="form-label">Elige Incoterm:</label>
+        <select id="incotermSelect" class="form-select">
+          <option value="">-- Selecciona --</option>
+          <?php foreach ($incoterms as $inc): ?>
+            <option value="<?= $inc['IdTipoIncoterm'] ?>">
+              <?= htmlspecialchars($inc['NombreTipoIncoterm']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
 
-<!-- 3) Contenedores dinámicos -->
-<div id="incotermContainer">
-  <?php foreach ($incoterms as $inc): ?>
-    <div class="incoterm-item" data-incoterm="<?= $inc['IdTipoIncoterm'] ?>" style="display: none;">
-      <h5 class="mt-3"><?= htmlspecialchars($inc['NombreTipoIncoterm']) ?></h5>
-      <table class="table table-hover table-borderless mb-0">
-        <thead>
-          <tr>
-            <th>Descripción</th>
-            <th>Cantidad</th>
-            <th>Valor U.</th>
-            <th>Valor T.</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php
-            // En lugar de solo NombreItems, traemos también el Id
-            $items = $conexion->query(
-              "SELECT IdItemsLiquidacionExport, NombreItems 
-              FROM itemsliquidacionexport 
-              WHERE IdTipoIncoterm = {$inc['IdTipoIncoterm']}"
-            );
-            while ($row = $items->fetch_assoc()):
-              
-          ?>
-            <tr data-item-id="<?= $row['IdItemsLiquidacionExport'] ?>">
-              <td><?= htmlspecialchars($row['NombreItems']) ?></td>
-              <td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>
-              <td>
-                <div class="input-group input-group-sm">
-                  <span class="input-group-text">$</span>
-                  <input type="text" class="form-control valor-unitario" value="0,00">
-                </div>
-              </td>
-              <td>
-                <div class="input-group input-group-sm">
-                  <span class="input-group-text">$</span>
-                  <input type="text" class="form-control valor-total" value="0,00" readonly>
-                </div>
-              </td>
-            </tr>
-          <?php endwhile; ?>
+      <!-- 3) Contenedores dinámicos -->
+      <div id="incotermContainer">
+        <?php foreach ($incoterms as $inc): ?>
+          <div class="incoterm-item" data-incoterm="<?= $inc['IdTipoIncoterm'] ?>" style="display: none;">
+            <h5 class="mt-3"><?= htmlspecialchars($inc['NombreTipoIncoterm']) ?></h5>
+            <table class="table table-hover table-borderless mb-0">
+              <thead>
+                <tr>
+                  <th>Descripción</th>
+                  <th>Cantidad</th>
+                  <th>Valor U.</th>
+                  <th>Valor T.</th>
+                  <?php
+                   if($inc['IdTipoIncoterm']==3){
+                    ?>
+                  <th>% Impuesto</th>
+                  <th>Valor Impuesto</th>
+                  <th>Notas</th>
+                  <?php
+                   }
+                   ?>
+                </tr>
+              </thead>
+              <tbody>
+                <?php
+                  $items = $conexion->query(
+                    "SELECT IdItemsLiquidacionExport, NombreItems 
+                    FROM itemsliquidacionexport 
+                    WHERE IdTipoIncoterm = {$inc['IdTipoIncoterm']}"
+                  );
+                  while ($row = $items->fetch_assoc()):
+                ?>
+                <tr data-item-id="<?= $row['IdItemsLiquidacionExport'] ?>">
+                  <td><?= htmlspecialchars($row['NombreItems']) ?></td>
+                  <td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
+                      <input type="text" class="form-control valor-unitario" value="0,00">
+                    </div>
+                  </td>
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
+                      <input type="text" class="form-control valor-total" value="0,00" readonly>
+                    </div>
+                  </td>
+                  <!-- NUEVAS COLUMNAS -->
+                   <?php
+                   if($inc['IdTipoIncoterm']==3){
+                    ?>
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <input type="number" class="form-control impuesto" value="0" min="0" max="100">
+                      <span class="input-group-text">%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
+                      <input type="text" class="form-control valor-impuesto" value="0,00" readonly>
+                    </div>
+                  </td>
+                  <td>
+                    <input type="text" class="form-control form-control-sm notas" placeholder="Notas">
+                  </td>
+                </tr>
+                <?php
+                   }
+                endwhile; ?>
+              </tbody>
+            </table>
 
-        </tbody>
-      </table>
-      <h5 class="mt-4 text-success fw-bold">
-        Total <?= htmlspecialchars($inc['NombreTipoIncoterm']) ?>: $
-        <span class="total-incoterm" data-incoterm-total="<?= $inc['IdTipoIncoterm'] ?>">0,00</span>
-      </h5>
-    </div>
-  <?php endforeach; ?>
-</div>
+            <h5 class="mt-4 text-success fw-bold">
+              Total <?= htmlspecialchars($inc['NombreTipoIncoterm']) ?>: $
+              <span class="total-incoterm" data-incoterm-total="<?= $inc['IdTipoIncoterm'] ?>">0,00</span>
+            </h5>
+          </div>
+        <?php endforeach; ?>
+      </div>
 
-<!-- Botones y Total General -->
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
-  <button class="btn btn-primary" onclick="window.location.href = '../admins/exportsPanel.php'">Volver</button>
-  <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
-    Total General: $0,00
-  </h5>
-  <button type="button" class="btn btn-success">Guardar</button>
-</div>
+      <!-- Botones y Total General -->
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
+        <button class="btn btn-primary" onclick="window.location.href = '../admins/exportsPanel.php'">Volver</button>
+        <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
+          Total General: $0,00
+        </h5>
+        <button type="button" class="btn btn-success">Guardar</button>
+      </div>
 
-<!-- Script para mostrar/ocultar -->
+      <!-- Script para mostrar/ocultar -->
+      <script>
+        const sel = document.getElementById('incotermSelect');
+        const bloques = document.querySelectorAll('.incoterm-item');
+        sel.addEventListener('change', () => {
+          bloques.forEach(b => {
+            b.style.display = (b.dataset.incoterm === sel.value) ? 'block' : 'none';
+          });
+        });
+      </script>
+
 <script>
-  const sel = document.getElementById('incotermSelect');
-  const bloques = document.querySelectorAll('.incoterm-item');
-  sel.addEventListener('change', () => {
-    bloques.forEach(b => {
-      b.style.display = (b.dataset.incoterm === sel.value) ? 'block' : 'none';
+document.addEventListener('DOMContentLoaded', () => {
+  const totalGeneralEl = document.getElementById('totalGeneral');
+
+  // Función para recalcular el total de un bloque (incluye impuesto)
+  function recalculaTotalBloque(block, id) {
+    let suma = 0;
+    block.querySelectorAll('tbody tr').forEach(tr => {
+      const vt = parseFloat(tr.querySelector('.valor-total').value.replace(/,/g, '.'))   || 0;
+      const vi = parseFloat(tr.querySelector('.valor-impuesto').value.replace(/,/g, '.')) || 0;
+      suma += vt + vi;
+    });
+    const span = document.querySelector(`.total-incoterm[data-incoterm-total="${id}"]`);
+    span.textContent = suma.toFixed(2);
+    return suma;
+  }
+
+  // Función para recalcular todo el formulario
+  function recalculaTodo() {
+    let general = 0;
+    document.querySelectorAll('.incoterm-item').forEach(block => {
+      const id = block.dataset.incoterm;
+      // solo sumamos bloques visibles (o todos si prefieres)
+      if (block.style.display === 'block') {
+        general += recalculaTotalBloque(block, id);
+      }
+    });
+    totalGeneralEl.textContent = `$${general.toFixed(2)}`;
+  }
+
+  // Atachar listeners a cada fila/input
+  document.querySelectorAll('.incoterm-item').forEach(block => {
+    const id = block.dataset.incoterm;
+    block.querySelectorAll('tbody tr').forEach(tr => {
+      ['.cantidad', '.valor-unitario', '.impuesto'].forEach(sel => {
+        const input = tr.querySelector(sel);
+        if (!input) return;
+        input.addEventListener('input', () => {
+          // recalcular fila
+          const qtyRaw = tr.querySelector('.cantidad').value.replace(/,/g, '.');
+          const vuRaw  = tr.querySelector('.valor-unitario').value.replace(/,/g, '.');
+          const impRaw = tr.querySelector('.impuesto').value.replace(/,/g, '.');
+
+          const qty = parseFloat(qtyRaw) || 0;
+          const vu  = parseFloat(vuRaw)  || 0;
+          const imp = parseFloat(impRaw) || 0;
+
+          const vt = qty * vu;
+          const vi = vt * (imp / 100);
+
+          tr.querySelector('.valor-total').value    = vt.toFixed(2);
+          tr.querySelector('.valor-impuesto').value = vi.toFixed(2);
+
+          // recalcular totales
+          recalculaTotalBloque(block, id);
+          recalculaTodo();
+        });
+      });
     });
   });
+
+  // Mostrar bloque e inicializar totales al cambiar Incoterm
+  document.getElementById('incotermSelect').addEventListener('change', ev => {
+    document.querySelectorAll('.incoterm-item').forEach(b => {
+      b.style.display = (b.dataset.incoterm === ev.target.value) ? 'block' : 'none';
+    });
+    // al mostrar uno nuevo, recalculamos todo
+    recalculaTodo();
+  });
+});
 </script>
 
 
@@ -527,18 +627,17 @@ document.addEventListener('DOMContentLoaded', () => {
   recalculate();
 });
 </script>
-
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const bookingEl  = document.getElementById('bookingSelect');
-  const invoiceEl  = document.getElementById('invoiceSelect');
-  const selectEl   = document.getElementById('incotermSelect');
-  const btnGuardar = document.querySelector('.btn-success');
+  const bookingEl   = document.getElementById('bookingSelect');
+  const invoiceEl   = document.getElementById('invoiceSelect');
+  const selectEl    = document.getElementById('incotermSelect');
+  const btnGuardar  = document.querySelector('.btn-success');
 
   btnGuardar.addEventListener('click', () => {
-    const booking   = bookingEl.value.trim();
-    const invoice   = invoiceEl.value.trim();
-    const incotermId= selectEl.value;
+    const booking    = bookingEl.value.trim();
+    const invoice    = invoiceEl.value.trim();
+    const incotermId = selectEl.value;
 
     if (!booking || !invoice || !incotermId) {
       return Swal.fire({
@@ -553,25 +652,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const items = [];
     bloque.querySelectorAll('tbody tr').forEach(tr => {
-      // 1) Leemos el itemId del data-attribute
-      const itemId = parseInt(tr.dataset.itemId, 10);
+      const itemId      = parseInt(tr.dataset.itemId, 10);
+      const descripcion = tr.children[0].textContent.trim();
 
-      // 2) Descripción y valores
-      const descripcion   = tr.children[0].textContent.trim();
-      const rawCant       = tr.querySelector('.cantidad').value;
-      const rawVU         = tr.querySelector('.valor-unitario').value;
+      // Cantidad y valor unitario
+      const rawCant = tr.querySelector('.cantidad').value;
+      const rawVU   = tr.querySelector('.valor-unitario').value;
 
-      const cantidad      = rawCant === '' ? null : parseFloat(rawCant.replace(',', '.')) || 0;
-      const valorUnitario = rawVU === '' ? null : parseFloat(rawVU.replace(',', '.')) || 0;
+      // Seguridad para los últimos 3 campos
+      const impEl    = tr.querySelector('.impuesto');
+      const rawImp   = impEl    ? impEl.value    : '0';
+      const viEl     = tr.querySelector('.valor-impuesto');
+      const rawVI    = viEl     ? viEl.value     : '0';
+      const notasEl  = tr.querySelector('.notas');
+      const rawNotas = notasEl  ? notasEl.value.trim() : '';
+
+      const cantidad      = rawCant === '' ? null : parseFloat(rawCant.replace(',', '.'))      || 0;
+      const valorUnitario = rawVU   === '' ? null : parseFloat(rawVU.replace(',', '.'))       || 0;
       const valorTotal    = (cantidad || 0) * (valorUnitario || 0);
+      const impuestoPct   = rawImp  === '' ? null : parseFloat(rawImp.replace(',', '.'))      || 0;
+      const valorImpuesto = rawVI   === '' ? null : parseFloat(rawVI.replace(',', '.'))       || 0;
+      const notas         = rawNotas === '' ? null : rawNotas;
 
       items.push({
         incotermId,
-        itemId,            // <-- aquí enviamos el ID real
+        itemId,
         descripcion,
         cantidad,
         valorUnitario,
-        valorTotal
+        valorTotal,
+        impuestoPct,
+        valorImpuesto,
+        notas
       });
     });
 
@@ -595,6 +707,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+
+
 
 
 

@@ -28,22 +28,34 @@ try {
 
     // 2) Recorremos los items
     foreach ($items as $item) {
-        // ahora recibimos el ID directamente
         $idItem         = intval($item['itemId']);
         $cantidad       = floatval($item['cantidad']);
         $valorUnitario  = floatval($item['valorUnitario']);
         $valorTotal     = floatval($item['valorTotal']);
+        $impuestoPct    = floatval($item['impuestoPct']    ?? 0);
+        $valorImpuesto  = floatval($item['valorImpuesto']  ?? 0);
+        $notas          = trim($item['notas']             ?? '');
 
-        // Insert en itemsliquidacionexportincoterms
+        // Insert en itemsliquidacionexportincoterms (ahora con Impuesto, ValorImpuesto y Notas)
         $stmtItemInc = $conexion->prepare(
           "INSERT INTO itemsliquidacionexportincoterms
-           (IdItemsLiquidacionExport, Cantidad, ValorUnitario, ValorTotal)
-           VALUES (?, ?, ?, ?)"
+           (IdItemsLiquidacionExport, Cantidad, ValorUnitario, ValorTotal,
+            Impuesto, ValorImpuesto, Notas)
+           VALUES (?, ?, ?, ?, ?, ?, ?)"
         );
         if (!$stmtItemInc) {
             throw new Exception("Error preparando INSERT en ItemsLiquidacionExportIncoterms: " . $conexion->error);
         }
-        $stmtItemInc->bind_param("iddd", $idItem, $cantidad, $valorUnitario, $valorTotal);
+        $stmtItemInc->bind_param(
+            "iddddss",
+            $idItem,
+            $cantidad,
+            $valorUnitario,
+            $valorTotal,
+            $impuestoPct,
+            $valorImpuesto,
+            $notas
+        );
         $stmtItemInc->execute();
         $idItemsIncoterms = $conexion->insert_id;
 

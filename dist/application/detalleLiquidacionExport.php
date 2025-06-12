@@ -16,19 +16,26 @@ $exportData = $stmt->get_result()->fetch_assoc();
 
 // Consulta para los incoterms y sus ítems
 $query = "
-SELECT 
-  t.NombreTipoIncoterm,
-  i.IdIncoterms,
-  il.NombreItems,
-  ii.Cantidad,
-  ii.ValorUnitario,
-  (ii.Cantidad * ii.ValorUnitario) AS ValorTotal
-FROM incoterms i
-JOIN itemsliquidacionexportincoterms ii ON ii.IdItemsLiquidacionExportIncoterms  = i.IdItemsLiquidacionExportIncoterms 
-JOIN itemsliquidacionexport il ON il.IdItemsLiquidacionExport = ii.IdItemsLiquidacionExport
-JOIN tipoincoterm t ON il.IdTipoIncoterm = t.IdTipoIncoterm
-WHERE i.IdExports = ?
-ORDER BY i.IdIncoterms, il.NombreItems
+  SELECT 
+    t.IdTipoIncoterm    AS idTipo,
+    t.NombreTipoIncoterm,
+    i.IdIncoterms,
+    il.NombreItems,
+    ii.Cantidad,
+    ii.ValorUnitario,
+    ii.Impuesto,
+    ii.ValorImpuesto,
+    ii.Notas,
+    (ii.Cantidad * ii.ValorUnitario) AS ValorTotal
+  FROM incoterms i
+  JOIN itemsliquidacionexportincoterms ii 
+    ON ii.IdItemsLiquidacionExportIncoterms = i.IdItemsLiquidacionExportIncoterms
+  JOIN itemsliquidacionexport il 
+    ON il.IdItemsLiquidacionExport = ii.IdItemsLiquidacionExport
+  JOIN tipoincoterm t 
+    ON il.IdTipoIncoterm = t.IdTipoIncoterm
+  WHERE i.IdExports = ?
+  ORDER BY il.IdItemsLiquidacionExport
 ";
 
 $stmt = $conexion->prepare($query);
@@ -308,25 +315,36 @@ while ($row = $result->fetch_assoc()) {
         <!-- [ breadcrumb ] end -->
 <!-- Acordate de incluir Bootstrap Icons si no lo tenés -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+<?php
+    // Antes del loop, inicializamos la variable del Total General
+    $totalGeneral = 0;
+?>
 <div class="container mt-5">
   <div class="card shadow p-4">
     <!-- Booking & Invoice -->
     <div class="row mb-4">
       <div class="col-md-6">
         <label class="form-label fw-bold">N° Booking</label>
-        <div id="booking" class="form-control bg-light"><?= $exportData['Booking_BK'] ?></div>
+        <div id="booking" class="form-control bg-light"><?= htmlspecialchars($exportData['Booking_BK']) ?></div>
       </div>
       <div class="col-md-6">
         <label class="form-label fw-bold">Commercial Invoice</label>
-        <div id="commercial_Invoice" class="form-control bg-light"><?= $exportData['Number_Commercial_Invoice'] ?></div>
+        <div id="commercial_Invoice" class="form-control bg-light"><?= htmlspecialchars($exportData['Number_Commercial_Invoice']) ?></div>
       </div>
     </div>
 
     <!-- Bloques dinámicos de Incoterm -->
     <div id="incotermContainer">
-      <?php foreach ($incoterms as $nombreIncoterm => $items): 
-        // calculas aquí mismo el total de este Incoterm
-        $totalInc = array_sum(array_column($items, 'ValorTotal'));
+      <?php foreach ($incoterms as $nombreIncoterm => $items):
+        // Sacamos el tipo y calculamos subtotal de este bloque
+        $tipo     = intval($items[0]['idTipo']);
+        $subtotal = 0;
+        foreach ($items as $item) {
+          $vt = floatval($item['ValorTotal']);
+          $vi = floatval($item['ValorImpuesto']);
+          $subtotal += $vt + $vi;
+        }
+        $totalGeneral += $subtotal;
       ?>
         <div class="incoterm-item mb-4" data-incoterm="<?= htmlspecialchars($nombreIncoterm) ?>">
           <h5 class="mt-3"><?= htmlspecialchars($nombreIncoterm) ?></h5>
@@ -337,22 +355,32 @@ while ($row = $result->fetch_assoc()) {
                 <th>Cantidad</th>
                 <th>Valor U.</th>
                 <th>Valor T.</th>
+                <?php if ($tipo === 3): ?>
+                  <th>% Impuesto</th>
+                  <th>Valor Impuesto</th>
+                  <th>Notas</th>
+                <?php endif; ?>
               </tr>
             </thead>
             <tbody>
               <?php foreach ($items as $item): ?>
               <tr>
                 <td><?= htmlspecialchars($item['NombreItems']) ?></td>
-                <td><?= $item['Cantidad'] ?></td>
-                <td>$<?= number_format($item['ValorUnitario'], 2, ',', '.') ?></td>
-                <td>$<?= number_format($item['ValorTotal'],   2, ',', '.') ?></td>
+                <td><?= intval($item['Cantidad']) ?></td>
+                <td>$<?= number_format(floatval($item['ValorUnitario']), 2, ',', '.') ?></td>
+                <td>$<?= number_format(floatval($item['ValorTotal']),   2, ',', '.') ?></td>
+                <?php if ($tipo === 3): ?>
+                  <td><?= number_format(floatval($item['Impuesto']), 2, ',', '.') ?>%</td>
+                  <td>$<?= number_format(floatval($item['ValorImpuesto']), 2, ',', '.') ?></td>
+                  <td><?= htmlspecialchars($item['Notas']) ?></td>
+                <?php endif; ?>
               </tr>
               <?php endforeach; ?>
             </tbody>
           </table>
           <h6 class="text-success fw-bold">
             Total <?= htmlspecialchars($nombreIncoterm) ?>: $
-            <?= number_format($totalInc, 2, ',', '.') ?>
+            <?= number_format($subtotal, 2, ',', '.') ?>
           </h6>
         </div>
       <?php endforeach; ?>
@@ -362,7 +390,7 @@ while ($row = $result->fetch_assoc()) {
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
       <button class="btn btn-primary" onclick="history.back()">← Volver</button>
       <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
-        Total General: $<?= number_format($totalInc, 2, ',', '.') ?>
+        Total General: $<?= number_format($totalGeneral, 2, ',', '.') ?>
       </h5>
       <button onclick="descargarExcel()" class="btn btn-success">Descargar en Excel</button>
     </div>
@@ -406,7 +434,7 @@ function descargarExcel() {
   const wb      = XLSX.utils.book_new();
   const ws_data = [];
 
-  // Booking e Invoice
+  // 1) Booking e Invoice
   const bookingEl = document.getElementById('booking');
   const invoiceEl = document.getElementById('commercial_Invoice');
   const booking   = bookingEl?.textContent.trim() || '';
@@ -416,16 +444,18 @@ function descargarExcel() {
   ws_data.push(['Commercial Invoice', invoice]);
   ws_data.push([]);
 
-  // Recorremos cada incoterm-item
+  // 2) Recorremos cada bloque de Incoterm
   document.querySelectorAll('.incoterm-item').forEach(block => {
-    const h5    = block.querySelector('h5');
-    const filas = Array.from(block.querySelectorAll('tbody tr'));
-    if (!h5 || filas.length === 0) return;
+    const h5      = block.querySelector('h5');
+    const incName = h5?.textContent.trim();
+    const filas   = Array.from(block.querySelectorAll('tbody tr'));
+    if (!incName || filas.length === 0) return;
 
-    const incName = h5.textContent.trim();
-    const n       = filas.length;
+    const n = filas.length;
+    // solo incluimos impuestos y notas si hay exactamente 15 filas
+    const includeTaxes = (n === 15);
 
-    // Definimos las secciones según tu lógica
+    // 2.1) Secciones según el número de filas
     let secciones = [];
     if (n === 3) {
       secciones = [{ title: incName, rows: filas }];
@@ -436,36 +466,59 @@ function descargarExcel() {
       ];
     } else if (n >= 15) {
       secciones = [
-        { title: 'FCA Ec',       rows: filas.slice(0, 3) },
-        { title: 'FOB Ec',       rows: filas.slice(3, n-3) },
-        { title: 'CFR/CIF Ec', rows: filas.slice(n-3) }
+        { title: 'FCA Ec',     rows: filas.slice(0, 3) },
+        { title: 'FOB Ec',     rows: filas.slice(3, n - 3) },
+        { title: 'CFR/CIF Ec', rows: filas.slice(n - 3) }
       ];
     } else {
-      // en otros casos, un solo bloque con el nombre original
       secciones = [{ title: incName, rows: filas }];
     }
 
-    // Exportamos cada sección
+    // 2.2) Convertir cada sección a ws_data
     secciones.forEach(sec => {
       let subtotal = 0;
       ws_data.push([`Incoterm: ${sec.title}`]);
-      ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.']);
 
+      // Header
+      if (includeTaxes) {
+        ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.','% Impuesto','Valor Impuesto','Notas']);
+      } else {
+        ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.']);
+      }
+
+      // Filas
       sec.rows.forEach(tr => {
-        const desc    = tr.children[0].textContent.trim();
-        const cant    = tr.children[1].textContent.trim();
-        const rawU    = tr.children[2].textContent.replace(/[^0-9,\.]/g,'').trim();
-        const rawT    = tr.children[3].textContent.replace(/[^0-9,\.]/g,'').trim();
-        const numT    = parseFloat(rawT.replace(/\./g,'').replace(',','.'))||0;
-        subtotal     += numT;
+        const cells = tr.children;
+        const desc = cells[0].textContent.trim();
+        const cant = cells[1].textContent.trim();
+        const rawU = cells[2].textContent.replace(/[^0-9,\.]/g,'').trim();
+        const rawT = cells[3].textContent.replace(/[^0-9,\.]/g,'').trim();
+        const numT = parseFloat(rawT.replace(/\./g,'').replace(',','.')) || 0;
+        subtotal += numT;
 
-        ws_data.push([desc, cant, rawU, rawT]);
+        if (includeTaxes) {
+          const rawImp = cells[4].textContent.replace(/[^0-9,\.]/g,'').trim();
+          const rawVI  = cells[5].textContent.replace(/[^0-9,\.]/g,'').trim();
+          const notas  = cells[6].textContent.trim();
+          ws_data.push([desc, cant, rawU, rawT, rawImp, rawVI, notas]);
+        } else {
+          ws_data.push([desc, cant, rawU, rawT]);
+        }
       });
 
-      ws_data.push([
-        `Total ${sec.title}`, '', '', 
-        subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})
-      ]);
+      // Subtotal
+      if (includeTaxes) {
+        ws_data.push([
+          `Total ${sec.title}`, '', '', '', '', 
+          subtotal.toLocaleString('es-AR',{minimumFractionDigits:2}),
+          ''
+        ]);
+      } else {
+        ws_data.push([
+          `Total ${sec.title}`, '', '', 
+          subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})
+        ]);
+      }
       ws_data.push([]);
     });
   });
@@ -474,9 +527,11 @@ function descargarExcel() {
     return alert('No hay datos para exportar.');
   }
 
-  // Crear hoja y estilos
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  // 3) Crear hoja y aplicar estilos
+  const ws    = XLSX.utils.aoa_to_sheet(ws_data);
   const range = XLSX.utils.decode_range(ws['!ref']);
+  // calculamos dinámicamente cuántas columnas hay en el sheet
+  const colCount = range.e.c - range.s.c + 1;
 
   for (let R = range.s.r; R <= range.e.r; ++R) {
     const A = ws[`A${R+1}`];
@@ -485,7 +540,7 @@ function descargarExcel() {
         A.s = { fill:{fgColor:{rgb:'C6EFCE'}}, font:{bold:true} };
       }
       if (A.v === 'Descripción') {
-        for (let C = 0; C < 4; ++C) {
+        for (let C = 0; C < colCount; ++C) {
           const cell = ws[`${String.fromCharCode(65+C)}${R+1}`];
           if (cell) cell.s = { fill:{fgColor:{rgb:'FFF2CC'}}, font:{bold:true} };
         }
@@ -493,8 +548,15 @@ function descargarExcel() {
     }
   }
 
+  // 4) Definir ancho de columnas (asumimos máximo 7, los extras no importan)
   ws['!cols'] = [
-    {wch:30},{wch:10},{wch:15},{wch:15}
+    {wch:30}, // A
+    {wch:10}, // B
+    {wch:15}, // C
+    {wch:15}, // D
+    {wch:10}, // E
+    {wch:15}, // F
+    {wch:20}  // G
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, 'Exportación');

@@ -18,10 +18,14 @@ $exportData = $stmt->get_result()->fetch_assoc();
 $query = "
 SELECT 
   t.NombreTipoIncoterm,
+  t.IdTipoIncoterm AS idTipo,
   i.IdIncoterms,
   il.NombreItems,
   ii.Cantidad,
   ii.ValorUnitario,
+  ii.Impuesto,
+  ii.ValorImpuesto,
+  ii.Notas,
   (ii.Cantidad * ii.ValorUnitario) AS ValorTotal
 FROM incoterms i
 JOIN itemsliquidacionexportincoterms ii ON ii.IdItemsLiquidacionExportIncoterms  = i.IdItemsLiquidacionExportIncoterms 
@@ -323,64 +327,100 @@ while ($row = $result->fetch_assoc()) {
     </div>
 
     <div class="accordion" id="incotermAccordion">
-      <?php 
-      $index = 0;
-      foreach ($incoterms as $nombreIncoterm => $items):
-        $accordionId = "collapse$index";
-        $headingId = "heading$index";
-        $total = 0;
-      ?>
-        <div class="accordion-item">
-          <h2 class="accordion-header" id="<?= $headingId ?>">
-            <button class="accordion-button <?= $index !== 0 ? 'collapsed' : '' ?>" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $accordionId ?>" aria-expanded="<?= $index === 0 ? 'true' : 'false' ?>" aria-controls="<?= $accordionId ?>">
-              <?= $nombreIncoterm ?>
-            </button>
-          </h2>
-          <div id="<?= $accordionId ?>" class="accordion-collapse collapse <?= $index === 0 ? 'show' : '' ?>" aria-labelledby="<?= $headingId ?>" data-bs-parent="#incotermAccordion">
-            <div class="accordion-body">
-              <table class="table table-hover table-borderless mb-0">
-                <thead>
-                  <tr>
-                    <th>Descripción</th>
-                    <th>Cantidad</th>
-                    <th>Valor U.</th>
-                    <th>Valor T.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php foreach ($items as $item): 
-                    $total += $item['ValorTotal'];
-                  ?>
-                  <tr>
-                    <td><?= $item['NombreItems'] ?></td>
-                    <td><input type="number" class="form-control form-control-sm cantidad" value="<?= $item['Cantidad'] ?>" min="0" /></td>
-                    <td>
-                      <div class="input-group input-group-sm">
-                        <span class="input-group-text">$</span>
-                        <input type="text" class="form-control valor-unitario" value="<?= number_format($item['ValorUnitario'], 2, ',', '.') ?>" />
-                      </div>
-                    </td>
-                    <td>
-                      <div class="input-group input-group-sm">
-                        <span class="input-group-text">$</span>
-                        <input type="text" class="form-control valor-total" value="<?= number_format($item['ValorTotal'], 2, ',', '.') ?>" readonly />
-                      </div>
-                    </td>
-                  </tr>
-                  <?php endforeach; ?>
-                </tbody>
-              </table>
-              <h5 class="mt-4 text-center text-success fw-bold">
-                Total Incoterm <?= $nombreIncoterm ?>: $<?= number_format($total, 2, ',', '.') ?>
-              </h5>
-            </div>
-          </div>
+  <?php $idx = 0; foreach ($incoterms as $nombreIncoterm => $items): 
+    $currentTipo = intval($items[0]['idTipo']); ?>
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="heading<?= $idx ?>">
+        <button class="accordion-button <?= $idx ? 'collapsed' : '' ?>"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapse<?= $idx ?>"
+                aria-expanded="<?= $idx ? 'false' : 'true' ?>"
+                aria-controls="collapse<?= $idx ?>">
+          <?= htmlspecialchars($nombreIncoterm) ?>
+        </button>
+      </h2>
+      <div id="collapse<?= $idx ?>"
+           class="accordion-collapse collapse <?= $idx ? '' : 'show' ?>"
+           aria-labelledby="heading<?= $idx ?>"
+           data-bs-parent="#incotermAccordion">
+        <div class="accordion-body">
+          <table class="table table-hover table-borderless mb-0">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th>Cantidad</th>
+                <th>Valor U.</th>
+                <th>Valor T.</th>
+                
+                <?php if ($currentTipo === 3): ?>  
+                <th>% Impuesto</th>
+                <th>Valor Impuesto</th>
+                <th>Notas</th>
+                
+                <?php endif; ?>
+              </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($items as $item): 
+                  $cant = intval($item['Cantidad']);
+                  $vu   = floatval($item['ValorUnitario']);
+                  $vt   = floatval($item['ValorTotal']);
+                  $imp  = floatval($item['Impuesto']);
+                  $vi   = floatval($item['ValorImpuesto']);
+                  $tipo = intval($item['idTipo']);  // <-- aquí
+                ?>
+                <tr data-item-id="<?= intval($item['IdIncoterms']) ?>">
+                  <td><?= htmlspecialchars($item['NombreItems']) ?></td>
+                  <td>
+                    <input type="number" class="form-control form-control-sm cantidad" value="<?= $cant ?>" min="0">
+                  </td>
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
+                      <input type="text" class="form-control valor-unitario" value="<?= number_format($vu,2,',','.') ?>">
+                    </div>
+                  </td>
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
+                      <input type="text" class="form-control valor-total" readonly value="<?= number_format($vt,2,',','.') ?>">
+                    </div>
+                  </td>
+
+                  <?php if ($tipo === 3): // solo para IdTipoIncoterm = 3 ?>  
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <input type="number" class="form-control impuesto" value="<?= $imp ?>" min="0" max="100">
+                      <span class="input-group-text">%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
+                      <input type="text" class="form-control valor-impuesto" readonly value="<?= number_format($vi,2,',','.') ?>">
+                    </div>
+                  </td>
+                  <td>
+                    <input type="text" class="form-control form-control-sm notas" value="<?= htmlspecialchars($item['Notas']) ?>">
+                  </td>
+                  <?php endif; ?>
+
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+
+          <h5 class="mt-4 text-center text-success fw-bold">
+            Total <?= htmlspecialchars($nombreIncoterm) ?>: 
+            $<span class="total-incoterm" data-incoterm-total="<?= $idx ?>">0,00</span>
+          </h5>
         </div>
-      <?php 
-      $index++;
-      endforeach; 
-      ?>
+      </div>
     </div>
+  <?php $idx++; endforeach; ?>
+</div>
+
 
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
       <button class="btn btn-primary" onclick="history.back()">← Volver</button>
@@ -429,99 +469,133 @@ while ($row = $result->fetch_assoc()) {
 <!-- Calcular totales automaticamente-->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-document.querySelectorAll('.accordion-item').forEach(accordion => {
-  const rows = accordion.querySelectorAll('tbody tr');
-  const totalIncotermDisplay = accordion.querySelector('h5');
-  const totalGeneralDisplay = document.getElementById('totalGeneral');
+document.addEventListener('DOMContentLoaded', () => {
+  const totalGeneralEl = document.getElementById('totalGeneral');
 
-  const actualizarTotalGeneral = () => {
+  function actualizarTotalGeneral() {
     let totalGeneral = 0;
-
-    document.querySelectorAll('.valor-total').forEach(input => {
-      const valor = parseFloat(input.value.replace(',', '.')) || 0;
-      totalGeneral += valor;
+    // Sumamos todos los valor-total y valor-impuesto (quitando miles)
+    document.querySelectorAll('.valor-total, .valor-impuesto').forEach(input => {
+      const raw = input.value
+        .replace(/\./g, '')   // quitar separador de miles
+        .replace(',', '.');   // convertir coma decimal a punto
+      totalGeneral += parseFloat(raw) || 0;
     });
+    totalGeneralEl.textContent = `Total General: $${totalGeneral.toFixed(2).replace('.', ',')}`;
+  }
 
-    totalGeneralDisplay.textContent = `Total General: $${totalGeneral.toFixed(2).replace('.', ',')}`;
-  };
+  document.querySelectorAll('.accordion-item').forEach(accordion => {
+    const rows = accordion.querySelectorAll('tbody tr');
+    const totalIncotermSpan = accordion.querySelector('.total-incoterm');
 
-  const calcularTotalIncoterm = () => {
-    let totalIncoterm = 0;
+    function calcularBloque() {
+      let subtotal = 0;
 
+      rows.forEach(row => {
+        // parsear cantidad, valor unitario e impuesto (si existe)
+        const qtyRaw = row.querySelector('.cantidad')?.value   .replace(',', '.') || '0';
+        const vuRaw  = row.querySelector('.valor-unitario')?.value
+                          .replace(/\./g, '').replace(',', '.') || '0';
+        const impRaw = row.querySelector('.impuesto')?.value   .replace(',', '.') || '0';
+
+        const cantidad     = parseFloat(qtyRaw) || 0;
+        const valorUnitario= parseFloat(vuRaw)  || 0;
+        const impuestoPct  = parseFloat(impRaw) || 0;
+
+        const vt = cantidad * valorUnitario;
+        const vi = vt * (impuestoPct / 100);
+
+        // actualizar inputs de tota les filas si existen
+        const vtEl = row.querySelector('.valor-total');
+        if (vtEl) vtEl.value = vt.toFixed(2).replace('.', ',');
+
+        const viEl = row.querySelector('.valor-impuesto');
+        if (viEl) viEl.value = vi.toFixed(2).replace('.', ',');
+
+        subtotal += vt + vi;
+      });
+
+      if (totalIncotermSpan) {
+        totalIncotermSpan.textContent = subtotal.toFixed(2).replace('.', ',');
+      }
+      actualizarTotalGeneral();
+    }
+
+    // atachar listeners a cantidad, valor-unitario e impuesto
     rows.forEach(row => {
-      const cantidadInput = row.querySelector('.cantidad');
-      const valorUInput = row.querySelector('.valor-unitario');
-      const totalInput = row.querySelector('.valor-total');
-
-      const cantidad = parseFloat(cantidadInput.value.replace(',', '.')) || 0;
-      const valorUnitario = parseFloat(valorUInput.value.replace(',', '.')) || 0;
-      const total = cantidad * valorUnitario;
-
-      totalInput.value = total.toFixed(2).replace('.', ',');
-      totalIncoterm += total;
+      ['.cantidad', '.valor-unitario', '.impuesto'].forEach(sel => {
+        const input = row.querySelector(sel);
+        if (input) input.addEventListener('input', calcularBloque);
+      });
     });
 
-    totalIncotermDisplay.textContent = `Total Incoterm: $${totalIncoterm.toFixed(2).replace('.', ',')}`;
-    actualizarTotalGeneral();
-  };
-
-  rows.forEach(row => {
-    const cantidadInput = row.querySelector('.cantidad');
-    const valorUInput = row.querySelector('.valor-unitario');
-
-    cantidadInput.addEventListener('input', calcularTotalIncoterm);
-    valorUInput.addEventListener('input', calcularTotalIncoterm);
-  });
-});
-
-// Forzar cálculo inicial al cargar la página
-window.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.cantidad, .valor-unitario').forEach(input => {
-    input.dispatchEvent(new Event('input'));
+    // cálculo inicial de este bloque
+    calcularBloque();
   });
 });
 </script>
 
 
 
+
 <!-- Actualizar datos-->
 <script>
-document.getElementById('btnGuardar').addEventListener('click', () => {
-  const data = [];
-  const accItems = document.querySelectorAll('.accordion-item');
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btnGuardar');
+  if (!btn) return;
 
-  accItems.forEach((accItem, index) => {
-    const incoterm = accItem.querySelector('.accordion-button').textContent.trim();
-    const rows = accItem.querySelectorAll('tbody tr');
+  btn.addEventListener('click', () => {
+    const datos = [];
 
-    rows.forEach(row => {
-      const nombreItem = row.cells[0].textContent.trim();
-      const cantidad = row.querySelector('.cantidad').value;
-      const valorUnitario = row.querySelectorAll('.valor-unitario')[0].value.replace('.', '').replace(',', '.');
+    document.querySelectorAll('.accordion-item tbody tr').forEach(row => {
+      // 1) ID de la fila de pivot
+      const idInc = parseInt(row.dataset.itemId, 10);
 
-      data.push({
-        incoterm: incoterm,
-        nombreItem: nombreItem,
-        cantidad: parseInt(cantidad),
-        valorUnitario: parseFloat(valorUnitario)
+      // 2) Cantidad y Valor Unitario
+      const qtyRaw  = row.querySelector('.cantidad')?.value       .replace(',', '.') || '0';
+      const vuRaw   = row.querySelector('.valor-unitario')?.value
+                       .replace(/\./g,'').replace(',', '.')       || '0';
+      const cantidad      = parseFloat(qtyRaw)      || 0;
+      const valorUnitario = parseFloat(vuRaw)       || 0;
+
+      // 3) Recalcular Totales
+      const valorTotal    = cantidad * valorUnitario;
+
+      const impRaw        = row.querySelector('.impuesto')?.value .replace(',', '.') || '0';
+      const impuestoPct   = parseFloat(impRaw)       || 0;
+      const valorImpuesto = valorTotal * (impuestoPct / 100);
+
+      const notas         = row.querySelector('.notas')?.value.trim() || '';
+
+      datos.push({
+        idIncoterms: idInc,
+        cantidad,
+        valorUnitario,
+        valorTotal,
+        impuestoPct,
+        valorImpuesto,
+        notas
       });
     });
-  });
 
-  fetch('../api/exports/actualizarliquidacionexport.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ datos: data })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.success) {
-      Swal.fire('Guardado', 'Los cambios fueron actualizados con éxito', 'success').then(() => location.reload());
-    } else {
-      Swal.fire('Error', res.message || 'No se pudo guardar', 'error');
-    }
-  })
-  .catch(err => Swal.fire('Error', 'Error de red o del servidor', 'error'));
+    fetch('../api/exports/actualizarliquidacionexport.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ datos })
+    })
+    .then(r => r.json())
+    .then(json => {
+      if (json.success) {
+        Swal.fire('Guardado', json.message || 'Actualizado con éxito', 'success')
+          .then(() => location.reload());
+      } else {
+        Swal.fire('Error', json.message || 'No se pudo guardar', 'error');
+      }
+    })
+    .catch(() => {
+      Swal.fire('Error', 'Error de red o del servidor', 'error');
+    });
+  });
 });
 </script>
 

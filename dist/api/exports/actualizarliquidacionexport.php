@@ -1,64 +1,85 @@
 <?php
 include("../../con_db.php");
-
 header('Content-Type: application/json');
 
 try {
     $input = json_decode(file_get_contents('php://input'), true);
     $datos = $input['datos'] ?? [];
 
-    if (!$datos) {
+    if (empty($datos)) {
         echo json_encode(['success' => false, 'message' => 'Datos vacíos']);
         exit;
     }
 
-    $errores = 0;
-    $detallesErrores = [];
+    // Preparamos la consulta JOIN con la tabla incoterms para filtrar por IdIncoterms
+    $sql = "
+      UPDATE itemsliquidacionexportincoterms ii
+      JOIN incoterms ic 
+        ON ic.IdItemsLiquidacionExportIncoterms = ii.IdItemsLiquidacionExportIncoterms
+      SET 
+        ii.Cantidad       = ?,
+        ii.ValorUnitario  = ?,
+        ii.ValorTotal     = ?,
+        ii.Impuesto       = ?,
+        ii.ValorImpuesto  = ?,
+        ii.Notas          = ?
+      WHERE ic.IdIncoterms = ?
+    ";
+    $stmt = $conexion->prepare($sql);
+    if (!$stmt) {
+        throw new Exception("Error preparando UPDATE: " . $conexion->error);
+    }
 
-    foreach ($datos as $index => $d) {
-        $stmt = $conexion->prepare("
-            UPDATE itemsliquidacionexportincoterms ii
-            JOIN itemsliquidacionexport il ON ii.IdItemsLiquidacionExport = il.IdItemsLiquidacionExport
-            JOIN tipoincoterm t ON il.IdTipoIncoterm = t.IdTipoIncoterm
-            SET ii.Cantidad = ?, ii.ValorUnitario = ?, ii.ValorTotal = (? * ?)
-            WHERE il.NombreItems = ? AND t.NombreTipoIncoterm = ?
-        ");
+    $errores = [];
+    foreach ($datos as $i => $d) {
+        // Leemos del payload
+        $idIncoterms   = intval($d['idIncoterms']    ?? 0);
+        $cantidad      = intval($d['cantidad']        ?? 0);
+        $valorUnitario = floatval($d['valorUnitario'] ?? 0);
+        $valorTotal    = floatval($d['valorTotal']    ?? ($cantidad * $valorUnitario));
+        $impuestoPct   = floatval($d['impuestoPct']   ?? 0);
+        $valorImpuesto = floatval($d['valorImpuesto'] ?? ($valorTotal * $impuestoPct / 100));
+        $notas         = $d['notas'] ?? '';
 
-        if (!$stmt) {
-            throw new Exception("Error preparando consulta en índice $index: " . $conexion->error);
-        }
-
+        // vinculamos y ejecutamos
         $stmt->bind_param(
-            "dddsss",
-            $d['cantidad'],
-            $d['valorUnitario'],
-            $d['cantidad'],
-            $d['valorUnitario'],
-            $d['nombreItem'],
-            $d['incoterm']
+            "dddddsi",
+            $cantidad,
+            $valorUnitario,
+            $valorTotal,
+            $impuestoPct,
+            $valorImpuesto,
+            $notas,
+            $idIncoterms
         );
-
         if (!$stmt->execute()) {
-            $errores++;
-            $detallesErrores[] = "Error en item $index: " . $stmt->error;
+            $errores[] = "Fila {$i} (IdIncoterms {$idIncoterms}): " . $stmt->error;
         }
     }
 
-    if ($errores === 0) {
-        echo json_encode(['success' => true, 'message' => 'Actualización exitosa']);
+    // Respuesta con los datos que efectivamente procesó
+    if (empty($errores)) {
+        echo json_encode([
+            'success'         => true,
+            'message'         => 'Actualización exitosa',
+            'datosProcesados' => $datos
+        ]);
     } else {
         echo json_encode([
-            'success' => false,
-            'message' => "Hubo $errores error(es) en la actualización.",
-            'errors' => $detallesErrores
+            'success'         => false,
+            'message'         => 'Algunos registros no se actualizaron.',
+            'errors'          => $errores,
+            'datosProcesados' => $datos
         ]);
     }
+
+    $stmt->close();
 
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Ocurrió un error inesperado.',
-        'error' => $e->getMessage()
+        'message' => 'Error inesperado.',
+        'error'   => $e->getMessage()
     ]);
 }
