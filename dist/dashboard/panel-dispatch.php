@@ -66,61 +66,119 @@ try {
   <!-- [Head] start -->
 
   <head>
-    <title>Dashboard Dispatch Inventory | Eko Logistic</title>
-    <!-- [Meta] -->
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Dashboard Dispatch Inventory | Eko Logistic</title>
+  <!-- [Meta] -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-
-      <!-- [Favicon] icon -->
+  <!-- [Favicon] icon -->
   <link rel="icon" href="../assets/images/ekologistic.png" type="image/x-icon" />
 
-    <!-- map-vector css -->
-    <link rel="stylesheet" href="../assets/css/plugins/jsvectormap.min.css">
-    <!-- [Google Font : Public Sans] icon -->
-    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- DataTables con Bootstrap5 -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css"/>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 
-    <!-- [Tabler Icons] https://tablericons.com -->
-    <link rel="stylesheet" href="../assets/fonts/tabler-icons.min.css" >
-    <!-- [Feather Icons] https://feathericons.com -->
-    <link rel="stylesheet" href="../assets/fonts/feather.css" >
-    <!-- [Font Awesome Icons] https://fontawesome.com/icons -->
-    <link rel="stylesheet" href="../assets/fonts/fontawesome.css" >
-    <!-- [Material Icons] https://fonts.google.com/icons -->
-    <link rel="stylesheet" href="../assets/fonts/material.css" >
-    <!-- [Template CSS Files] -->
-    <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" >
-    <link rel="stylesheet" href="../assets/css/style-preset.css" >
-    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Flatpickr para fechas -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
 
-    <!-- Agrega esto en tu <head> -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <style>
+  <!-- map-vector css -->
+  <link rel="stylesheet" href="../assets/css/plugins/jsvectormap.min.css">
+  
+  <!-- [Google Font : Public Sans] icon -->
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- [Tabler Icons] https://tablericons.com -->
+  <link rel="stylesheet" href="../assets/fonts/tabler-icons.min.css" >
+  
+  <!-- [Feather Icons] https://feathericons.com -->
+  <link rel="stylesheet" href="../assets/fonts/feather.css" >
+
+  <!-- [Font Awesome Icons] https://fontawesome.com/icons -->
+  <link rel="stylesheet" href="../assets/fonts/fontawesome.css" >
+
+  <!-- [Material Icons] https://fonts.google.com/icons -->
+  <link rel="stylesheet" href="../assets/fonts/material.css" >
+
+  <!-- [Template CSS Files] -->
+  <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" >
+  <link rel="stylesheet" href="../assets/css/style-preset.css" >
+
+  <!-- Handsontable -->
+  <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" rel="stylesheet">
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
     /* Ajustes para el modal y Handsontable */
     .modal-xl {
-        max-width: 95% !important;
+      max-width: 95% !important;
     }
-    
+
     #excelEditor {
-        width: 100%;
-        overflow: auto;
+      width: 100%;
+      overflow: auto;
     }
-    
+
     .handsontable {
-        font-size: 12px;
+      font-size: 12px;
     }
-    
+
     .htCore td {
-        white-space: nowrap;
+      white-space: nowrap;
     }
-    
-</style>
-<link rel="stylesheet" href="./tipografia.css">
+
+    .table-responsive {
+      position: relative;
+      padding-bottom: 3.5rem;
+    }
+
+    .table-responsive .pagination-wrapper {
+      position: absolute;
+      bottom: 0.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      padding: 0.25rem 0;
+      z-index: 10;
+    }
+
+    /* Botones Bootstrap */
+    .table-responsive .pagination-wrapper .pagination {
+      margin: 0;
+    }
+
+    .table-responsive .pagination-wrapper .pagination li.page-item {
+      margin: 0 0.125rem;
+    }
+
+    .table-responsive .pagination-wrapper .pagination li.page-item .page-link {
+      padding: 0.375rem 0.75rem;
+    }
+
+    .table-responsive .pagination-wrapper .pagination li.active .page-link {
+      background-color: #0d6efd;
+      border-color: #0d6efd;
+      color: #fff;
+    }
+
+    /* Estilos adicionales para la tabla */
+    .pagination-wrapper .pagination li.active .page-link {
+      background-color: #0d6efd;
+      border-color: #0d6efd;
+      color: #fff;
+    }
+  </style>
+
+  <link rel="stylesheet" href="./tipografia.css">
 </head>
+
   <!-- [Head] end -->
   <!-- [Body] Start -->
 
@@ -419,20 +477,16 @@ try {
           </div>
         </div>
         <div class="card-body">
-    <div class="table-responsive">
-        <table class="table table-hover" id="pc-dt-simple">
-           <!-- Encabezados de la tabla -->
-          <thead>
-            
-               <tr>
+        <div class="table-responsive">
+          <table id="pc-dt-simple" class="table table-hover">
+            <thead>
+              <tr>
                 <th>NUM OP</th>
                 <th>Number_Container</th>
+                <th>Booking_BK</th>
+                <th>PO Number</th>
                 <th>Entry Date</th>
                 <th>Dispatch Date</th>
-                <th>Warehouse Receipt</th>
-                <th>Lot_Number</th>
-                <th>Booking_BK</th>
-                <th>Number_Commercial_Invoice</th>
                 <th>Code Product EC</th>
                 <th>Description</th>
                 <th>Qty</th>
@@ -443,23 +497,33 @@ try {
                 <th>Broad (in)</th>
                 <th>Height (in)</th>
                 <th>Weight (lb)</th>
-                
-                <th>Status‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎</th>
-            </tr>
-          </thead>
-
-          <!-- Cuerpo de la tabla -->
-          <tbody>
-            <?php while($row = $result->fetch_assoc()) { ?>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php while ($row = $result->fetch_assoc()): ?>
               <tr>
                 <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
                 <td><?= htmlspecialchars($row['Number_Container']) ?></td>
-                <td><?= htmlspecialchars($row['Entry_Date']) ?></td>
-                <td><?= htmlspecialchars($row['Out_Date']) ?></td>
-                <td><?= htmlspecialchars($row['recibo_almacen']) ?></td>
-                <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
                 <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-                <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm po-input"
+                    data-id="<?= $row['id'] ?>"
+                    value="<?= htmlspecialchars($row['Number_Commercial_Invoice']) ?>"
+                  >
+                </td>
+                <td><?= htmlspecialchars($row['Entry_Date']) ?></td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm dispatch-date-picker"
+                    data-id="<?= $row['id'] ?>"
+                    value="<?= htmlspecialchars($row['Out_Date']) ?>"
+                    placeholder="YYYY-MM-DD"
+                  >
+                </td>
                 <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
                 <td><?= htmlspecialchars($row['Description']) ?></td>
                 <td><?= htmlspecialchars($row['Qty']) ?></td>
@@ -470,17 +534,19 @@ try {
                 <td><?= htmlspecialchars($row['Broad_in']) ?></td>
                 <td><?= htmlspecialchars($row['Height_in']) ?></td>
                 <td><?= htmlspecialchars($row['Weight_lb']) ?></td>
-                <td >
-                  <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" data-id="<?= $row['id'] ?>">
-                    <option value="Cargado" <?= $row['Status'] == 'Cargado' ? 'selected' : '' ?>>Cargado</option>
-                    <option value="En Almacén" <?= $row['Status'] == 'En Almacén' ? 'selected' : '' ?>>En Almacén</option>
+                <td>
+                  <select class="form-select form-select-sm status-select" data-id="<?= $row['id'] ?>">
+                    <option value="Cargado"    <?= $row['Status'] === 'Cargado'    ? 'selected' : '' ?>>Cargado</option>
+                    <option value="En Almacén"  <?= $row['Status'] === 'En Almacén'  ? 'selected' : '' ?>>En Almacén</option>
                   </select>
                 </td>
               </tr>
-            <?php } ?>
-          </tbody>
-        </table>
-    </div>
+              <?php endwhile; ?>
+            </tbody>
+          </table>
+        </div>
+
+
 </div>
 
     </div>
@@ -523,7 +589,89 @@ document.addEventListener('DOMContentLoaded', function () {
         .catch(error => console.error('Error:', error));
     }
 });
+
+
+$(document).ready(function() {
+  const toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 2000
+  });
+
+  // DataTable init...
+  $('#pc-dt-simple').DataTable({
+    paging: true,
+    pageLength: 10,
+    lengthChange: false,
+    searching: false,
+    info: false,
+    ordering: false,
+    language: { paginate:{ previous:'«', next:'»' } },
+    dom: 't<"pagination-wrapper"p>'
+  });
+  $('.pagination-wrapper')
+    .appendTo( $('#pc-dt-simple').closest('.table-responsive') );
+
+  // Dispatch Date editor
+  flatpickr('.dispatch-date-picker', {
+    locale:'es', dateFormat:'Y-m-d',
+    onChange: (_, dateStr, inst) => {
+      fetch('../api/update_dispatch_date.php', {
+        method: 'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id: inst.input.dataset.id, date: dateStr })
+      })
+      .then(r => r.json())
+      .then(json => {
+        if (json.success) {
+          toast.fire({ icon: 'success', title: 'Fecha actualizada' });
+        } else {
+          toast.fire({ icon: 'error', title: json.error });
+        }
+      })
+      .catch(() => toast.fire({ icon: 'error', title: 'Error de red' }));
+    }
+  });
+
+  // PO Number editor
+  $('.po-input').change(function(){
+    fetch('../api/update_dispatch_po.php', {
+      method: 'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id: this.dataset.id, po: this.value })
+    })
+    .then(r => r.json())
+    .then(json => {
+      if (json.success) {
+        toast.fire({ icon: 'success', title: 'PO actualizada' });
+      } else {
+        toast.fire({ icon: 'error', title: json.error });
+      }
+    })
+    .catch(() => toast.fire({ icon: 'error', title: 'Error de red' }));
+  });
+
+  // Status selector
+  $('.status-select').change(function(){
+    fetch('../api/dispatch_status.php', {
+      method: 'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id: this.dataset.id, value: this.value })
+    })
+    .then(r => r.json())
+    .then(json => {
+      if (json.success) {
+        toast.fire({ icon: 'success', title: 'Estado guardado' });
+      } else {
+        toast.fire({ icon: 'error', title: json.error });
+      }
+    })
+    .catch(() => toast.fire({ icon: 'error', title: 'Error de red' }));
+  });
+});
 </script>
+
 </div>
 
         </div>

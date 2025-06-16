@@ -73,6 +73,13 @@ $result->data_seek(0);
       <!-- [Favicon] icon -->
   <link rel="icon" href="../assets/images/ekologistic.png" type="image/x-icon" />
 
+    <!-- jQuery (DataTables lo necesita) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- DataTables CSS y JS -->
+<link   href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet"/>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css"/>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 
     <!-- map-vector css -->
     <link rel="stylesheet" href="../assets/css/plugins/jsvectormap.min.css">
@@ -91,7 +98,6 @@ $result->data_seek(0);
     <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" >
     <link rel="stylesheet" href="../assets/css/style-preset.css" >
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
     .eta-date-picker {
         transition: border-color 0.3s ease;
@@ -121,9 +127,55 @@ $result->data_seek(0);
     .f-36 {
       font-size: 36px;
     }
+    .table-responsive {
+      position: relative;    
+      overflow: auto;       
+    }
+
+    .table-responsive .pagination-wrapper {
+      position: absolute;
+      bottom: 10px;          
+      left: 50%;            
+      transform: translateX(-50%);
+      width: auto;          
+      margin: 0;
+      padding: 0.5rem 0;     
+    }
+    .table-responsive .pagination-wrapper .pagination {
+      margin: 0;                   
+    }
+    .table-responsive .pagination-wrapper .pagination li.page-item {
+      margin: 0 0.125rem;          
+    }
+    .table-responsive .pagination-wrapper .pagination li.page-item .page-link {
+      padding: 0.375rem 0.75rem;   
+    }
+    .table-responsive .pagination-wrapper .pagination li.page-item.active .page-link {
+      background-color: #0d6efd;   
+      border-color:     #0d6efd;
+      color:            #fff;
+    }
+
+    .table-responsive {
+      position: relative;
+      padding-bottom: 3.5rem;      
+      overflow-x: auto;
+    }
+    .table-responsive .pagination-wrapper {
+      position: absolute;
+      bottom:      0.5rem;         
+      left:        50%;
+      transform:   translateX(-50%);
+      z-index:     10;
+      background:  #fff;           
+      padding:     0.25rem 0;      
+    }
+
     </style>
    <link  rel="stylesheet"  href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"/>
     <link rel="stylesheet" href="./tipografia.css">
+
+
   </head>
   <!-- [Head] end -->
   <!-- [Body] Start -->
@@ -717,6 +769,36 @@ function confirmDelete(blNumber) {
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<!-- DataTables CSS/JS ya los tenés cargados -->
+<script>
+$(document).ready(() => {
+  const dt = $('#pc-dt-simple').DataTable({
+    
+    paging:         true,
+    pageLength:     10,
+    pagingType:     'simple_numbers',
+    language: {
+      paginate: {
+        previous: '«',
+        next:     '»'
+      }
+    },
+
+    lengthChange:   false,
+    searching:      false,
+    info:           false,
+    ordering:       false,
+
+    dom: 't<"pagination-wrapper"p>'
+  });
+
+  $('.pagination-wrapper')
+    .appendTo( $('#pc-dt-simple').closest('.table-responsive') );
+});
+</script>
+
+
+
 <script>
 document.getElementById("btnDescargarVisible").addEventListener("click", function () {
   Swal.fire({

@@ -348,7 +348,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
                   $classes = 'text-warning me-2' . ($isDisabled ? ' disabled text-muted' : '');
                 ?>
                 <a <?= $href ?> class="<?= $classes ?>" <?= $isDisabled ? 'aria-disabled="true" tabindex="-1"' : '' ?>><i class="ti ti-edit"></i></a>
-                <button class="btn-eliminar text-danger border-0 bg-transparent p-0" data-id="<?= $row["ExportsID"] ?>" title="Eliminar"><i class="ti ti-trash"></i></button>
+                <!--<button class="btn-eliminar text-danger border-0 bg-transparent p-0" data-id="<?= $row["ExportsID"] ?>" title="Eliminar"><i class="ti ti-trash"></i></button>-->
               </td>
             </tr>
             <?php
