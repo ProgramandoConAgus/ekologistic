@@ -8,10 +8,10 @@ $usuario = new Usuario($conexion);
 $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 
-$idImport = $_GET["ImportID"] ?? 0;
+$idDespacho = $_GET["DespachoID"] ?? 0;
 
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM imports WHERE ImportsID = ?");
-$stmt->bind_param("i", $idImport);
+$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM despacho WHERE DespachoID = ?");
+$stmt->bind_param("i", $idDespacho);
 $stmt->execute();
 $importsData = $stmt->get_result()->fetch_assoc();
 
@@ -23,21 +23,25 @@ $query = "
 SELECT 
   t.NombreTipoIncoterm,
   t.IdTipoIncoterm AS idTipo,
-  i.IdIncotermsImport,
+  i.IdIncotermsDespacho,
   il.NombreItems,
   ii.Cantidad,
   ii.ValorUnitario,
   (ii.Cantidad * ii.ValorUnitario) AS ValorTotal
-FROM incotermsimport i
-JOIN itemsliquidacionimportincoterms ii ON ii.ItemsLiquidacionImportIncoterms = i.IdItemsLiquidacionImportIncoterm
-JOIN itemsliquidacionimport il ON il.IdItemsLiquidacionImport = ii.IdItemsLiquidacionImport
-JOIN tipoincoterm t ON il.IdTipoIncoterm = t.IdTipoIncoterm
-WHERE i.IdImports = ?
-ORDER BY i.IdIncotermsImport, il.NombreItems
+FROM incotermsdespacho i
+JOIN itemsliquidaciondespachoincoterms ii 
+  ON ii.IdItemsLiquidacionDespachoIncoterms = i.IdItemsLiquidacionDespachoIncoterm
+JOIN itemsliquidaciondespacho il 
+  ON il.IdItemsLiquidacionDespacho = ii.IdItemsLiquidacionDespacho
+JOIN tipoincoterm t 
+  ON il.IdTipoIncoterm = t.IdTipoIncoterm
+WHERE i.IdDespacho = ?
+ORDER BY i.IdIncotermsDespacho, il.NombreItems
+
 ";
 
 $stmt = $conexion->prepare($query);
-$stmt->bind_param("i", $idImport);
+$stmt->bind_param("i", $idDespacho);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -363,7 +367,7 @@ while ($row = $result->fetch_assoc()) {
                   $vt   = floatval($item['ValorTotal']);
                   $tipo = intval($item['idTipo']);  // <-- aquí
                 ?>
-                <tr data-item-id="<?= intval($item['IdIncotermsImport']) ?>">
+                <tr data-item-id="<?= intval($item['IdIncotermsDespacho']) ?>">
                   <td><?= htmlspecialchars($item['NombreItems']) ?></td>
                   <td>
                     <input type="number" class="form-control form-control-sm cantidad" value="<?= $cant ?>" min="0">
@@ -552,7 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    fetch('../api/imports/actualizarliquidacionimport.php', {
+    fetch('../api/despacho/actualizarliquidaciondespacho.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ datos })

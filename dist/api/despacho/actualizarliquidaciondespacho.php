@@ -13,14 +13,14 @@ try {
 
     // Preparamos la consulta JOIN con la tabla incoterms para filtrar por IdIncoterms
     $sql = "
-      UPDATE itemsliquidacionimportincoterms ii
-      JOIN incotermsimport ic 
-        ON ic.IdItemsLiquidacionImportIncoterm = ii.ItemsLiquidacionImportIncoterms
+      UPDATE itemsliquidaciondespachoincoterms ii
+      JOIN incotermsDespacho ic 
+        ON ic.IdItemsLiquidacionDespachoIncoterm = ii.IdItemsLiquidacionDespachoIncoterms
       SET 
         ii.Cantidad       = ?,
         ii.ValorUnitario  = ?,
         ii.ValorTotal     = ?
-      WHERE ic.IdIncotermsImport = ?
+      WHERE ic.IdIncotermsDespacho = ?
     ";
     $stmt = $conexion->prepare($sql);
     if (!$stmt) {
@@ -73,3 +73,4 @@ foreach ($datos as $i => $d) {
         'error'   => $e->getMessage()
     ]);
 }
+?>
