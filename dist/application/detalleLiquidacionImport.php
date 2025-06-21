@@ -158,10 +158,10 @@ while ($row = $result->fetch_assoc()) {
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
-        <li class="pc-item"><a class="pc-link">Imports</a></li>
-        <li class="pc-item"><a class="pc-link">Despachos</a></li>
-        <li class="pc-item"><a class="pc-link">Consolidados</a></li>
+       <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
+        <li class="pc-item"><a  href="../admins/importsPanel.php" class="pc-link">Imports</a></li>
+        <li class="pc-item"><a href="../admins/despachosPanel.php" class="pc-link">Despachos</a></li>
+        <li class="pc-item"><a href="../admins/consolidadosPanel.php" class="pc-link">Consolidados</a></li>
       </ul>
     </li>
   </ul>
