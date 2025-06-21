@@ -329,7 +329,6 @@ LEFT JOIN (
   FROM container
   GROUP BY Number_Commercial_Invoice
 ) c ON e.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-WHERE e.status = 2
 
 UNION ALL
 
@@ -347,9 +346,27 @@ LEFT JOIN (
   FROM container
   GROUP BY Number_Commercial_Invoice
 ) c ON i.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-WHERE i.status = 2
+
+UNION ALL
+
+SELECT 
+  d.DespachoID AS ID,
+  d.Booking_BK,
+  d.Number_Commercial_Invoice,
+  d.status,
+  d.creation_date,
+  c.num_op,
+  'despacho' AS origen
+FROM despacho d
+LEFT JOIN (
+  SELECT Number_Commercial_Invoice, MIN(num_op) AS num_op
+  FROM container
+  GROUP BY Number_Commercial_Invoice
+) c ON d.Number_Commercial_Invoice = c.Number_Commercial_Invoice
 
 ORDER BY creation_date DESC;
+
+
 
 ";
 
@@ -357,6 +374,8 @@ $result = $conexion->query($query);
 
 if ($result && $result->num_rows > 0) {
   while($row = $result->fetch_assoc()) { 
+    if ($row['status'] != 2) continue;  // Saltar filas con status diferente de 2
+    
     $fechaOriginal = $row['creation_date'];
     $fecha = date('d/m/Y', strtotime($fechaOriginal));
     $hora  = date('h:i A', strtotime($fechaOriginal));
@@ -433,7 +452,7 @@ if ($result && $result->num_rows > 0) {
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
      <div class="modal-body">
-  <form action="generarConsolidadoExcel.php" method="post">
+  <form method="post">
     <div class="mb-3">
       <label for="num_op" class="form-label">Número de Operación</label>
       <select class="form-select" id="num_op" name="num_op" required>
@@ -469,7 +488,7 @@ if ($result && $result->num_rows > 0) {
 
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-      <button type="submit" class="btn btn-primary">Generar Excel</button>
+      <button type="submit" class="btn btn-primary" onclick="generarExcelConsolidado(document.getElementById('num_op').value)">Generar Excel</button>
     </div>
   </form>
 </div>
@@ -532,6 +551,73 @@ document.getElementById('num_op').addEventListener('change', function() {
     contenedor.innerHTML = `<div class="alert alert-danger">Error al consultar las liquidaciones.</div>`;
   });
 });
+
+</script>
+
+
+<script>
+  async function generarExcelConsolidado(num_op) {
+
+     e.preventDefault();
+  if (!num_op) {
+    alert("Selecciona un número de operación.");
+    return;
+  }
+
+  try {
+    const resp = await fetch('../api/despacho/obtenerLiquidacionesConItems.php', {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify({ num_op })
+});
+
+    const data = await resp.json();
+
+    if (!data.success) {
+    console.error("Error desde PHP:", data.message, data.error);
+    alert(`Error: ${data.message}\n${data.error || ''}`);
+    return;
+  }
+    
+
+    if (!data.success) {
+      alert(data.message || 'Error al obtener liquidaciones');
+      return;
+    }
+
+    const wb = XLSX.utils.book_new();
+
+    for (const liq of data.liquidaciones) {
+      const ws_data = [];
+      ws_data.push([`Origen: ${liq.origen.toUpperCase()}`]);
+      ws_data.push([`ID: ${liq.id}`, `Booking BK: ${liq.booking}`, `Invoice: ${liq.invoice}`, `Fecha: ${liq.fecha}`]);
+      ws_data.push([]);
+      ws_data.push(['Descripción', 'Cantidad', 'Valor Unitario', 'Valor Total']);
+
+      let subtotal = 0;
+      for (const item of liq.items) {
+        ws_data.push([
+          item.NombreItems,
+          item.Cantidad,
+          item.ValorUnitario,
+          item.ValorTotal,
+        ]);
+        subtotal += Number(item.ValorTotal) || 0;
+      }
+
+      ws_data.push([]);
+      ws_data.push(['Subtotal', '', '', subtotal]);
+
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      XLSX.utils.book_append_sheet(wb, ws, `${liq.origen}_${liq.id}`);
+    }
+
+    XLSX.writeFile(wb, `consolidado_liquidaciones_${num_op}.xlsx`);
+
+  } catch (error) {
+  console.error("Error JS o de red:", error);
+}
+}
 
 </script>
 

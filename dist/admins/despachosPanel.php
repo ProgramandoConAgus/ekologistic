@@ -522,12 +522,12 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
             }
           });
 
-          fetch('../api/imports/actualizarEstado.php', {
+          fetch('../api/despacho/actualizarEstado.php', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
               },
-               body: `ImportID=${encodeURIComponent(importID)}&status=${encodeURIComponent(newStatus)}`
+               body: `DespachoID=${encodeURIComponent(importID)}&status=${encodeURIComponent(newStatus)}`
             })
             .then(res => res.text())
             .then(text => {

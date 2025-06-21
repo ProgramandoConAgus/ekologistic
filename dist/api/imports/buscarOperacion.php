@@ -15,7 +15,7 @@ try {
     }
 
     $query = "
-        SELECT 
+       SELECT 
           e.ExportsID AS ID,
           e.Booking_BK,
           e.Number_Commercial_Invoice,
@@ -51,6 +51,25 @@ try {
         ) c ON i.Number_Commercial_Invoice = c.Number_Commercial_Invoice
         WHERE i.status = 2 AND c.num_op IS NOT NULL
 
+        UNION ALL
+
+        SELECT 
+          d.DespachoID AS ID,
+          d.Booking_BK,
+          d.Number_Commercial_Invoice,
+          d.status,
+          d.creation_date,
+          c.num_op,
+          'despacho' AS origen
+        FROM despacho d
+        LEFT JOIN (
+          SELECT Number_Commercial_Invoice, MIN(num_op) AS num_op
+          FROM container
+          WHERE num_op = ?
+          GROUP BY Number_Commercial_Invoice
+        ) c ON d.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+        WHERE d.status = 2 AND c.num_op IS NOT NULL
+
         ORDER BY creation_date DESC
     ";
 
@@ -59,8 +78,13 @@ try {
         throw new Exception("Error preparando consulta: " . $conexion->error);
     }
 
-    $stmt->bind_param("ss", $num_op, $num_op);
-    $stmt->execute();
+    // Bind con 3 parámetros para los 3 '?' en la consulta
+    $stmt->bind_param("sss", $num_op, $num_op, $num_op);
+
+    if (!$stmt->execute()) {
+        throw new Exception("Error ejecutando consulta: " . $stmt->error);
+    }
+
     $result = $stmt->get_result();
 
     $registros = [];
@@ -91,5 +115,4 @@ try {
     ]);
     exit;
 }
-
 ?>
