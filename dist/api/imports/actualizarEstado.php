@@ -8,9 +8,9 @@ try {
         throw new Exception('Método no permitido');
     }
 
-    $exportID = isset($_POST['ExportID']) ? intval($_POST['ExportID']) : 0;
+    $importID = isset($_POST['ImportID']) ? intval($_POST['ImportID']) : 0;
     $status   = isset($_POST['status'])   ? intval($_POST['status'])   : 0;
-    if ($exportID <= 0 || $status <= 0) {
+    if ($importID <= 0 || $status <= 0) {
         http_response_code(400);
         throw new Exception('Parámetros inválidos');
     }
@@ -21,7 +21,7 @@ try {
         throw new Exception('Error al preparar la consulta: ' . $conexion->error);
     }
 
-    $stmt->bind_param('ii', $status, $exportID);
+    $stmt->bind_param('ii', $status, $importID);
     if (!$stmt->execute()) {
         http_response_code(500);
         throw new Exception('Error al ejecutar la consulta: ' . $stmt->error);

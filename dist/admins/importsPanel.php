@@ -344,7 +344,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                           <td>
                             <select
                               class="badge-select badge"
-                              data-export-id="<?= $row['ExportsID'] ?>"
+                              data-export-id="<?= $row['ImportsID'] ?>"
                               style="appearance:none; width:70%; margin-left:-15%">
                               <?php
                               $queryselect  = "SELECT IdEstados, nombre FROM estadosliquidacion";
@@ -360,7 +360,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                             </select>
                           </td>
                           <td>
-                            <a href="../application/detalleLiquidacionImport.php?ImportsID=<?= $row["ImportsID"] ?>" class="text-primary me-2">
+                            <a href="../application/detalleLiquidacionImport.php?ImportID=<?= $row["ImportsID"] ?>" class="text-primary me-2">
                               <i class="ti ti-eye"></i>
                             </a>
                             <?php
@@ -506,10 +506,10 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
       document.querySelectorAll('.badge-select').forEach(select => {
         select.addEventListener('change', () => {
           const newStatus = select.value;
-          const exportID = select.dataset.exportId;
+          const importID = select.dataset.exportId;
 
-          if (!exportID) {
-            console.error('No encontré el export-id en el select.');
+          if (!importID) {
+            console.error('No encontré el import-id en el select.');
             return;
           }
 
@@ -522,12 +522,12 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
             }
           });
 
-          fetch('../api/exports/actualizarEstado.php', {
+          fetch('../api/imports/actualizarEstado.php', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
               },
-              body: `ExportID=${encodeURIComponent(exportID)}&status=${encodeURIComponent(newStatus)}`
+               body: `ImportID=${encodeURIComponent(importID)}&status=${encodeURIComponent(newStatus)}`
             })
             .then(res => res.text())
             .then(text => {

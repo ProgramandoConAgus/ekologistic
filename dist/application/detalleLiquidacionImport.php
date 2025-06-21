@@ -9,7 +9,7 @@ $IdUsuario = $_SESSION["IdUsuario"];
 $usuario = new Usuario($conexion);
 $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
-$idImport = $_GET["ImportsID"] ?? 0;
+$idImport = $_GET["ImportID"] ?? 0;
 
 $stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM imports WHERE ImportsID = ?");
 if (!$stmt) {

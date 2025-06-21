@@ -324,8 +324,12 @@ SELECT
   c.num_op,
   'exports' AS origen
 FROM exports e
-LEFT JOIN container c ON e.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-WHERE e.status = 3
+LEFT JOIN (
+  SELECT Number_Commercial_Invoice, MIN(num_op) AS num_op
+  FROM container
+  GROUP BY Number_Commercial_Invoice
+) c ON e.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+WHERE e.status = 2
 
 UNION ALL
 
@@ -338,10 +342,15 @@ SELECT
   c.num_op,
   'imports' AS origen
 FROM imports i
-LEFT JOIN container c ON i.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-WHERE i.status = 3
+LEFT JOIN (
+  SELECT Number_Commercial_Invoice, MIN(num_op) AS num_op
+  FROM container
+  GROUP BY Number_Commercial_Invoice
+) c ON i.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+WHERE i.status = 2
 
-ORDER BY creation_date DESC
+ORDER BY creation_date DESC;
+
 ";
 
 $result = $conexion->query($query);
@@ -388,7 +397,7 @@ if ($result && $result->num_rows > 0) {
         $href = $isDisabled ? '' : 'href="../application/editarLiquidacionExport.php?ExportID='.$row["ID"].'"';
         $classes = 'text-warning me-2' . ($isDisabled ? ' disabled text-muted' : '');
       ?>
-      <a <?= $href ?> class="<?= $classes ?>" <?= $isDisabled ? 'aria-disabled="true" tabindex="-1"' : '' ?>><i class="ti ti-edit"></i></a>
+     
     <?php } else { ?>
       <a href="../application/detalleLiquidacionImport.php?ImportID=<?=$row["ID"]?>" class="text-primary me-2"><i class="ti ti-eye"></i></a>
       <?php 
@@ -396,9 +405,9 @@ if ($result && $result->num_rows > 0) {
         $href = $isDisabled ? '' : 'href="../application/editarLiquidacionImport.php?ImportID='.$row["ID"].'"';
         $classes = 'text-warning me-2' . ($isDisabled ? ' disabled text-muted' : '');
       ?>
-      <a <?= $href ?> class="<?= $classes ?>" <?= $isDisabled ? 'aria-disabled="true" tabindex="-1"' : '' ?>><i class="ti ti-edit"></i></a>
+     
     <?php } ?>
-    <button class="btn-eliminar text-danger border-0 bg-transparent p-0" data-id="<?= $row["ID"] ?>" title="Eliminar"><i class="ti ti-trash"></i></button>
+   
   </td>
 </tr>
 <?php
@@ -423,34 +432,109 @@ if ($result && $result->num_rows > 0) {
         <h5 class="modal-title" id="consolidadoModalLabel">Seleccionar Número de Operación</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <div class="modal-body">
-        <form action="generarConsolidadoExcel.php" method="post">
-          <div class="mb-3">
-            <label for="num_op" class="form-label">Número de Operación</label>
-            <select class="form-select" id="num_op" name="num_op" required>
-              <option value="">Seleccione una opción</option>
-              <?php
-              $queryNumOp = "SELECT DISTINCT c.num_op 
-                             FROM exports e
-                             JOIN container c ON e.Booking_BK = c.Booking_BK
-                             WHERE e.status = 3";
-              $resultNumOp = $conexion->query($queryNumOp);
-              if ($resultNumOp && $resultNumOp->num_rows > 0) {
-                while ($rowOp = $resultNumOp->fetch_assoc()) {
-                  echo '<option value="' . htmlspecialchars($rowOp['num_op']) . '">' . htmlspecialchars($rowOp['num_op']) . '</option>';
-                }
-              } else {
-                echo '<option disabled>No hay números de operación disponibles</option>';
-              }
-              ?>
-            </select>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-            <button type="submit" class="btn btn-primary">Generar Excel</button>
-          </div>
-        </form>
-      </div>
+     <div class="modal-body">
+  <form action="generarConsolidadoExcel.php" method="post">
+    <div class="mb-3">
+      <label for="num_op" class="form-label">Número de Operación</label>
+      <select class="form-select" id="num_op" name="num_op" required>
+        <option value="">Seleccione una opción</option>
+        <?php
+        $queryNumOp = "
+          SELECT DISTINCT c.num_op
+          FROM container c
+          WHERE EXISTS (
+            SELECT 1 FROM exports e 
+            WHERE e.Booking_BK = c.Booking_BK AND e.status = 2
+          )
+          AND EXISTS (
+            SELECT 1 FROM imports i 
+            WHERE i.Booking_BK = c.Booking_BK AND i.status = 2
+          )
+        ";
+
+        $resultNumOp = $conexion->query($queryNumOp);
+        if ($resultNumOp && $resultNumOp->num_rows > 0) {
+          while ($rowOp = $resultNumOp->fetch_assoc()) {
+            echo '<option value="' . htmlspecialchars($rowOp['num_op']) . '">' . htmlspecialchars($rowOp['num_op']) . '</option>';
+          }
+        } else {
+          echo '<option disabled>No hay números de operación disponibles</option>';
+        }
+        ?>
+      </select>
+    </div>
+
+    <!-- Contenedor donde se mostrarán los resultados -->
+    <div id="resultados-operacion" class="mt-3"></div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      <button type="submit" class="btn btn-primary">Generar Excel</button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.getElementById('num_op').addEventListener('change', function() {
+  const numOp = this.value;
+  const contenedor = document.getElementById('resultados-operacion');
+
+  if (!numOp) {
+    contenedor.innerHTML = '';
+    return;
+  }
+
+  fetch('../api/imports/buscarOperacion.php', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'num_op=' + encodeURIComponent(numOp)
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      let html = `<h5 class="fw-bold mb-3">Liquidaciones Involucradas</h5>
+      <table class="table table-bordered table-hover">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Booking</th>
+            <th>Invoice</th>
+            <th>Fecha creación</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+      data.resultados.forEach(item => {
+        // Formatear fecha a dd/mm/yyyy
+        const fecha = new Date(item.creation_date);
+        const fechaFormateada = ('0' + fecha.getDate()).slice(-2) + '/'
+                              + ('0' + (fecha.getMonth() + 1)).slice(-2) + '/'
+                              + fecha.getFullYear();
+
+        html += `
+          <tr>
+            <td>${item.origen}</td>
+            <td>${item.Booking_BK}</td>
+            <td>${item.Number_Commercial_Invoice}</td>
+            <td>${fechaFormateada}</td>
+          </tr>`;
+      });
+
+      html += `</tbody></table>`;
+      contenedor.innerHTML = html;
+
+    } else {
+      contenedor.innerHTML = `<div class="alert alert-warning">${data.message}</div>`;
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    contenedor.innerHTML = `<div class="alert alert-danger">Error al consultar las liquidaciones.</div>`;
+  });
+});
+
+</script>
+
     </div>
   </div>
 </div>
