@@ -13,7 +13,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 $start = isset($_GET['start']) ? $_GET['start'] : null;
 $end = isset($_GET['end']) ? $_GET['end'] : null;
 
-// Construir consulta base
+
 $sql = "SELECT 
   pl.IdPackingList AS 'ITEM #',
   i.IdItem,
@@ -24,11 +24,14 @@ $sql = "SELECT
   i.Qty_Box,
   i.Price_Box_EC AS 'PRICE BOX EC',
   i.Total_Price_EC AS 'TOTAL PRICE EC',
+  i.Price_Box_USA AS 'PRICE BOX USA',
+  i.Total_Price_USA AS 'TOTAL PRICE USA',
   c.status AS 'STATUS'
 FROM container c
 JOIN items i ON c.IdContainer = i.idContainer
-JOIN packing_list pl on pl.IdPackingList=c.idPackingList;
+JOIN packing_list pl on pl.IdPackingList = c.idPackingList;
 ";
+
 $result = $conexion->query($sql);
 
 // Contadores totales
@@ -478,6 +481,8 @@ $result->data_seek(0);
                           <th>Qty_Box</th>
                           <th>PRICE BOX EC</th>
                           <th>TOTAL PRICE EC</th>
+                          <th>PRICE BOX USA</th>
+                          <th>TOTAL PRICE USA</th>
                           <th>STATUS</th>
                       </tr>
                   </thead>
@@ -505,6 +510,8 @@ $result->data_seek(0);
                           <td><?= $row['Qty_Box'] ?></td>
                           <td>$<?= number_format($row['PRICE BOX EC'], 2) ?></td>
                           <td>$<?= number_format($row['TOTAL PRICE EC'], 2) ?></td>
+                          <td>$<?= number_format($row['PRICE BOX USA'], 2) ?></td>
+                          <td>$<?= number_format($row['TOTAL PRICE USA'], 2) ?></td>
                           <td><span class="badge <?= $badge_color ?>"><?= $row['STATUS'] ?></span></td>
                       </tr>
                       <?php } ?>

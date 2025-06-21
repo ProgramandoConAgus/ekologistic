@@ -266,7 +266,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
       </div>
       <div class="col-md-12">
         <div class="page-header-title">
-          <h2 class="mb-0">Crear Export</h2>
+          <h2 class="mb-0">Crear Import</h2>
         </div>
       </div>
     </div>
@@ -319,18 +319,18 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
       </div>
 
       <?php
-      // 1) Obtenemos todos los Incoterms
-      $incoterms = [];
-      $res = $conexion->query("
+$incoterms = [];
+$res = $conexion->query("
   SELECT IdTipoIncoterm, NombreTipoIncoterm
   FROM tipoincoterm
-  WHERE IdTipoIncoterm IN (1, 2, 3)
+  WHERE IdTipoIncoterm IN (4, 5, 6)
   ORDER BY IdTipoIncoterm
 ");
-      while ($inc = $res->fetch_assoc()) {
-        $incoterms[] = $inc;
-      }
-      ?>
+while ($inc = $res->fetch_assoc()) {
+  $incoterms[] = $inc;
+}
+?>
+
 
       <!-- 2) Select dinámico -->
       <div class="mb-4">
@@ -371,13 +371,13 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
               <tbody>
                 <?php
                   $items = $conexion->query(
-                    "SELECT IdItemsLiquidacionExport, NombreItems 
-                    FROM itemsliquidacionexport 
+                    "SELECT IdItemsLiquidacionImport, NombreItems 
+                    FROM itemsliquidacionimport
                     WHERE IdTipoIncoterm = {$inc['IdTipoIncoterm']}"
                   );
                   while ($row = $items->fetch_assoc()):
                 ?>
-                <tr data-item-id="<?= $row['IdItemsLiquidacionExport'] ?>">
+                <tr data-item-id="<?= $row['IdItemsLiquidacionImport'] ?>">
                   <td><?= htmlspecialchars($row['NombreItems']) ?></td>
                   <td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>
                   <td>
@@ -428,7 +428,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
       <!-- Botones y Total General -->
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
-        <button class="btn btn-primary" onclick="window.location.href = '../admins/exportsPanel.php'">Volver</button>
+        <button class="btn btn-primary" onclick="window.location.href = '../admins/importsPanel.php'">Volver</button>
         <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
           Total General: $0,00
         </h5>
@@ -688,7 +688,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    fetch('../api/exports/guardarliquidacionexport.php', {
+    fetch('../api/imports/guardarliquidacionimport.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ booking, invoice, items })

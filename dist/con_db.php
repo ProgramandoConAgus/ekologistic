@@ -3,7 +3,7 @@
 $servidor="localhost";
 $usuario="root";
 $contraseña="";
-$baseDatos="ecopacking";
+$baseDatos="u981249563_ekologisticdb";
 
 //Crear conexion
 

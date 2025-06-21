@@ -473,7 +473,6 @@ try {
                 <td >
                   <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" data-id="<?= $row['id'] ?>">
                     <option value="Cargado" <?= $row['Status'] == 'Cargado' ? 'selected' : '' ?>>Cargado</option>
-                    <option value="En Almacén" <?= $row['Status'] == 'En Almacén' ? 'selected' : '' ?>>En Almacén</option>
                   </select>
                 </td>
               </tr>

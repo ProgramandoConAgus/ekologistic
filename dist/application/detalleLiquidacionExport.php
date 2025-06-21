@@ -334,64 +334,78 @@ while ($row = $result->fetch_assoc()) {
     </div>
 
     <!-- Bloques dinámicos de Incoterm -->
-    <div id="incotermContainer">
-      <?php foreach ($incoterms as $nombreIncoterm => $items):
-        // Sacamos el tipo y calculamos subtotal de este bloque
-        $tipo     = intval($items[0]['idTipo']);
-        $subtotal = 0;
-        foreach ($items as $item) {
-          $vt = floatval($item['ValorTotal']);
-          $vi = floatval($item['ValorImpuesto']);
-          $subtotal += $vt + $vi;
-        }
-        $totalGeneral += $subtotal;
-      ?>
-        <div class="incoterm-item mb-4" data-incoterm="<?= htmlspecialchars($nombreIncoterm) ?>">
-          <h5 class="mt-3"><?= htmlspecialchars($nombreIncoterm) ?></h5>
-          <table class="table table-hover table-borderless mb-2">
-            <thead>
-              <tr>
-                <th>Descripción</th>
-                <th>Cantidad</th>
-                <th>Valor U.</th>
-                <th>Valor T.</th>
-                <?php if ($tipo === 3): ?>
-                  <th>% Impuesto</th>
-                  <th>Valor Impuesto</th>
-                  <th>Notas</th>
-                <?php endif; ?>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($items as $item): ?>
-              <tr>
-                <td><?= htmlspecialchars($item['NombreItems']) ?></td>
-                <td><?= intval($item['Cantidad']) ?></td>
-                <td>$<?= number_format(floatval($item['ValorUnitario']), 2, ',', '.') ?></td>
-                <td>$<?= number_format(floatval($item['ValorTotal']),   2, ',', '.') ?></td>
-                <?php if ($tipo === 3): ?>
-                  <td><?= number_format(floatval($item['Impuesto']), 2, ',', '.') ?>%</td>
-                  <td>$<?= number_format(floatval($item['ValorImpuesto']), 2, ',', '.') ?></td>
-                  <td><?= htmlspecialchars($item['Notas']) ?></td>
-                <?php endif; ?>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-          <h6 class="text-success fw-bold">
-            Total <?= htmlspecialchars($nombreIncoterm) ?>: $
-            <?= number_format($subtotal, 2, ',', '.') ?>
-          </h6>
-        </div>
-      <?php endforeach; ?>
+<div id="incotermContainer">
+  <?php 
+    $totalGeneralSinImpuesto = 0;
+    $totalGeneralImpuestos   = 0;
+  ?>
+
+  <?php foreach ($incoterms as $nombreIncoterm => $items):
+    $tipo                  = intval($items[0]['idTipo']);
+    $subtotalSinImpuesto   = 0;
+    $subtotalImpuestos     = 0;
+
+    foreach ($items as $item) {
+      $vt = floatval($item['ValorTotal']);
+      $vi = floatval($item['ValorImpuesto']);
+      $subtotalSinImpuesto += $vt;
+      $subtotalImpuestos   += $vi;
+    }
+
+    $subtotalConImpuesto = $subtotalSinImpuesto + $subtotalImpuestos;
+
+    $totalGeneralSinImpuesto += $subtotalSinImpuesto;
+    $totalGeneralImpuestos   += $subtotalImpuestos;
+  ?>
+    <div class="incoterm-item mb-4" data-incoterm="<?= htmlspecialchars($nombreIncoterm) ?>">
+      <h5 class="mt-3"><?= htmlspecialchars($nombreIncoterm) ?></h5>
+      <table class="table table-hover table-borderless mb-2">
+        <thead>
+          <tr>
+            <th>Descripción</th>
+            <th>Cantidad</th>
+            <th>Valor U.</th>
+            <th>Valor T.</th>
+            <?php if ($tipo === 3): ?>
+              <th>% Impuesto</th>
+              <th>Valor Impuesto</th>
+              <th>Notas</th>
+            <?php endif; ?>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($items as $item): ?>
+          <tr>
+            <td><?= htmlspecialchars($item['NombreItems']) ?></td>
+            <td><?= intval($item['Cantidad']) ?></td>
+            <td>$<?= number_format(floatval($item['ValorUnitario']), 2, ',', '.') ?></td>
+            <td>$<?= number_format(floatval($item['ValorTotal']),   2, ',', '.') ?></td>
+            <?php if ($tipo === 3): ?>
+              <td><?= number_format(floatval($item['Impuesto']), 2, ',', '.') ?>%</td>
+              <td>$<?= number_format(floatval($item['ValorImpuesto']), 2, ',', '.') ?></td>
+              <td><?= htmlspecialchars($item['Notas']) ?></td>
+            <?php endif; ?>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    
     </div>
+  <?php endforeach; ?>
+
+  <div class="mt-4 p-3 border-top">
+    <h5 class="fw-bold">Total General</h5>
+    <p>Total sin impuestos: $<?= number_format($totalGeneralSinImpuesto, 2, ',', '.') ?></p>
+    <p>Total impuestos: $<?= number_format($totalGeneralImpuestos, 2, ',', '.') ?></p>
+    <p class="fw-bold">Total con impuestos: $<?= number_format($totalGeneralSinImpuesto + $totalGeneralImpuestos, 2, ',', '.') ?></p>
+  </div>
+</div>
+
 
     <!-- Total General y Descarga -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
       <button class="btn btn-primary" onclick="history.back()">← Volver</button>
-      <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
-        Total General: $<?= number_format($totalGeneral, 2, ',', '.') ?>
-      </h5>
+    
       <button onclick="descargarExcel()" class="btn btn-success">Descargar en Excel</button>
     </div>
   </div>
