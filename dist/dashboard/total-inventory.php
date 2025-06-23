@@ -13,8 +13,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 $start = isset($_GET['start']) ? $_GET['start'] : null;
 $end = isset($_GET['end']) ? $_GET['end'] : null;
 
-
-$sql = "SELECT 
+$sql = "SELECT
   pl.IdPackingList AS 'ITEM #',
   i.IdItem,
   c.num_op AS 'Num OP',
@@ -22,6 +21,8 @@ $sql = "SELECT
   i.Customer,
   i.Description,
   i.Qty_Box,
+  IFNULL(SUM(d.cantidad),0) AS 'Loaded',
+  (i.Qty_Box - IFNULL(SUM(d.cantidad),0)) AS 'Remaining',
   i.Price_Box_EC AS 'PRICE BOX EC',
   i.Total_Price_EC AS 'TOTAL PRICE EC',
   i.Price_Box_USA AS 'PRICE BOX USA',
@@ -29,8 +30,14 @@ $sql = "SELECT
   c.status AS 'STATUS'
 FROM container c
 JOIN items i ON c.IdContainer = i.idContainer
-JOIN packing_list pl on pl.IdPackingList = c.idPackingList;
-";
+LEFT JOIN dispatch d
+  ON c.Number_Commercial_Invoice = d.numero_factura
+ AND c.Number_Container         = d.notas
+ AND i.Code_Product_EC          = d.numero_parte
+JOIN packing_list pl on pl.IdPackingList = c.idPackingList
+GROUP BY i.IdItem;"
+
+
 
 $result = $conexion->query($sql);
 
@@ -532,6 +539,8 @@ $result->data_seek(0);
                           <th>Customer</th>
                           <th>Description</th>
                           <th>Qty_Box</th>
+                          <th>Loaded</th>
+                          <th>Remaining</th>
                           <th>PRICE BOX EC</th>
                           <th>TOTAL PRICE EC</th>
                           <th>PRICE BOX USA</th>
@@ -561,6 +570,8 @@ $result->data_seek(0);
                           <td><?= $row['Customer'] ?></td>
                           <td><?= $row['Description'] ?></td>
                           <td><?= $row['Qty_Box'] ?></td>
+                          <td><?= $row['Loaded'] ?></td>
+                          <td><?= $row['Remaining'] ?></td>
                           <td>$<?= number_format($row['PRICE BOX EC'], 2) ?></td>
                           <td>$<?= number_format($row['TOTAL PRICE EC'], 2) ?></td>
                           <td>$<?= number_format($row['PRICE BOX USA'], 2) ?></td>
