@@ -7,39 +7,37 @@ $IdUsuario = $_SESSION["IdUsuario"];
 $usuario = new Usuario($conexion);
 $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
-$idExport = $_GET["ExportID"] ?? 0;
 
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM exports WHERE ExportsID = ?");
-$stmt->bind_param("i", $idExport);
+$idImport = $_GET["ImportID"] ?? 0;
+
+$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM imports WHERE ImportsID = ?");
+$stmt->bind_param("i", $idImport);
 $stmt->execute();
-$exportData = $stmt->get_result()->fetch_assoc();
+$importsData = $stmt->get_result()->fetch_assoc();
+
+
+
 
 // Consulta para los incoterms y sus ítems
 $query = "
-  SELECT 
-    t.IdTipoIncoterm    AS idTipo,
-    t.NombreTipoIncoterm,
-    i.IdIncoterms,
-    il.NombreItems,
-    ii.Cantidad,
-    ii.ValorUnitario,
-    ii.Impuesto,
-    ii.ValorImpuesto,
-    ii.Notas,
-    (ii.Cantidad * ii.ValorUnitario) AS ValorTotal
-  FROM incoterms i
-  JOIN itemsliquidacionexportincoterms ii 
-    ON ii.IdItemsLiquidacionExportIncoterms = i.IdItemsLiquidacionExportIncoterms
-  JOIN itemsliquidacionexport il 
-    ON il.IdItemsLiquidacionExport = ii.IdItemsLiquidacionExport
-  JOIN tipoincoterm t 
-    ON il.IdTipoIncoterm = t.IdTipoIncoterm
-  WHERE i.IdExports = ?
-  ORDER BY il.IdItemsLiquidacionExport
+SELECT 
+  t.NombreTipoIncoterm,
+  t.IdTipoIncoterm AS idTipo,
+  i.IdIncotermsImport,
+  il.NombreItems,
+  ii.Cantidad,
+  ii.ValorUnitario,
+  (ii.Cantidad * ii.ValorUnitario) AS ValorTotal
+FROM incotermsimport i
+JOIN itemsliquidacionimportincoterms ii ON ii.ItemsLiquidacionImportIncoterms = i.IdItemsLiquidacionImportIncoterm
+JOIN itemsliquidacionimport il ON il.IdItemsLiquidacionImport = ii.IdItemsLiquidacionImport
+JOIN tipoincoterm t ON il.IdTipoIncoterm = t.IdTipoIncoterm
+WHERE i.IdImports = ?
+ORDER BY i.IdIncotermsImport, il.NombreItems
 ";
 
 $stmt = $conexion->prepare($query);
-$stmt->bind_param("i", $idExport);
+$stmt->bind_param("i", $idImport);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -57,7 +55,7 @@ while ($row = $result->fetch_assoc()) {
   <!-- [Head] start -->
 
   <head>
-    <title>Detalle Export | Eko Logistic</title>
+    <title>Editar Export | Eko Logistic</title>
     <!-- [Meta] -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -126,9 +124,9 @@ while ($row = $result->fetch_assoc()) {
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
               <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
-                <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
               </ul>
             </li>
@@ -151,7 +149,7 @@ while ($row = $result->fetch_assoc()) {
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-       <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
+      <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
         <li class="pc-item"><a  href="../admins/importsPanel.php" class="pc-link">Imports</a></li>
         <li class="pc-item"><a href="../admins/despachosPanel.php" class="pc-link">Despachos</a></li>
         <li class="pc-item"><a href="../admins/consolidadosPanel.php" class="pc-link">Consolidados</a></li>
@@ -300,12 +298,12 @@ while ($row = $result->fetch_assoc()) {
           <li class="breadcrumb-item"><a href="../dashboard/index.html">Inicio</a></li>
           <li class="breadcrumb-item"><a href="javascript:void(0)">Liquidación</a></li>
           <li class="breadcrumb-item"><a href="javascript:void(0)">Export</a></li>
-          <li class="breadcrumb-item active" aria-current="page">Detalle</li>
+          <li class="breadcrumb-item active" aria-current="page">Editar</li>
         </ul>
       </div>
       <div class="col-md-12">
         <div class="page-header-title">
-          <h2 class="mb-0">Detalle</h2>
+          <h2 class="mb-0">Editar</h2>
         </div>
       </div>
     </div>
@@ -315,107 +313,107 @@ while ($row = $result->fetch_assoc()) {
         <!-- [ breadcrumb ] end -->
 <!-- Acordate de incluir Bootstrap Icons si no lo tenés -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-<?php
-    // Antes del loop, inicializamos la variable del Total General
-    $totalGeneral = 0;
-?>
+
 <div class="container mt-5">
   <div class="card shadow p-4">
-    <!-- Booking & Invoice -->
     <div class="row mb-4">
       <div class="col-md-6">
         <label class="form-label fw-bold">N° Booking</label>
-        <div id="booking" class="form-control bg-light"><?= htmlspecialchars($exportData['Booking_BK']) ?></div>
+        <div class="form-control bg-light"><?= $importsData['Booking_BK'] ?></div>
       </div>
       <div class="col-md-6">
         <label class="form-label fw-bold">Commercial Invoice</label>
-        <div id="commercial_Invoice" class="form-control bg-light"><?= htmlspecialchars($exportData['Number_Commercial_Invoice']) ?></div>
+        <div class="form-control bg-light"><?= $importsData['Number_Commercial_Invoice'] ?></div>
       </div>
     </div>
 
-    <!-- Bloques dinámicos de Incoterm -->
-<div id="incotermContainer">
-  <?php 
-    $totalGeneralSinImpuesto = 0;
-    $totalGeneralImpuestos   = 0;
-  ?>
+    <div class="accordion" id="incotermAccordion">
+  <?php $idx = 0; foreach ($incoterms as $nombreIncoterm => $items): 
+    $currentTipo = intval($items[0]['idTipo']); ?>
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="heading<?= $idx ?>">
+        <button class="accordion-button <?= $idx ? 'collapsed' : '' ?>"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapse<?= $idx ?>"
+                aria-expanded="<?= $idx ? 'false' : 'true' ?>"
+                aria-controls="collapse<?= $idx ?>">
+          <?= htmlspecialchars($nombreIncoterm) ?>
+        </button>
+      </h2>
+      <div id="collapse<?= $idx ?>"
+           class="accordion-collapse collapse <?= $idx ? '' : 'show' ?>"
+           aria-labelledby="heading<?= $idx ?>"
+           data-bs-parent="#incotermAccordion">
+        <div class="accordion-body">
+          <table class="table table-hover table-borderless mb-0">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th>Cantidad</th>
+                <th>Valor U.</th>
+                <th>Valor T.</th>
+               
+              </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($items as $item): 
+                  $cant = intval($item['Cantidad']);
+                  $vu   = floatval($item['ValorUnitario']);
+                  $vt   = floatval($item['ValorTotal']);
+                  $tipo = intval($item['idTipo']);  // <-- aquí
+                ?>
+                <tr data-item-id="<?= intval($item['IdIncotermsImport']) ?>">
+                  <td><?= htmlspecialchars($item['NombreItems']) ?></td>
+                  <td>
+                    <input type="number" class="form-control form-control-sm cantidad" value="<?= $cant ?>" min="0">
+                  </td>
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
+                      <input type="text" class="form-control valor-unitario" value="<?= number_format($vu,2,',','.') ?>">
+                    </div>
+                  </td>
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
+                      <input type="text" class="form-control valor-total" readonly value="<?= number_format($vt,2,',','.') ?>">
+                    </div>
+                  </td>
 
-  <?php foreach ($incoterms as $nombreIncoterm => $items):
-    $tipo                  = intval($items[0]['idTipo']);
-    $subtotalSinImpuesto   = 0;
-    $subtotalImpuestos     = 0;
+                
 
-    foreach ($items as $item) {
-      $vt = floatval($item['ValorTotal']);
-      $vi = floatval($item['ValorImpuesto']);
-      $subtotalSinImpuesto += $vt;
-      $subtotalImpuestos   += $vi;
-    }
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
 
-    $subtotalConImpuesto = $subtotalSinImpuesto + $subtotalImpuestos;
-
-    $totalGeneralSinImpuesto += $subtotalSinImpuesto;
-    $totalGeneralImpuestos   += $subtotalImpuestos;
-  ?>
-    <div class="incoterm-item mb-4" data-incoterm="<?= htmlspecialchars($nombreIncoterm) ?>">
-      <h5 class="mt-3"><?= htmlspecialchars($nombreIncoterm) ?></h5>
-      <table class="table table-hover table-borderless mb-2">
-        <thead>
-          <tr>
-            <th>Descripción</th>
-            <th>Cantidad</th>
-            <th>Valor U.</th>
-            <th>Valor T.</th>
-            <?php if ($tipo === 3): ?>
-              <th>% Impuesto</th>
-              <th>Valor Impuesto</th>
-              <th>Notas</th>
-            <?php endif; ?>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($items as $item): ?>
-          <tr>
-            <td><?= htmlspecialchars($item['NombreItems']) ?></td>
-            <td><?= intval($item['Cantidad']) ?></td>
-            <td>$<?= number_format(floatval($item['ValorUnitario']), 2, ',', '.') ?></td>
-            <td>$<?= number_format(floatval($item['ValorTotal']),   2, ',', '.') ?></td>
-            <?php if ($tipo === 3): ?>
-              <td><?= number_format(floatval($item['Impuesto']), 2, ',', '.') ?>%</td>
-              <td>$<?= number_format(floatval($item['ValorImpuesto']), 2, ',', '.') ?></td>
-              <td><?= htmlspecialchars($item['Notas']) ?></td>
-            <?php endif; ?>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    
+          
+        </div>
+      </div>
     </div>
-  <?php endforeach; ?>
-
-  <div class="mt-4 p-3 border-top">
-    <h5 class="fw-bold">Total General</h5>
-    <p>Total sin impuestos: $<?= number_format($totalGeneralSinImpuesto, 2, ',', '.') ?></p>
-    <p>Total impuestos: $<?= number_format($totalGeneralImpuestos, 2, ',', '.') ?></p>
-    <p class="fw-bold">Total con impuestos: $<?= number_format($totalGeneralSinImpuesto + $totalGeneralImpuestos, 2, ',', '.') ?></p>
-  </div>
+  <?php $idx++; endforeach; ?>
 </div>
 
 
-    <!-- Total General y botón -->
-    <div class="d-flex justify-content-between align-items-center mt-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
       <button class="btn btn-primary" onclick="history.back()">← Volver</button>
-    
-      <button onclick="descargarExcel()" class="btn btn-success">Descargar en Excel</button>
+
+      <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
+        Total General: $0,00
+      </h5>
+
+      <button id="btnGuardar" class="btn btn-info">Editar</button>
     </div>
+
   </div>
 </div>
 
 
 
-
-<!-- [ Main Content ] end -->
-
+      </div>
+    </div>
+    <!-- [ Main Content ] end -->
    <footer class="pc-footer">
       <div class="footer-wrapper container-fluid">
         <div class="row">
@@ -432,213 +430,148 @@ while ($row = $result->fetch_assoc()) {
         </div>
       </div>
     </footer>
- <!-- Required Js -->
-<script src="../assets/js/plugins/popper.min.js"></script>
-<script src="../assets/js/plugins/simplebar.min.js"></script>
-<script src="../assets/js/plugins/bootstrap.min.js"></script>
-<script src="../assets/js/fonts/custom-font.js"></script>
-<script src="../assets/js/pcoded.js"></script>
-<script src="../assets/js/plugins/feather.min.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <!-- Required Js -->
+    <script src="../assets/js/plugins/popper.min.js"></script>
+    <script src="../assets/js/plugins/simplebar.min.js"></script>
+    <script src="../assets/js/plugins/bootstrap.min.js"></script>
+    <script src="../assets/js/fonts/custom-font.js"></script>
+    <script src="../assets/js/pcoded.js"></script>
+    <script src="../assets/js/plugins/feather.min.js"></script>
 
-<!-- <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
+<!--Sweet alert-->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Calcular totales automaticamente-->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-function descargarExcel() {
-  const wb      = XLSX.utils.book_new();
-  const ws_data = [];
+document.addEventListener('DOMContentLoaded', () => {
+  const totalGeneralEl = document.getElementById('totalGeneral');
 
-  // 1) Booking e Invoice
-  const bookingEl = document.getElementById('booking');
-  const invoiceEl = document.getElementById('commercial_Invoice');
-  const booking   = bookingEl?.textContent.trim() || '';
-  const invoice   = invoiceEl?.textContent.trim() || '';
+  function actualizarTotalGeneral() {
+    let totalGeneral = 0;
+    // Sumamos todos los valor-total y valor-impuesto (quitando miles)
+    document.querySelectorAll('.valor-total, .valor-impuesto').forEach(input => {
+      const raw = input.value
+        .replace(/\./g, '')   // quitar separador de miles
+        .replace(',', '.');   // convertir coma decimal a punto
+      totalGeneral += parseFloat(raw) || 0;
+    });
+    totalGeneralEl.textContent = `Total General: $${totalGeneral.toFixed(2).replace('.', ',')}`;
+  }
 
-  ws_data.push(['N° Booking', booking]);
-  ws_data.push(['Commercial Invoice', invoice]);
-  ws_data.push([]);
+  document.querySelectorAll('.accordion-item').forEach(accordion => {
+    const rows = accordion.querySelectorAll('tbody tr');
+    const totalIncotermSpan = accordion.querySelector('.total-incoterm');
 
-  // 2) Recorremos cada bloque de Incoterm
-  document.querySelectorAll('.incoterm-item').forEach(block => {
-    const h5      = block.querySelector('h5');
-    const incName = h5?.textContent.trim();
-    const filas   = Array.from(block.querySelectorAll('tbody tr'));
-    if (!incName || filas.length === 0) return;
-
-    const n = filas.length;
-    // solo incluimos impuestos y notas si hay exactamente 15 filas
-    const includeTaxes = (n === 15);
-
-    // 2.1) Secciones según el número de filas
-    let secciones = [];
-    if (n === 3) {
-      secciones = [{ title: incName, rows: filas }];
-    } else if (n === 12) {
-      secciones = [
-        { title: 'FCA Ec', rows: filas.slice(0, 3) },
-        { title: 'FOB Ec', rows: filas.slice(3) }
-      ];
-    } else if (n >= 15) {
-      secciones = [
-        { title: 'FCA Ec',     rows: filas.slice(0, 3) },
-        { title: 'FOB Ec',     rows: filas.slice(3, n - 3) },
-        { title: 'CFR/CIF Ec', rows: filas.slice(n - 3) }
-      ];
-    } else {
-      secciones = [{ title: incName, rows: filas }];
-    }
-
-    // 2.2) Convertir cada sección a ws_data
-    secciones.forEach(sec => {
+    function calcularBloque() {
       let subtotal = 0;
-      ws_data.push([`Incoterm: ${sec.title}`]);
 
-      // Header
-      if (includeTaxes) {
-        ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.','% Impuesto','Valor Impuesto','Notas']);
-      } else {
-        ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.']);
-      }
+      rows.forEach(row => {
+        // parsear cantidad, valor unitario e impuesto (si existe)
+        const qtyRaw = row.querySelector('.cantidad')?.value   .replace(',', '.') || '0';
+        const vuRaw  = row.querySelector('.valor-unitario')?.value
+                          .replace(/\./g, '').replace(',', '.') || '0';
+        const impRaw = row.querySelector('.impuesto')?.value   .replace(',', '.') || '0';
 
-      // Filas
-      sec.rows.forEach(tr => {
-        const cells = tr.children;
-        const desc = cells[0].textContent.trim();
-        const cant = cells[1].textContent.trim();
-        const rawU = cells[2].textContent.replace(/[^0-9,\.]/g,'').trim();
-        const rawT = cells[3].textContent.replace(/[^0-9,\.]/g,'').trim();
-        const numT = parseFloat(rawT.replace(/\./g,'').replace(',','.')) || 0;
-        subtotal += numT;
+        const cantidad     = parseFloat(qtyRaw) || 0;
+        const valorUnitario= parseFloat(vuRaw)  || 0;
+        const impuestoPct  = parseFloat(impRaw) || 0;
 
-        if (includeTaxes) {
-          const rawImp = cells[4].textContent.replace(/[^0-9,\.]/g,'').trim();
-          const rawVI  = cells[5].textContent.replace(/[^0-9,\.]/g,'').trim();
-          const notas  = cells[6].textContent.trim();
-          ws_data.push([desc, cant, rawU, rawT, rawImp, rawVI, notas]);
-        } else {
-          ws_data.push([desc, cant, rawU, rawT]);
-        }
+        const vt = cantidad * valorUnitario;
+        const vi = vt * (impuestoPct / 100);
+
+        // actualizar inputs de tota les filas si existen
+        const vtEl = row.querySelector('.valor-total');
+        if (vtEl) vtEl.value = vt.toFixed(2).replace('.', ',');
+
+        const viEl = row.querySelector('.valor-impuesto');
+        if (viEl) viEl.value = vi.toFixed(2).replace('.', ',');
+
+        subtotal += vt + vi;
       });
 
-      // Subtotal
-      if (includeTaxes) {
-        ws_data.push([
-          `Total ${sec.title}`, '', '', '', '', 
-          subtotal.toLocaleString('es-AR',{minimumFractionDigits:2}),
-          ''
-        ]);
-      } else {
-        ws_data.push([
-          `Total ${sec.title}`, '', '', 
-          subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})
-        ]);
+      if (totalIncotermSpan) {
+        totalIncotermSpan.textContent = subtotal.toFixed(2).replace('.', ',');
       }
-      ws_data.push([]);
-    });
-  });
-
-  if (ws_data.length <= 3) {
-    return alert('No hay datos para exportar.');
-  }
-
-  // 3) Crear hoja y aplicar estilos
-  const ws    = XLSX.utils.aoa_to_sheet(ws_data);
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  // calculamos dinámicamente cuántas columnas hay en el sheet
-  const colCount = range.e.c - range.s.c + 1;
-
-  for (let R = range.s.r; R <= range.e.r; ++R) {
-    const A = ws[`A${R+1}`];
-    if (A && typeof A.v === 'string') {
-      if (A.v.startsWith('Incoterm:')) {
-        A.s = { fill:{fgColor:{rgb:'C6EFCE'}}, font:{bold:true} };
-      }
-      if (A.v === 'Descripción') {
-        for (let C = 0; C < colCount; ++C) {
-          const cell = ws[`${String.fromCharCode(65+C)}${R+1}`];
-          if (cell) cell.s = { fill:{fgColor:{rgb:'FFF2CC'}}, font:{bold:true} };
-        }
-      }
-    }
-  }
-
-  // 4) Definir ancho de columnas (asumimos máximo 7, los extras no importan)
-  ws['!cols'] = [
-    {wch:30}, // A
-    {wch:10}, // B
-    {wch:15}, // C
-    {wch:15}, // D
-    {wch:10}, // E
-    {wch:15}, // F
-    {wch:20}  // G
-  ];
-
-  XLSX.utils.book_append_sheet(wb, ws, 'Exportación');
-  XLSX.writeFile(wb, 'exportacion.xlsx');
-}
-</script> -->
-
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-<script>
-function descargarExcel() {
-  const wb      = XLSX.utils.book_new();
-  const ws_data = [];
-
-  // Booking & Invoice
-  const bookingEl = document.getElementById('booking');
-  const invoiceEl = document.getElementById('commercial_Invoice');
-  ws_data.push(['N° Booking', bookingEl.textContent.trim()]);
-  ws_data.push(['Commercial Invoice', invoiceEl.textContent.trim()]);
-  ws_data.push([]);
-
-  // Cada bloque de Incoterm
-  document.querySelectorAll('.incoterm-item').forEach(block => {
-    const incName = block.querySelector('h5').textContent.trim();
-    const filas   = Array.from(block.querySelectorAll('tbody tr'));
-    const isCIF   = block.querySelector('h6') !== null; // si tiene h6 => CIF
-
-    ws_data.push([`Incoterm: ${incName}`]);
-    // Header
-    if (isCIF) {
-      ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.','% Impuesto','Valor Impuesto','Valor c/ Impuestos','Notas']);
-    } else {
-      ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.']);
+      actualizarTotalGeneral();
     }
 
-    // Filas
-    filas.forEach(tr => {
-      const cols = Array.from(tr.children).map(td => td.textContent.trim());
-      ws_data.push(isCIF ? cols : cols.slice(0,4));
+    // atachar listeners a cantidad, valor-unitario e impuesto
+    rows.forEach(row => {
+      ['.cantidad', '.valor-unitario', '.impuesto'].forEach(sel => {
+        const input = row.querySelector(sel);
+        if (input) input.addEventListener('input', calcularBloque);
+      });
     });
 
-    // Totales
-    if (isCIF) {
-      const sin = block.querySelector('h6').textContent.replace(/[^0-9,]/g,'');
-      const ci  = block.querySelector('h5.text-success').textContent.replace(/[^0-9,]/g,'');
-      ws_data.push(['Total sin impuestos','', '', '', '', '', sin]);
-      ws_data.push(['Total con impuestos','', '', '', '', '', ci]);
-    } else {
-      const tot = block.querySelector('h5.text-success').textContent.replace(/[^0-9,]/g,'');
-      ws_data.push(['Total', '', '', tot]);
-    }
-
-    ws_data.push([]);
+    // cálculo inicial de este bloque
+    calcularBloque();
   });
-
-  if (ws_data.length <= 3) {
-    alert('No hay datos para exportar.');
-    return;
-  }
-
-  // Crear hoja y descargar
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
-  XLSX.utils.book_append_sheet(wb, ws, 'DetalleExport');
-  XLSX.writeFile(wb, `ExportID_<?= $idExport ?>.xlsx`);
-}
+});
 </script>
 
 
 
+
+<!-- Actualizar datos-->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btnGuardar');
+  if (!btn) return;
+
+  btn.addEventListener('click', () => {
+    const datos = [];
+
+    document.querySelectorAll('.accordion-item tbody tr').forEach(row => {
+      // 1) ID de la fila de pivot
+      const idInc = parseInt(row.dataset.itemId, 10);
+
+      // 2) Cantidad y Valor Unitario
+      const qtyRaw  = row.querySelector('.cantidad')?.value       .replace(',', '.') || '0';
+      const vuRaw   = row.querySelector('.valor-unitario')?.value
+                       .replace(/\./g,'').replace(',', '.')       || '0';
+      const cantidad      = parseFloat(qtyRaw)      || 0;
+      const valorUnitario = parseFloat(vuRaw)       || 0;
+
+      // 3) Recalcular Totales
+      const valorTotal    = cantidad * valorUnitario;
+
+      const impRaw        = row.querySelector('.impuesto')?.value .replace(',', '.') || '0';
+      const impuestoPct   = parseFloat(impRaw)       || 0;
+      const valorImpuesto = valorTotal * (impuestoPct / 100);
+
+      const notas         = row.querySelector('.notas')?.value.trim() || '';
+
+      datos.push({
+        idIncoterms: idInc,
+        cantidad,
+        valorUnitario,
+        valorTotal,
+        impuestoPct,
+        valorImpuesto,
+        notas
+      });
+    });
+
+    fetch('../api/imports/actualizarliquidacionimport.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ datos })
+    })
+    .then(r => r.json())
+    .then(json => {
+      if (json.success) {
+        Swal.fire('Guardado', json.message || 'Actualizado con éxito', 'success')
+          .then(() => location.reload());
+      } else {
+        Swal.fire('Error', json.message || 'No se pudo guardar', 'error');
+      }
+    })
+    .catch(() => {
+      Swal.fire('Error', 'Error de red o del servidor', 'error');
+    });
+  });
+});
+</script>
 
 
 

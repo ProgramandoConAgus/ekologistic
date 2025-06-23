@@ -118,13 +118,13 @@ try {
 </div>
 <!-- [ Pre-loader ] End -->
  <!-- [ Sidebar Menu ] start -->
+
 <nav class="pc-sidebar">
   <div class="navbar-wrapper">
     <div class="m-header">
       <a href="../dashboard/index.html" class="b-brand text-primary">
-          <!-- ========   Change your logo from here   ============ -->
+        <!-- ========   Change your logo from here   ============ -->
         <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="180px"/>
-        
         
       </a>
     </div>
@@ -173,9 +173,9 @@ try {
       </a>
       <ul class="pc-submenu">
         <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
-        <li class="pc-item"><a class="pc-link">Imports</a></li>
-        <li class="pc-item"><a class="pc-link">Despachos</a></li>
-        <li class="pc-item"><a class="pc-link">Consolidados</a></li>
+        <li class="pc-item"><a  href="../admins/importsPanel.php" class="pc-link">Imports</a></li>
+        <li class="pc-item"><a href="../admins/despachosPanel.php" class="pc-link">Despachos</a></li>
+        <li class="pc-item"><a href="../admins/consolidadosPanel.php" class="pc-link">Consolidados</a></li>
       </ul>
     </li>
   </ul>
@@ -191,8 +191,8 @@ try {
               <a href="#" class="arrow-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-offset="0,20">
                 <div class="d-flex align-items-center">
                   <div class="flex-grow-1 me-2">
-                  <h6 class="mb-0"><?=ucfirst($user['nombre'])?> <?=ucfirst($user['apellido'])?></h6>
-                  <small>Administrador</small>
+                    <h6 class="mb-0"><?=ucfirst($user['nombre'])?> <?=ucfirst($user['apellido'])?></h6>
+                    <small>Administrador</small>
                   </div>
                   <div class="flex-shrink-0">
                     <div class="btn btn-icon btn-link-secondary avtar">

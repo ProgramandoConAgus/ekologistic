@@ -158,11 +158,13 @@ $result->data_seek(0);
 </div>
 <!-- [ Pre-loader ] End -->
  <!-- [ Sidebar Menu ] start -->
+
+
 <nav class="pc-sidebar">
   <div class="navbar-wrapper">
     <div class="m-header">
       <a href="../dashboard/index.html" class="b-brand text-primary">
-      <!-- ========   Change your logo from here   ============ -->
+        <!-- ========   Change your logo from here   ============ -->
         <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="180px"/>
         
       </a>
@@ -211,10 +213,10 @@ $result->data_seek(0);
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
-        <li class="pc-item"><a class="pc-link">Imports</a></li>
-        <li class="pc-item"><a class="pc-link">Despachos</a></li>
-        <li class="pc-item"><a class="pc-link">Consolidados</a></li>
+   <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
+        <li class="pc-item"><a  href="../admins/importsPanel.php" class="pc-link">Imports</a></li>
+        <li class="pc-item"><a href="../admins/despachosPanel.php" class="pc-link">Despachos</a></li>
+        <li class="pc-item"><a href="../admins/consolidadosPanel.php" class="pc-link">Consolidados</a></li>
       </ul>
     </li>
   </ul>

@@ -1,48 +1,58 @@
 <?php
 session_start();
+
 include('../usuarioClass.php');
 include("../con_db.php");
 $IdUsuario=$_SESSION["IdUsuario"];
 if(!$_SESSION["IdUsuario"]){
   header("Location: ../");
 }
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 $usuario= new Usuario($conexion);
 
 $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 
 $sql = "
-    SELECT
-        d.id,
-        c.num_op                             AS NUM_OP,
-        c.Number_Container                   AS Number_Container,
-        c.Booking_BK,
-        d.numero_lote                        AS Lot_Number,
-        d.fecha_entrada                      AS Entry_Date,
-        d.fecha_salida                       AS Out_Date,
-        c.Number_Commercial_Invoice          AS Number_Commercial_Invoice,
-        d.numero_parte                       AS Code_Product_EC,
-        d.descripcion                        AS Description,
-        d.cantidad                           AS Qty,
-        d.valor_unitario                     AS Unit_Value,
-        d.valor                              AS Value,
-        d.unidad                             AS Unit,
-        d.longitud_in                        AS Length_in,
-        d.ancho_in                           AS Broad_in,
-        d.altura_in                          AS Height_in,
-        d.peso_lb                            AS Weight_lb,
-        d.estado                             AS Status,
-        d.recibo_almacen
-    FROM container c
-    INNER JOIN dispatch d
-        ON c.Number_Commercial_Invoice = d.numero_factura
-       AND c.Number_Container         = d.notas
-    WHERE d.estado = 'Cargado'
-    
-    ORDER BY c.num_op, d.numero_parte
+  SELECT
+    d.id,
+    i.idItem AS idItem,                      -- <-- lo agregamos
+    c.num_op                             AS NUM_OP,
+    c.Number_Container                   AS Number_Container,
+    c.Booking_BK,
+    d.numero_lote                        AS Lot_Number,
+    d.fecha_entrada                      AS Entry_Date,
+    d.fecha_salida                       AS Out_Date,
+    c.Number_Commercial_Invoice          AS Number_Commercial_Invoice,
+    d.numero_parte                       AS Code_Product_EC,
+    i.Number_PO                          AS Number_PO,
+    d.descripcion                        AS Description,
+    d.cantidad                           AS Qty,
+    d.valor_unitario                     AS Unit_Value,
+    d.valor                              AS Value,
+    d.unidad                             AS Unit,
+    d.longitud_in                        AS Length_in,
+    d.ancho_in                           AS Broad_in,
+    d.altura_in                          AS Height_in,
+    d.peso_lb                            AS Weight_lb,
+    d.estado                             AS Status,
+    d.recibo_almacen
+FROM container c
+INNER JOIN dispatch d
+    ON c.Number_Commercial_Invoice = d.numero_factura
+   AND c.Number_Container         = d.notas
+INNER JOIN items i
+    ON i.idContainer = c.idContainer
+WHERE d.estado = 'Cargado'
+ORDER BY c.num_op, d.numero_parte;
+
+
     
 ";
 $result = $conexion->query($sql);
+
+
 
 if (!$result) {
     die("Error en la consulta: " . $conexion->error);
@@ -191,13 +201,13 @@ try {
 </div>
 <!-- [ Pre-loader ] End -->
  <!-- [ Sidebar Menu ] start -->
+
 <nav class="pc-sidebar">
   <div class="navbar-wrapper">
     <div class="m-header">
       <a href="../dashboard/index.html" class="b-brand text-primary">
-          <!-- ========   Change your logo from here   ============ -->
+        <!-- ========   Change your logo from here   ============ -->
         <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="180px"/>
-        
         
       </a>
     </div>
@@ -214,7 +224,7 @@ try {
         <span class="pc-mtext">Logistica</span>
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
-     <ul class="pc-submenu">
+      <ul class="pc-submenu">
         <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
         <li class="pc-item pc-hasmenu">
@@ -245,10 +255,10 @@ try {
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
-        <li class="pc-item"><a class="pc-link">Imports</a></li>
-        <li class="pc-item"><a class="pc-link">Despachos</a></li>
-        <li class="pc-item"><a class="pc-link">Consolidados</a></li>
+      <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
+        <li class="pc-item"><a  href="../admins/importsPanel.php" class="pc-link">Imports</a></li>
+        <li class="pc-item"><a href="../admins/despachosPanel.php" class="pc-link">Despachos</a></li>
+        <li class="pc-item"><a href="../admins/consolidadosPanel.php" class="pc-link">Consolidados</a></li>
       </ul>
     </li>
   </ul>
@@ -264,8 +274,8 @@ try {
               <a href="#" class="arrow-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-offset="0,20">
                 <div class="d-flex align-items-center">
                   <div class="flex-grow-1 me-2">
-                  <h6 class="mb-0"><?=ucfirst($user['nombre'])?> <?=ucfirst($user['apellido'])?></h6>
-                  <small>Administrador</small>
+                    <h6 class="mb-0"><?=ucfirst($user['nombre'])?> <?=ucfirst($user['apellido'])?></h6>
+                    <small>Administrador</small>
                   </div>
                   <div class="flex-shrink-0">
                     <div class="btn btn-icon btn-link-secondary avtar">
@@ -507,12 +517,12 @@ try {
                 <td><?= htmlspecialchars($row['Number_Container']) ?></td>
                 <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
                 <td>
-                  <input
-                    type="text"
-                    class="form-control form-control-sm po-input"
-                    data-id="<?= $row['id'] ?>"
-                    value="<?= htmlspecialchars($row['Number_Commercial_Invoice']) ?>"
-                  >
+                 <input
+  type="text"
+  class="form-control form-control-sm po-input"
+  data-id="<?= $row['idItem'] ?>"
+  value="<?= htmlspecialchars($row['Number_PO']) ?>"
+>
                 </td>
                 <td><?= htmlspecialchars($row['Entry_Date']) ?></td>
                 <td>
@@ -534,10 +544,9 @@ try {
                 <td><?= htmlspecialchars($row['Broad_in']) ?></td>
                 <td><?= htmlspecialchars($row['Height_in']) ?></td>
                 <td><?= htmlspecialchars($row['Weight_lb']) ?></td>
-                <td>
-                  <select class="form-select form-select-sm status-select" data-id="<?= $row['id'] ?>">
-                    <option value="Cargado"    <?= $row['Status'] === 'Cargado'    ? 'selected' : '' ?>>Cargado</option>
-                    <option value="En Almacén"  <?= $row['Status'] === 'En Almacén'  ? 'selected' : '' ?>>En Almacén</option>
+                <td >
+                  <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" data-id="<?= $row['id'] ?>">
+                    <option value="Cargado" <?= $row['Status'] == 'Cargado' ? 'selected' : '' ?>>Cargado</option>
                   </select>
                 </td>
               </tr>

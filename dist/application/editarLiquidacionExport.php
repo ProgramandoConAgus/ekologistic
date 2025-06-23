@@ -122,10 +122,10 @@ while ($row = $result->fetch_assoc()) {
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
-              <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
-                <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
+             <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
+                <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
               </ul>
             </li>
@@ -148,10 +148,10 @@ while ($row = $result->fetch_assoc()) {
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
-        <li class="pc-item"><a class="pc-link">Imports</a></li>
-        <li class="pc-item"><a class="pc-link">Despachos</a></li>
-        <li class="pc-item"><a class="pc-link">Consolidados</a></li>
+     <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
+        <li class="pc-item"><a  href="../admins/importsPanel.php" class="pc-link">Imports</a></li>
+        <li class="pc-item"><a href="../admins/despachosPanel.php" class="pc-link">Despachos</a></li>
+        <li class="pc-item"><a href="../admins/consolidadosPanel.php" class="pc-link">Consolidados</a></li>
       </ul>
     </li>
   </ul>
@@ -345,76 +345,134 @@ while ($row = $result->fetch_assoc()) {
            aria-labelledby="heading<?= $idx ?>"
            data-bs-parent="#incotermAccordion">
         <div class="accordion-body">
-          <table class="table table-hover table-borderless mb-0">
-            <thead>
-              <tr>
-                <th>Descripción</th>
-                <th>Cantidad</th>
-                <th>Valor U.</th>
-                <th>Valor T.</th>
-                
-                <?php if ($currentTipo === 3): ?>  
-                <th>% Impuesto</th>
-                <th>Valor Impuesto</th>
-                <th>Notas</th>
-                
-                <?php endif; ?>
-              </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($items as $item): 
-                  $cant = intval($item['Cantidad']);
-                  $vu   = floatval($item['ValorUnitario']);
-                  $vt   = floatval($item['ValorTotal']);
-                  $imp  = floatval($item['Impuesto']);
-                  $vi   = floatval($item['ValorImpuesto']);
-                  $tipo = intval($item['idTipo']);  // <-- aquí
-                ?>
-                <tr data-item-id="<?= intval($item['IdIncoterms']) ?>">
-                  <td><?= htmlspecialchars($item['NombreItems']) ?></td>
-                  <td>
-                    <input type="number" class="form-control form-control-sm cantidad" value="<?= $cant ?>" min="0">
-                  </td>
-                  <td>
-                    <div class="input-group input-group-sm">
-                      <span class="input-group-text">$</span>
-                      <input type="text" class="form-control valor-unitario" value="<?= number_format($vu,2,',','.') ?>">
-                    </div>
-                  </td>
-                  <td>
-                    <div class="input-group input-group-sm">
-                      <span class="input-group-text">$</span>
-                      <input type="text" class="form-control valor-total" readonly value="<?= number_format($vt,2,',','.') ?>">
-                    </div>
-                  </td>
+        <table class="table table-hover table-borderless mb-0">
+  <thead>
+    <tr>
+      <th>Descripción</th>
+      <th>Cantidad</th>
+      <th>Valor U.</th>
+      <th>Valor T.</th>
+      <?php if ($currentTipo === 3): ?>
+        <th>% Impuesto</th>
+        <th>Valor Impuesto</th>
+        <th>Notas</th>
+      <?php endif; ?>
+    </tr>
+  </thead>
+  <tbody>
+    <?php
+      // inicializamos subtotales
+      $subtotalSin = 0;
+      $subtotalCi  = 0;
+      foreach ($items as $item):
+        $cant = intval($item['Cantidad']);
+        $vu   = floatval($item['ValorUnitario']);
+        $vt   = $cant * $vu;
+        $imp  = floatval($item['Impuesto']);
+        $vi   = $vt * ($imp/100);
+        $subtotalSin += $vt;
+        $subtotalCi  += $vt + $vi;
+    ?>
+    <tr data-item-id="<?= intval($item['IdIncoterms']) ?>">
+      <td><?= htmlspecialchars($item['NombreItems']) ?></td>
+      <td>
+        <input type="number" class="form-control form-control-sm cantidad" value="<?= $cant ?>" min="0">
+      </td>
+      <td>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text">$</span>
+          <input type="text" class="form-control valor-unitario" value="<?= number_format($vu,2,',','.') ?>">
+        </div>
+      </td>
+      <td>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text">$</span>
+          <input type="text" class="form-control valor-total" readonly value="<?= number_format($vt,2,',','.') ?>">
+        </div>
+      </td>
+      <?php if ($currentTipo === 3): ?>
+      <td>
+        <div class="input-group input-group-sm">
+          <input type="number" class="form-control impuesto" value="<?= $imp ?>" min="0" max="100">
+          <span class="input-group-text">%</span>
+        </div>
+      </td>
+      <td>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text">$</span>
+          <input type="text" class="form-control valor-impuesto" readonly value="<?= number_format($vi,2,',','.') ?>">
+        </div>
+      </td>
+      <td>
+        <input type="text" class="form-control form-control-sm notas" value="<?= htmlspecialchars($item['Notas']) ?>">
+      </td>
+      <?php endif; ?>
+    </tr>
+    <?php endforeach; ?>
+  </tbody>
+</table>
 
-                  <?php if ($tipo === 3): // solo para IdTipoIncoterm = 3 ?>  
-                  <td>
-                    <div class="input-group input-group-sm">
-                      <input type="number" class="form-control impuesto" value="<?= $imp ?>" min="0" max="100">
-                      <span class="input-group-text">%</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="input-group input-group-sm">
-                      <span class="input-group-text">$</span>
-                      <input type="text" class="form-control valor-impuesto" readonly value="<?= number_format($vi,2,',','.') ?>">
-                    </div>
-                  </td>
-                  <td>
-                    <input type="text" class="form-control form-control-sm notas" value="<?= htmlspecialchars($item['Notas']) ?>">
-                  </td>
-                  <?php endif; ?>
+<div class="mt-3 text-end">
+  <?php if ($currentTipo === 3): ?>
+    <h6 class="mb-1">Subtotal sin impuestos: $
+      <span id="subtotal-sin"><?= number_format($subtotalSin,2,',','.') ?></span>
+    </h6>
+    <h5 class="text-success fw-bold">
+      Subtotal con impuestos: $
+      <span id="subtotal-ci"><?= number_format($subtotalCi,2,',','.') ?></span>
+    </h5>
+  <?php else: ?>
+    <h5 class="text-success fw-bold">
+      Subtotal: $<span id="subtotal-sin"><?= number_format($subtotalSin,2,',','.') ?></span>
+    </h5>
+  <?php endif; ?>
+</div>
 
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const rows = Array.from(document.querySelectorAll('tbody tr'));
+  const sinEl = document.getElementById('subtotal-sin');
+  const ciEl  = document.getElementById('subtotal-ci');
 
-          <h5 class="mt-4 text-center text-success fw-bold">
-            Total <?= htmlspecialchars($nombreIncoterm) ?>: 
-            $<span class="total-incoterm" data-incoterm-total="<?= $idx ?>">0,00</span>
-          </h5>
+  function formatNumber(num) {
+    return num.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  function recalculate() {
+    let sumSin = 0, sumCi = 0;
+    rows.forEach(row => {
+      const qty = parseFloat(row.querySelector('.cantidad').value) || 0;
+      const vu  = parseFloat(row.querySelector('.valor-unitario').value.replace(/\./g,'').replace(',','.')) || 0;
+      const vt  = qty * vu;
+      sumSin += vt;
+
+      const impInput = row.querySelector('.impuesto');
+      if (impInput) {
+        const pct = parseFloat(impInput.value) || 0;
+        const vi  = vt * pct / 100;
+        sumCi += vt + vi;
+        row.querySelector('.valor-impuesto').value = formatNumber(vi);
+      }
+      row.querySelector('.valor-total').value = formatNumber(vt);
+    });
+
+    sinEl.textContent = formatNumber(sumSin);
+    if (ciEl) ciEl.textContent = formatNumber(sumCi);
+  }
+
+  // Atachar listener a cada input que afecte
+  rows.forEach(row => {
+    ['.cantidad','.valor-unitario','.impuesto'].forEach(sel => {
+      const inp = row.querySelector(sel);
+      if (inp) inp.addEventListener('input', recalculate);
+    });
+  });
+
+  // cálculo inicial
+  recalculate();
+});
+</script>
+
         </div>
       </div>
     </div>
@@ -468,7 +526,7 @@ while ($row = $result->fetch_assoc()) {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <!-- Calcular totales automaticamente-->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
+<!-- <script>
 document.addEventListener('DOMContentLoaded', () => {
   const totalGeneralEl = document.getElementById('totalGeneral');
 
@@ -533,7 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
     calcularBloque();
   });
 });
-</script>
+</script> -->
 
 
 
