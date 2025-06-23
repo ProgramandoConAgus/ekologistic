@@ -79,6 +79,11 @@ $result->data_seek(0);
       <!-- [Favicon] icon -->
   <link rel="icon" href="../assets/images/ekologistic.png" type="image/x-icon" />
 
+    <!-- DataTables con estilo Bootstrap 5 -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css"/>
 
     <!-- map-vector css -->
     <link rel="stylesheet" href="../assets/css/plugins/jsvectormap.min.css">
@@ -106,6 +111,37 @@ $result->data_seek(0);
     .eta-date-picker.border-success {
         border-color: #28a745 !important;
     }
+    /* estilos de paginación */
+.table-responsive .pagination-wrapper .pagination {
+  margin: 0;
+}
+.table-responsive .pagination-wrapper .pagination li.page-item {
+  margin: 0 0.125rem;
+}
+.table-responsive .pagination-wrapper .pagination li.page-item .page-link {
+  padding: 0.375rem 0.75rem;
+}
+.table-responsive .pagination-wrapper .pagination li.active .page-link {
+  background-color: #0d6efd;
+  border-color:     #0d6efd;
+  color:            #fff;
+}
+
+.table-responsive {
+  position: relative;
+  padding-bottom: 3.5rem;  
+  overflow-x: auto;
+}
+.table-responsive .pagination-wrapper {
+  position: absolute;
+  bottom:      0.5rem;
+  left:        50%;
+  transform:   translateX(-50%);
+  z-index:     10;
+  background:  #fff;
+  padding:     0.25rem 0;
+}
+
     </style>
     <link rel="stylesheet" href="./tipografia.css">
 
@@ -122,11 +158,13 @@ $result->data_seek(0);
 </div>
 <!-- [ Pre-loader ] End -->
  <!-- [ Sidebar Menu ] start -->
+
+
 <nav class="pc-sidebar">
   <div class="navbar-wrapper">
     <div class="m-header">
       <a href="../dashboard/index.html" class="b-brand text-primary">
-      <!-- ========   Change your logo from here   ============ -->
+        <!-- ========   Change your logo from here   ============ -->
         <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="180px"/>
         
       </a>
@@ -513,6 +551,31 @@ function confirmDelete(blNumber) {
     }
 }
 </script>
+<script>
+  $(document).ready(() => {
+    const dt = $('#pc-dt-simple').DataTable({
+      // Paginación
+      paging:       true,
+      pageLength:   10,
+      pagingType:   'simple_numbers',
+      language: {
+        paginate: { previous: '«', next: '»' }
+      },
+      // Quitamos buscador, selector de filas, info y orden
+      lengthChange: false,
+      searching:    false,
+      info:         false,
+      ordering:     false,
+      // Solo tabla y paginador
+      dom: 't<"pagination-wrapper"p>'
+    });
+
+    // Movemos el paginador dentro del scroll container
+    $('.pagination-wrapper')
+      .appendTo( $('#pc-dt-simple').closest('.table-responsive') );
+  });
+</script>
+
 
 </div>
 

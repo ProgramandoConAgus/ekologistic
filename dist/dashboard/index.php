@@ -79,6 +79,10 @@ try {
  
       <!-- [Favicon] icon -->
   <link rel="icon" href="../assets/images/ekologistic.png" type="image/x-icon" />
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css"/>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <!-- map-vector css -->
     <link rel="stylesheet" href="../assets/css/plugins/jsvectormap.min.css">
@@ -141,6 +145,34 @@ try {
   #custom-paginator {
     display: flex;
     justify-content: center;
+  }
+  .table-responsive {
+    position: relative;
+    padding-bottom: 3.5rem;
+  }
+  .pagination-wrapper {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    padding: 0.25rem 0;
+    z-index: 10;
+  }
+  /* Estilos de paginación Bootstrap */
+  .pagination-wrapper .pagination {
+    margin: 0;
+  }
+  .pagination-wrapper .pagination li.page-item {
+    margin: 0 0.125rem;
+  }
+  .pagination-wrapper .pagination li.page-item .page-link {
+    padding: 0.375rem 0.75rem;
+  }
+  .pagination-wrapper .pagination li.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
   }
 </style>
 
@@ -733,6 +765,22 @@ function confirmDelete(blNumber) {
     </div>
   </div>
 </div>
+<script>
+  $(document).ready(function() {
+    const dt = $('#pc-dt-simple').DataTable({
+      paging:       true,
+      pageLength:   10,
+      lengthChange: false,
+      searching:    false,
+      info:         false,
+      ordering:     false,
+      language:     { paginate:{ previous:'«', next:'»' } },
+      dom:          't<"pagination-wrapper"p>'  // t=table, p=paginador dentro de nuestro div
+    });
+
+  });
+</script>
+
 <!-- ACTUALIZAR STATUS -->
 <script>
   

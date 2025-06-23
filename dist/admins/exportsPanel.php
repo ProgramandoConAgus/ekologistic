@@ -74,6 +74,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 </div>
 <!-- [ Pre-loader ] End -->
  <!-- [ Sidebar Menu ] start -->
+
 <nav class="pc-sidebar">
   <div class="navbar-wrapper">
     <div class="m-header">
@@ -102,9 +103,9 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
               <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
-                <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
               </ul>
             </li>
@@ -348,7 +349,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
                   $classes = 'text-warning me-2' . ($isDisabled ? ' disabled text-muted' : '');
                 ?>
                 <a <?= $href ?> class="<?= $classes ?>" <?= $isDisabled ? 'aria-disabled="true" tabindex="-1"' : '' ?>><i class="ti ti-edit"></i></a>
-                <button class="btn-eliminar text-danger border-0 bg-transparent p-0" data-id="<?= $row["ExportsID"] ?>" title="Eliminar"><i class="ti ti-trash"></i></button>
+                <!--<button class="btn-eliminar text-danger border-0 bg-transparent p-0" data-id="<?= $row["ExportsID"] ?>" title="Eliminar"><i class="ti ti-trash"></i></button>-->
               </td>
             </tr>
             <?php

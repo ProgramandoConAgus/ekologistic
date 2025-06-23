@@ -41,6 +41,7 @@ $sql = "
 ";
 $result = $conexion->query($sql);
 
+
 if (!$result) {
     die("Error en la consulta: " . $conexion->error);
 }
@@ -72,6 +73,20 @@ try {
 
       <!-- [Favicon] icon -->
   <link rel="icon" href="../assets/images/ekologistic.png" type="image/x-icon" />
+<!-- jQuery (solo una vez) -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
+<!-- DataTables con Bootstrap 5 -->
+<link
+  rel="stylesheet"
+  href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css"
+/>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<!-- SheetJS para exportar Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 
     <!-- map-vector css -->
     <link rel="stylesheet" href="../assets/css/plugins/jsvectormap.min.css">
@@ -91,7 +106,6 @@ try {
     <link rel="stylesheet" href="../assets/css/style-preset.css" >
     <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Agrega esto en tu <head> -->
@@ -116,6 +130,37 @@ try {
     }
     
 </style>
+
+<style>
+  .table-responsive {
+    position: relative;
+    padding-bottom: 3.5rem;
+  }
+  .pagination-wrapper {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    padding: 0.25rem 0;
+    z-index: 10;
+  }
+  /* Estilos de paginación Bootstrap */
+  .pagination-wrapper .pagination {
+    margin: 0;
+  }
+  .pagination-wrapper .pagination li.page-item {
+    margin: 0 0.125rem;
+  }
+  .pagination-wrapper .pagination li.page-item .page-link {
+    padding: 0.375rem 0.75rem;
+  }
+  .pagination-wrapper .pagination li.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+  }
+</style>
 <link rel="stylesheet" href="./tipografia.css">
 </head>
   <!-- [Head] end -->
@@ -130,13 +175,13 @@ try {
 </div>
 <!-- [ Pre-loader ] End -->
  <!-- [ Sidebar Menu ] start -->
+
 <nav class="pc-sidebar">
   <div class="navbar-wrapper">
     <div class="m-header">
       <a href="../dashboard/index.html" class="b-brand text-primary">
-          <!-- ========   Change your logo from here   ============ -->
+        <!-- ========   Change your logo from here   ============ -->
         <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="180px"/>
-        
         
       </a>
     </div>
@@ -153,7 +198,7 @@ try {
         <span class="pc-mtext">Logistica</span>
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
-     <ul class="pc-submenu">
+      <ul class="pc-submenu">
         <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
         <li class="pc-item pc-hasmenu">
@@ -203,8 +248,8 @@ try {
               <a href="#" class="arrow-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-offset="0,20">
                 <div class="d-flex align-items-center">
                   <div class="flex-grow-1 me-2">
-                  <h6 class="mb-0"><?=ucfirst($user['nombre'])?> <?=ucfirst($user['apellido'])?></h6>
-                  <small>Administrador</small>
+                    <h6 class="mb-0"><?=ucfirst($user['nombre'])?> <?=ucfirst($user['apellido'])?></h6>
+                    <small>Administrador</small>
                   </div>
                   <div class="flex-shrink-0">
                     <div class="btn btn-icon btn-link-secondary avtar">
@@ -362,6 +407,9 @@ try {
             </div>-->
             <button style="margin-left:3%;" class="btn btn-sm btn-success">
                 <a class="text-white" href="../forms/importardispatch.php">Nuevo Dispatch Inventory</a>
+            </button>
+            <button style="margin-left:1%;" id="exportBtn" class="btn btn-sm btn-info">
+              <i class="ti ti-file-export"></i> Exportar a Excel
             </button>
         </div>
         <!-- Modal de filtros -->
@@ -553,6 +601,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
+    <script>
+  $(document).ready(function() {
+    // 1) Inicializar DataTable con solo tabla + paginador
+    const dt = $('#pc-dt-simple').DataTable({
+      paging:       true,
+      pageLength:   10,
+      lengthChange: false,
+      searching:    false,
+      info:         false,
+      ordering:     false,
+      language:     { paginate:{ previous:'«', next:'»' } },
+      dom:          't<"pagination-wrapper"p>'
+    });
+
+    // 2) Exportar Excel con SheetJS
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      // convierte la tabla a libro de Excel
+      const wb = XLSX.utils.table_to_book(
+        document.getElementById('pc-dt-simple'),
+        { sheet: "Hoja1" }
+      );
+      // descarga el archivo
+      XLSX.writeFile(wb, "warehouse_inventory.xlsx");
+    });
+  });
+</script>
 
 <!--
 <script>

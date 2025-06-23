@@ -86,10 +86,10 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
-              <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
-                <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
+             <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
+                <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
               </ul>
             </li>
@@ -361,6 +361,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
                     ?>
                   <th>% Impuesto</th>
                   <th>Valor Impuesto</th>
+                  <th>Valor c/ Impuestos</th>
                   <th>Notas</th>
                   <?php
                    }
@@ -372,7 +373,8 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
                   $items = $conexion->query(
                     "SELECT IdItemsLiquidacionExport, NombreItems 
                     FROM itemsliquidacionexport 
-                    WHERE IdTipoIncoterm = {$inc['IdTipoIncoterm']}"
+                    WHERE IdTipoIncoterm = {$inc['IdTipoIncoterm']}
+                    ORDER BY Posicion"
                   );
                   while ($row = $items->fetch_assoc()):
                 ?>
@@ -405,6 +407,12 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
                     <div class="input-group input-group-sm">
                       <span class="input-group-text">$</span>
                       <input type="text" class="form-control valor-impuesto" value="0,00" readonly>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
+                      <input type="text" class="form-control valor-con-impuestos" value="0,00" readonly>
                     </div>
                   </td>
                   <td>
@@ -599,33 +607,60 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function recalculate() {
-    document.querySelectorAll('tr[data-item-id]').forEach(tr => {
-      const qty = parseFloat(tr.querySelector('.cantidad').value) || 0;
-      const vu  = parseCurrency(tr.querySelector('.valor-unitario').value);
-      const vt  = qty * vu;
-      tr.querySelector('.valor-total').value = formatCurrency(vt);
-    });
+  document.querySelectorAll('tr[data-item-id]').forEach(tr => {
+    const qty = parseFloat(tr.querySelector('.cantidad').value) || 0;
+    const vu  = parseCurrency(tr.querySelector('.valor-unitario').value);
+    const vt  = qty * vu;
+    tr.querySelector('.valor-total').value = formatCurrency(vt);
 
-    document.querySelectorAll('.incoterm-item').forEach(container => {
-      const incTot = Array.from(container.querySelectorAll('.valor-total'))
-        .reduce((sum, input) => sum + parseCurrency(input.value), 0);
-      container.querySelector('.total-incoterm').textContent = formatCurrency(incTot);
-    });
+    const impInput = tr.querySelector('.impuesto');
+    if (impInput) {
+      const pct      = parseFloat(impInput.value) || 0;
+      const valorImp = vt * pct / 100;
+      const valorCI  = vt + valorImp;
+      tr.querySelector('.valor-impuesto').value      = formatCurrency(valorImp);
+      tr.querySelector('.valor-con-impuestos').value = formatCurrency(valorCI);
+    }
+  });
 
-    const totalGeneral = Array.from(document.querySelectorAll('.total-incoterm'))
-      .reduce((sum, span) => sum + parseCurrency(span.textContent), 0);
-    document.getElementById('totalGeneral').innerHTML = 'Total General: $' + formatCurrency(totalGeneral);
-  }
+  // Totales por incoterm (ahora con impuestos en CIF)
+  document.querySelectorAll('.incoterm-item').forEach(container => {
+    const rows = container.querySelectorAll('tr[data-item-id]');
+    const incTot = Array.from(rows).reduce((sum, tr) => {
+      // si tiene campo valor-con-impuestos, lo uso; sino valor-total
+      const ciInput = tr.querySelector('.valor-con-impuestos');
+      const val = ciInput
+        ? parseCurrency(ciInput.value)
+        : parseCurrency(tr.querySelector('.valor-total').value);
+      return sum + val;
+    }, 0);
+    container.querySelector('.total-incoterm').textContent = formatCurrency(incTot);
+  });
 
+  // Total general: suma todos los total-incoterm (ya incluyen impuestos en CIF)
+  const totalGeneral = Array.from(document.querySelectorAll('.total-incoterm'))
+    .reduce((sum, span) => sum + parseCurrency(span.textContent), 0);
+
+  document.getElementById('totalGeneral').textContent =
+    'Total General: $' + formatCurrency(totalGeneral);
+}
+
+
+  // Ahora escuchamos cambios en cantidad, valor-unitario **y** impuesto
   document.getElementById('incotermContainer')
     .addEventListener('input', e => {
-      if (e.target.matches('.cantidad') || e.target.matches('.valor-unitario')) {
+      if (
+        e.target.matches('.cantidad') ||
+        e.target.matches('.valor-unitario') ||
+        e.target.matches('.impuesto')
+      ) {
         recalculate();
       }
     });
 
   recalculate();
 });
+
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {

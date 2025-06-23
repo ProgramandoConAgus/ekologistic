@@ -126,9 +126,9 @@ while ($row = $result->fetch_assoc()) {
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
               <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
-                <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
               </ul>
             </li>
@@ -335,16 +335,13 @@ while ($row = $result->fetch_assoc()) {
 
     <!-- Bloques dinámicos de Incoterm -->
     <div id="incotermContainer">
-      <?php foreach ($incoterms as $nombreIncoterm => $items):
-        // Sacamos el tipo y calculamos subtotal de este bloque
-        $tipo     = intval($items[0]['idTipo']);
-        $subtotal = 0;
-        foreach ($items as $item) {
-          $vt = floatval($item['ValorTotal']);
-          $vi = floatval($item['ValorImpuesto']);
-          $subtotal += $vt + $vi;
-        }
-        $totalGeneral += $subtotal;
+      <?php
+        // Inicializo el Total General
+        $totalGeneral = 0;
+        foreach ($incoterms as $nombreIncoterm => $items):
+          $tipo    = intval($items[0]['idTipo']);
+          $subtotalSin = 0;
+          $subtotalCi  = 0;
       ?>
         <div class="incoterm-item mb-4" data-incoterm="<?= htmlspecialchars($nombreIncoterm) ?>">
           <h5 class="mt-3"><?= htmlspecialchars($nombreIncoterm) ?></h5>
@@ -355,41 +352,60 @@ while ($row = $result->fetch_assoc()) {
                 <th>Cantidad</th>
                 <th>Valor U.</th>
                 <th>Valor T.</th>
-                <?php if ($tipo === 3): ?>
+                <?php if ($tipo === 3): // CIF ?>
                   <th>% Impuesto</th>
                   <th>Valor Impuesto</th>
+                  <th>Valor c/ Impuestos</th>
                   <th>Notas</th>
                 <?php endif; ?>
               </tr>
             </thead>
             <tbody>
-              <?php foreach ($items as $item): ?>
+              <?php foreach ($items as $it):
+                $vt = floatval($it['ValorTotal']);
+                $vi = $tipo===3 ? floatval($it['ValorImpuesto']) : 0;
+                $subtotalSin += $vt;
+                $subtotalCi  += $vt + $vi;
+              ?>
               <tr>
-                <td><?= htmlspecialchars($item['NombreItems']) ?></td>
-                <td><?= intval($item['Cantidad']) ?></td>
-                <td>$<?= number_format(floatval($item['ValorUnitario']), 2, ',', '.') ?></td>
-                <td>$<?= number_format(floatval($item['ValorTotal']),   2, ',', '.') ?></td>
+                <td><?= htmlspecialchars($it['NombreItems']) ?></td>
+                <td><?= intval($it['Cantidad']) ?></td>
+                <td>$<?= number_format($it['ValorUnitario'],2,',','.') ?></td>
+                <td>$<?= number_format($vt,2,',','.') ?></td>
                 <?php if ($tipo === 3): ?>
-                  <td><?= number_format(floatval($item['Impuesto']), 2, ',', '.') ?>%</td>
-                  <td>$<?= number_format(floatval($item['ValorImpuesto']), 2, ',', '.') ?></td>
-                  <td><?= htmlspecialchars($item['Notas']) ?></td>
+                  <td><?= number_format($it['Impuesto'],2,',','.') ?>%</td>
+                  <td>$<?= number_format($vi,2,',','.') ?></td>
+                  <td>$<?= number_format($vt+$vi,2,',','.') ?></td>
+                  <td><?= htmlspecialchars($it['Notas']) ?></td>
                 <?php endif; ?>
               </tr>
               <?php endforeach; ?>
             </tbody>
           </table>
-          <h6 class="text-success fw-bold">
-            Total <?= htmlspecialchars($nombreIncoterm) ?>: $
-            <?= number_format($subtotal, 2, ',', '.') ?>
-          </h6>
+
+          <?php if ($tipo === 3): ?>
+            <div class="text-end">
+              <h6 class="mb-1">Total sin impuestos: $<?= number_format($subtotalSin, 2, ',', '.') ?></h6>
+              <h5 class="text-success fw-bold">Total con impuestos: $<?= number_format($subtotalCi, 2, ',', '.') ?></h5>
+            </div>
+          <?php else: ?>
+            <h5 class="text-success fw-bold text-end">
+              Total <?= htmlspecialchars($nombreIncoterm) ?>: $<?= number_format($subtotalSin, 2, ',', '.') ?>
+            </h5>
+          <?php endif; ?>
+
+          <?php 
+            // Para el Total General, siempre sumamos el monto CON impuestos si es CIF, o SIN impuestos en caso contrario
+            $totalGeneral += ($tipo === 3 ? $subtotalCi : $subtotalSin);
+          ?>
         </div>
       <?php endforeach; ?>
     </div>
 
-    <!-- Total General y Descarga -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
+    <!-- Total General y botón -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
       <button class="btn btn-primary" onclick="history.back()">← Volver</button>
-      <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
+      <h5 id="totalGeneral" class="text-success fw-bold">
         Total General: $<?= number_format($totalGeneral, 2, ',', '.') ?>
       </h5>
       <button onclick="descargarExcel()" class="btn btn-success">Descargar en Excel</button>
@@ -427,7 +443,7 @@ while ($row = $result->fetch_assoc()) {
 <script src="../assets/js/plugins/feather.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<!-- <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
 <script>
 function descargarExcel() {
@@ -562,7 +578,67 @@ function descargarExcel() {
   XLSX.utils.book_append_sheet(wb, ws, 'Exportación');
   XLSX.writeFile(wb, 'exportacion.xlsx');
 }
+</script> -->
+
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script>
+function descargarExcel() {
+  const wb      = XLSX.utils.book_new();
+  const ws_data = [];
+
+  // Booking & Invoice
+  const bookingEl = document.getElementById('booking');
+  const invoiceEl = document.getElementById('commercial_Invoice');
+  ws_data.push(['N° Booking', bookingEl.textContent.trim()]);
+  ws_data.push(['Commercial Invoice', invoiceEl.textContent.trim()]);
+  ws_data.push([]);
+
+  // Cada bloque de Incoterm
+  document.querySelectorAll('.incoterm-item').forEach(block => {
+    const incName = block.querySelector('h5').textContent.trim();
+    const filas   = Array.from(block.querySelectorAll('tbody tr'));
+    const isCIF   = block.querySelector('h6') !== null; // si tiene h6 => CIF
+
+    ws_data.push([`Incoterm: ${incName}`]);
+    // Header
+    if (isCIF) {
+      ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.','% Impuesto','Valor Impuesto','Valor c/ Impuestos','Notas']);
+    } else {
+      ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.']);
+    }
+
+    // Filas
+    filas.forEach(tr => {
+      const cols = Array.from(tr.children).map(td => td.textContent.trim());
+      ws_data.push(isCIF ? cols : cols.slice(0,4));
+    });
+
+    // Totales
+    if (isCIF) {
+      const sin = block.querySelector('h6').textContent.replace(/[^0-9,]/g,'');
+      const ci  = block.querySelector('h5.text-success').textContent.replace(/[^0-9,]/g,'');
+      ws_data.push(['Total sin impuestos','', '', '', '', '', sin]);
+      ws_data.push(['Total con impuestos','', '', '', '', '', ci]);
+    } else {
+      const tot = block.querySelector('h5.text-success').textContent.replace(/[^0-9,]/g,'');
+      ws_data.push(['Total', '', '', tot]);
+    }
+
+    ws_data.push([]);
+  });
+
+  if (ws_data.length <= 3) {
+    alert('No hay datos para exportar.');
+    return;
+  }
+
+  // Crear hoja y descargar
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  XLSX.utils.book_append_sheet(wb, ws, 'DetalleExport');
+  XLSX.writeFile(wb, `ExportID_<?= $idExport ?>.xlsx`);
+}
 </script>
+
 
 
 
