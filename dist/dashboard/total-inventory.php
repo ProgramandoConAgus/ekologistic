@@ -21,8 +21,8 @@ $sql = "SELECT
   i.Customer,
   i.Description,
   i.Qty_Box,
-  IFNULL(SUM(d.cantidad),0) AS 'Loaded',
-  (i.Qty_Box - IFNULL(SUM(d.cantidad),0)) AS 'Remaining',
+  IFNULL(d.loaded, 0) AS 'Loaded',
+  (i.Qty_Box - IFNULL(d.loaded, 0)) AS 'Remaining',
   i.Price_Box_EC AS 'PRICE BOX EC',
   i.Total_Price_EC AS 'TOTAL PRICE EC',
   i.Price_Box_USA AS 'PRICE BOX USA',
@@ -30,12 +30,16 @@ $sql = "SELECT
   c.status AS 'STATUS'
 FROM container c
 JOIN items i ON c.IdContainer = i.idContainer
-LEFT JOIN dispatch d
+LEFT JOIN (
+    SELECT numero_factura, notas, numero_parte, SUM(cantidad) AS loaded
+    FROM dispatch
+    WHERE estado = 'Cargado'
+    GROUP BY numero_factura, notas, numero_parte
+) d
   ON c.Number_Commercial_Invoice = d.numero_factura
  AND c.Number_Container         = d.notas
  AND i.Code_Product_EC          = d.numero_parte
-JOIN packing_list pl on pl.IdPackingList = c.idPackingList
-GROUP BY i.IdItem;";
+JOIN packing_list pl on pl.IdPackingList = c.idPackingList;";
 
 
 
