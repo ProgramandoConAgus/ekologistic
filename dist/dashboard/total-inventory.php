@@ -35,7 +35,7 @@ LEFT JOIN dispatch d
  AND c.Number_Container         = d.notas
  AND i.Code_Product_EC          = d.numero_parte
 JOIN packing_list pl on pl.IdPackingList = c.idPackingList
-GROUP BY i.IdItem;"
+GROUP BY i.IdItem;";
 
 
 
