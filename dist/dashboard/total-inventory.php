@@ -39,7 +39,7 @@ LEFT JOIN (
   ON c.Number_Commercial_Invoice = d.numero_factura
  AND c.Number_Container         = d.notas
  AND i.Code_Product_EC          = d.numero_parte
-JOIN packing_list pl on pl.IdPackingList = c.idPackingList;";
+JOIN packing_list pl on pl.IdPackingList = c.idPackingList";
 
 
 
