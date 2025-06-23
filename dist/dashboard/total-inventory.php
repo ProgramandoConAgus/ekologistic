@@ -13,7 +13,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 $start = isset($_GET['start']) ? $_GET['start'] : null;
 $end = isset($_GET['end']) ? $_GET['end'] : null;
 
-// Construir consulta base
+
 $sql = "SELECT 
   pl.IdPackingList AS 'ITEM #',
   i.IdItem,
@@ -24,11 +24,14 @@ $sql = "SELECT
   i.Qty_Box,
   i.Price_Box_EC AS 'PRICE BOX EC',
   i.Total_Price_EC AS 'TOTAL PRICE EC',
+  i.Price_Box_USA AS 'PRICE BOX USA',
+  i.Total_Price_USA AS 'TOTAL PRICE USA',
   c.status AS 'STATUS'
 FROM container c
 JOIN items i ON c.IdContainer = i.idContainer
-JOIN packing_list pl on pl.IdPackingList=c.idPackingList;
+JOIN packing_list pl on pl.IdPackingList = c.idPackingList;
 ";
+
 $result = $conexion->query($sql);
 
 // Contadores totales
@@ -243,10 +246,10 @@ $result->data_seek(0);
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
-        <li class="pc-item"><a class="pc-link">Imports</a></li>
-        <li class="pc-item"><a class="pc-link">Despachos</a></li>
-        <li class="pc-item"><a class="pc-link">Consolidados</a></li>
+      <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
+        <li class="pc-item"><a  href="../admins/importsPanel.php" class="pc-link">Imports</a></li>
+        <li class="pc-item"><a href="../admins/despachosPanel.php" class="pc-link">Despachos</a></li>
+        <li class="pc-item"><a href="../admins/consolidadosPanel.php" class="pc-link">Consolidados</a></li>
       </ul>
     </li>
   </ul>
@@ -531,6 +534,8 @@ $result->data_seek(0);
                           <th>Qty_Box</th>
                           <th>PRICE BOX EC</th>
                           <th>TOTAL PRICE EC</th>
+                          <th>PRICE BOX USA</th>
+                          <th>TOTAL PRICE USA</th>
                           <th>STATUS</th>
                       </tr>
                   </thead>
@@ -558,6 +563,8 @@ $result->data_seek(0);
                           <td><?= $row['Qty_Box'] ?></td>
                           <td>$<?= number_format($row['PRICE BOX EC'], 2) ?></td>
                           <td>$<?= number_format($row['TOTAL PRICE EC'], 2) ?></td>
+                          <td>$<?= number_format($row['PRICE BOX USA'], 2) ?></td>
+                          <td>$<?= number_format($row['TOTAL PRICE USA'], 2) ?></td>
                           <td><span class="badge <?= $badge_color ?>"><?= $row['STATUS'] ?></span></td>
                       </tr>
                       <?php } ?>

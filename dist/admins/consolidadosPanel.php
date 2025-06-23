@@ -17,7 +17,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 <!-- [Head] start -->
 
 <head>
-  <title>Liquidaciones Exports | Eko Logistic</title>
+  <title>Liquidaciones Consolidados | Eko Logistic</title>
   <!-- [Meta] -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -74,7 +74,6 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 </div>
 <!-- [ Pre-loader ] End -->
  <!-- [ Sidebar Menu ] start -->
-
 <nav class="pc-sidebar">
   <div class="navbar-wrapper">
     <div class="m-header">
@@ -103,9 +102,9 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
               <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
-                <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
               </ul>
             </li>
@@ -128,7 +127,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-       <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
+        <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
         <li class="pc-item"><a  href="../admins/importsPanel.php" class="pc-link">Imports</a></li>
         <li class="pc-item"><a href="../admins/despachosPanel.php" class="pc-link">Despachos</a></li>
         <li class="pc-item"><a href="../admins/consolidadosPanel.php" class="pc-link">Consolidados</a></li>
@@ -276,12 +275,12 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <ul class="breadcrumb">
           <li class="breadcrumb-item"><a href="../dashboard/index.html">Inicio</a></li>
           <li class="breadcrumb-item"><a href="javascript: void(0)">Liquidaciones</a></li>
-          <li class="breadcrumb-item" aria-current="page">Exports</li>
+          <li class="breadcrumb-item" aria-current="page">Consolidados</li>
         </ul>
       </div>
       <div class="col-md-12">
         <div class="page-header-title">
-          <h2 class="mb-0">Panel Exports</h2>
+          <h2 class="mb-0">Panel Consolidados</h2>
         </div>
       </div>
     </div>
@@ -296,12 +295,16 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
   <div class="card table-card">
     <div class="card-body pt-3">
       <div class="d-flex justify-content-end mb-3">
-        <a class="text-white" href="../application/crearExport.php"><button type="button" class="btn btn-success text-white me-3">Cargar nuevo export</button></a>
+        <a class="text-white" href="#"><button type="button" class="btn btn-success text-white me-3" data-bs-toggle="modal" data-bs-target="#consolidadoModal">
+  Generar Consolidado
+</button></a>
       </div>
       <div class="table-responsive">
         <table class="table table-hover">
           <thead>
             <tr>
+              <th>Origen</th>
+                <th>Num_OP</th>
               <th>Booking</th>
               <th>Number Commercial Invoice</th>
               <th>Creation Date</th>
@@ -309,57 +312,321 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
               <th>Action</th>
             </tr>
           </thead>
-          <tbody>
-            <?php 
-            $query = "SELECT ExportsID, Booking_BK,Number_Commercial_Invoice,status ,creation_date FROM exports WHERE status!=2 ORDER BY creation_date";
-            $result = $conexion->query($query);
-            while($row = $result->fetch_assoc()) { 
-              $fechaOriginal = $row['creation_date'];
-              $fecha = date('d/m/Y', strtotime($fechaOriginal));
-              $hora = date('h:i A', strtotime($fechaOriginal));
-            ?>
-            <tr>
-              <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-              <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
-              <td><?= $fecha ?> <span class="text-muted text-sm d-block"><?= $hora ?></span></td>
-              <td>
-              <select 
-                class="badge-select badge" 
-                data-export-id="<?=$row['ExportsID']?>" 
-                style="appearance:none; width:70%; margin-left:-15%">
-                <?php
-                  $queryselect  = "SELECT IdEstados, nombre FROM estadosliquidacion";
-                  $resultselect = $conexion->query($queryselect);
-                  while ($row2 = $resultselect->fetch_assoc()) {
-                    if ($row2['IdEstados'] == 4) continue;
-                    $isSel = ($row['status'] == $row2['IdEstados']) ? ' selected' : '';
-                ?>
-                  <option value="<?=$row2['IdEstados']?>" <?=$isSel?>>
-                    <?=$row2['nombre']?>
-                  </option>
-                <?php } ?>
-              </select>
+        <tbody>
+<?php 
+$query = "
+SELECT 
+  e.ExportsID AS ID,
+  e.Booking_BK,
+  e.Number_Commercial_Invoice,
+  e.status,
+  e.creation_date,
+  c.num_op,
+  'exports' AS origen
+FROM exports e
+LEFT JOIN (
+  SELECT Number_Commercial_Invoice, MIN(num_op) AS num_op
+  FROM container
+  GROUP BY Number_Commercial_Invoice
+) c ON e.Number_Commercial_Invoice = c.Number_Commercial_Invoice
 
-              </td>
-              <td>
-                <a href="../application/detalleLiquidacionExport.php?ExportID=<?=$row["ExportsID"]?>" class="text-primary me-2"><i class="ti ti-eye"></i></a>
-                <?php 
-                  $isDisabled = ($row['status'] == 3);
-                  $href = $isDisabled ? '' : 'href="../application/editarLiquidacionExport.php?ExportID='.$row["ExportsID"].'"';
-                  $classes = 'text-warning me-2' . ($isDisabled ? ' disabled text-muted' : '');
-                ?>
-                <a <?= $href ?> class="<?= $classes ?>" <?= $isDisabled ? 'aria-disabled="true" tabindex="-1"' : '' ?>><i class="ti ti-edit"></i></a>
-                <!--<button class="btn-eliminar text-danger border-0 bg-transparent p-0" data-id="<?= $row["ExportsID"] ?>" title="Eliminar"><i class="ti ti-trash"></i></button>-->
-              </td>
-            </tr>
-            <?php
-            }
-            ?>
-          </tbody>
+UNION ALL
+
+SELECT 
+  i.ImportsID AS ID,
+  i.Booking_BK,
+  i.Number_Commercial_Invoice,
+  i.status,
+  i.creation_date,
+  c.num_op,
+  'imports' AS origen
+FROM imports i
+LEFT JOIN (
+  SELECT Number_Commercial_Invoice, MIN(num_op) AS num_op
+  FROM container
+  GROUP BY Number_Commercial_Invoice
+) c ON i.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+
+UNION ALL
+
+SELECT 
+  d.DespachoID AS ID,
+  d.Booking_BK,
+  d.Number_Commercial_Invoice,
+  d.status,
+  d.creation_date,
+  c.num_op,
+  'despacho' AS origen
+FROM despacho d
+LEFT JOIN (
+  SELECT Number_Commercial_Invoice, MIN(num_op) AS num_op
+  FROM container
+  GROUP BY Number_Commercial_Invoice
+) c ON d.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+
+ORDER BY creation_date DESC;
+
+
+
+";
+
+$result = $conexion->query($query);
+
+if ($result && $result->num_rows > 0) {
+  while($row = $result->fetch_assoc()) { 
+    if ($row['status'] != 2) continue;  // Saltar filas con status diferente de 2
+    
+    $fechaOriginal = $row['creation_date'];
+    $fecha = date('d/m/Y', strtotime($fechaOriginal));
+    $hora  = date('h:i A', strtotime($fechaOriginal));
+?>
+<tr>
+    <td><?= htmlspecialchars($row['origen']) ?></td> <!-- origen exports/imports -->
+      <td><?= htmlspecialchars($row['num_op']) ?></td>
+  <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
+  <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
+  <td><?= $fecha ?> <span class="text-muted text-sm d-block"><?= $hora ?></span></td>
+
+
+
+  <td>
+  <select 
+    class="badge-select badge" 
+    data-id="<?=$row['ID']?>" 
+    style="appearance:none; width:70%; margin-left:-15%">
+    <?php
+      $queryselect  = "SELECT IdEstados, nombre FROM estadosliquidacion";
+      $resultselect = $conexion->query($queryselect);
+      while ($row2 = $resultselect->fetch_assoc()) {
+        if ($row2['IdEstados'] == 4) continue;
+        $isSel = ($row['status'] == $row2['IdEstados']) ? ' selected' : '';
+    ?>
+      <option value="<?=$row2['IdEstados']?>" <?=$isSel?>>
+        <?=$row2['nombre']?>
+      </option>
+    <?php } ?>
+  </select>
+  </td>
+
+  <td>
+    <?php if ($row['origen'] == 'exports') { ?>
+      <a href="../application/detalleLiquidacionExport.php?ExportID=<?=$row["ID"]?>" class="text-primary me-2"><i class="ti ti-eye"></i></a>
+      <?php 
+        $isDisabled = ($row['status'] == 3);
+        $href = $isDisabled ? '' : 'href="../application/editarLiquidacionExport.php?ExportID='.$row["ID"].'"';
+        $classes = 'text-warning me-2' . ($isDisabled ? ' disabled text-muted' : '');
+      ?>
+     
+    <?php } else { ?>
+      <a href="../application/detalleLiquidacionImport.php?ImportID=<?=$row["ID"]?>" class="text-primary me-2"><i class="ti ti-eye"></i></a>
+      <?php 
+        $isDisabled = ($row['status'] == 3);
+        $href = $isDisabled ? '' : 'href="../application/editarLiquidacionImport.php?ImportID='.$row["ID"].'"';
+        $classes = 'text-warning me-2' . ($isDisabled ? ' disabled text-muted' : '');
+      ?>
+     
+    <?php } ?>
+   
+  </td>
+</tr>
+<?php
+  }
+} else {
+  echo "<tr><td colspan='7' class='text-center'>No hay registros disponibles.</td></tr>";
+}
+?>
+</tbody>
+
         </table>
       </div>
     </div>
   </div>
+
+
+  <!-- Modal para generar consolidado -->
+   <div class="modal fade" id="consolidadoModal" tabindex="-1" aria-labelledby="consolidadoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="consolidadoModalLabel">Seleccionar Número de Operación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+     <div class="modal-body">
+  <form method="post">
+    <div class="mb-3">
+      <label for="num_op" class="form-label">Número de Operación</label>
+      <select class="form-select" id="num_op" name="num_op" required>
+        <option value="">Seleccione una opción</option>
+        <?php
+        $queryNumOp = "
+          SELECT DISTINCT c.num_op
+          FROM container c
+          WHERE EXISTS (
+            SELECT 1 FROM exports e 
+            WHERE e.Booking_BK = c.Booking_BK AND e.status = 2
+          )
+          AND EXISTS (
+            SELECT 1 FROM imports i 
+            WHERE i.Booking_BK = c.Booking_BK AND i.status = 2
+          )
+        ";
+
+        $resultNumOp = $conexion->query($queryNumOp);
+        if ($resultNumOp && $resultNumOp->num_rows > 0) {
+          while ($rowOp = $resultNumOp->fetch_assoc()) {
+            echo '<option value="' . htmlspecialchars($rowOp['num_op']) . '">' . htmlspecialchars($rowOp['num_op']) . '</option>';
+          }
+        } else {
+          echo '<option disabled>No hay números de operación disponibles</option>';
+        }
+        ?>
+      </select>
+    </div>
+
+    <!-- Contenedor donde se mostrarán los resultados -->
+    <div id="resultados-operacion" class="mt-3"></div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      <button type="submit" class="btn btn-primary" onclick="generarExcelConsolidado(document.getElementById('num_op').value)">Generar Excel</button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.getElementById('num_op').addEventListener('change', function() {
+  const numOp = this.value;
+  const contenedor = document.getElementById('resultados-operacion');
+
+  if (!numOp) {
+    contenedor.innerHTML = '';
+    return;
+  }
+
+  fetch('../api/imports/buscarOperacion.php', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'num_op=' + encodeURIComponent(numOp)
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      let html = `<h5 class="fw-bold mb-3">Liquidaciones Involucradas</h5>
+      <table class="table table-bordered table-hover">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Booking</th>
+            <th>Invoice</th>
+            <th>Fecha creación</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+      data.resultados.forEach(item => {
+        // Formatear fecha a dd/mm/yyyy
+        const fecha = new Date(item.creation_date);
+        const fechaFormateada = ('0' + fecha.getDate()).slice(-2) + '/'
+                              + ('0' + (fecha.getMonth() + 1)).slice(-2) + '/'
+                              + fecha.getFullYear();
+
+        html += `
+          <tr>
+            <td>${item.origen}</td>
+            <td>${item.Booking_BK}</td>
+            <td>${item.Number_Commercial_Invoice}</td>
+            <td>${fechaFormateada}</td>
+          </tr>`;
+      });
+
+      html += `</tbody></table>`;
+      contenedor.innerHTML = html;
+
+    } else {
+      contenedor.innerHTML = `<div class="alert alert-warning">${data.message}</div>`;
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    contenedor.innerHTML = `<div class="alert alert-danger">Error al consultar las liquidaciones.</div>`;
+  });
+});
+
+</script>
+
+
+<script>
+  async function generarExcelConsolidado(num_op) {
+
+     e.preventDefault();
+  if (!num_op) {
+    alert("Selecciona un número de operación.");
+    return;
+  }
+
+  try {
+    const resp = await fetch('../api/despacho/obtenerLiquidacionesConItems.php', {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify({ num_op })
+});
+
+    const data = await resp.json();
+
+    if (!data.success) {
+    console.error("Error desde PHP:", data.message, data.error);
+    alert(`Error: ${data.message}\n${data.error || ''}`);
+    return;
+  }
+    
+
+    if (!data.success) {
+      alert(data.message || 'Error al obtener liquidaciones');
+      return;
+    }
+
+    const wb = XLSX.utils.book_new();
+
+    for (const liq of data.liquidaciones) {
+      const ws_data = [];
+      ws_data.push([`Origen: ${liq.origen.toUpperCase()}`]);
+      ws_data.push([`ID: ${liq.id}`, `Booking BK: ${liq.booking}`, `Invoice: ${liq.invoice}`, `Fecha: ${liq.fecha}`]);
+      ws_data.push([]);
+      ws_data.push(['Descripción', 'Cantidad', 'Valor Unitario', 'Valor Total']);
+
+      let subtotal = 0;
+      for (const item of liq.items) {
+        ws_data.push([
+          item.NombreItems,
+          item.Cantidad,
+          item.ValorUnitario,
+          item.ValorTotal,
+        ]);
+        subtotal += Number(item.ValorTotal) || 0;
+      }
+
+      ws_data.push([]);
+      ws_data.push(['Subtotal', '', '', subtotal]);
+
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      XLSX.utils.book_append_sheet(wb, ws, `${liq.origen}_${liq.id}`);
+    }
+
+    XLSX.writeFile(wb, `consolidado_liquidaciones_${num_op}.xlsx`);
+
+  } catch (error) {
+  console.error("Error JS o de red:", error);
+}
+}
+
+</script>
+
+    </div>
+  </div>
+</div>
+
+
+
 </div>
 
 
