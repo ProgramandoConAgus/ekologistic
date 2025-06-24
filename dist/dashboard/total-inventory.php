@@ -798,11 +798,15 @@ const dtConfig = {
 
   dom: 't<"pagination-wrapper"p>'
 };
-$(document).ready(() => {
-  dt = $('#pc-dt-simple').DataTable(dtConfig);
 
+function initDataTable() {
+  dt = $('#pc-dt-simple').DataTable(dtConfig);
   $('.pagination-wrapper')
     .appendTo( $('#pc-dt-simple').closest('.table-responsive') );
+}
+
+$(document).ready(() => {
+  initDataTable();
 });
 </script>
 
@@ -886,9 +890,10 @@ async function aplicarFiltrosAvanzados() {
       tbody.insertAdjacentHTML('beforeend', tr);
     });
 
-    if (window.dt) {
+    if (dt) {
       dt.destroy();
-      dt = $('#pc-dt-simple').DataTable(dtConfig);
+      $('.pagination-wrapper').remove();
+      initDataTable();
     }
 
     // Cerrar modal (Bootstrap 5)
@@ -934,9 +939,10 @@ async function limpiarFiltrosAvanzados() {
       tbody.insertAdjacentHTML('beforeend', tr);
     });
 
-    if (window.dt) {
+    if (dt) {
       dt.destroy();
-      dt = $('#pc-dt-simple').DataTable(dtConfig);
+      $('.pagination-wrapper').remove();
+      initDataTable();
     }
 
     // También cerrar modal si quieres (opcional)

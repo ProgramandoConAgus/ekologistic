@@ -619,9 +619,13 @@ $(document).ready(function() {
     language: { paginate:{ previous:'«', next:'»' } },
     dom: 't<"pagination-wrapper"p>'
   };
-  dt = $('#pc-dt-simple').DataTable(dtConfig);
-  $('.pagination-wrapper')
-    .appendTo( $('#pc-dt-simple').closest('.table-responsive') );
+
+  function initDataTable() {
+    dt = $('#pc-dt-simple').DataTable(dtConfig);
+    $('.pagination-wrapper')
+      .appendTo( $('#pc-dt-simple').closest('.table-responsive') );
+  }
+  initDataTable();
 
   // Dispatch Date editor
   flatpickr('.dispatch-date-picker', {
@@ -798,9 +802,10 @@ try {
         tbody.insertAdjacentHTML('beforeend', tr);
     });
 
-    if (window.dt) {
+    if (dt) {
         dt.destroy();
-        dt = $('#pc-dt-simple').DataTable(dtConfig);
+        $('.pagination-wrapper').remove();
+        initDataTable();
     }
 
     initStatusListeners();
@@ -870,9 +875,10 @@ async function limpiarFiltrosAvanzados() {
         tbody.insertAdjacentHTML('beforeend', tr);
       });
 
-      if (window.dt) {
+      if (dt) {
         dt.destroy();
-        dt = $('#pc-dt-simple').DataTable(dtConfig);
+        $('.pagination-wrapper').remove();
+        initDataTable();
       }
 
       initStatusListeners();

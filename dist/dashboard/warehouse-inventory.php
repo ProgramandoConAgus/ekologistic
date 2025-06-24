@@ -614,8 +614,14 @@ document.addEventListener('DOMContentLoaded', function () {
     language:     { paginate:{ previous:'«', next:'»' } },
     dom:          't<"pagination-wrapper"p>'
   };
-  $(document).ready(function() {
+
+  function initDataTable() {
     dt = $('#pc-dt-simple').DataTable(dtConfig);
+    $('.pagination-wrapper').appendTo( $('#pc-dt-simple').closest('.table-responsive') );
+  }
+
+  $(document).ready(function() {
+    initDataTable();
 
     // 2) Exportar Excel con SheetJS
     document.getElementById('exportBtn').addEventListener('click', () => {
@@ -708,9 +714,10 @@ try {
         tbody.insertAdjacentHTML('beforeend', tr);
     });
 
-    if (window.dt) {
+    if (dt) {
         dt.destroy();
-        dt = $('#pc-dt-simple').DataTable(dtConfig);
+        $('.pagination-wrapper').remove();
+        initDataTable();
     }
 
     initStatusListeners();
@@ -780,9 +787,10 @@ async function limpiarFiltrosAvanzados() {
       tbody.insertAdjacentHTML('beforeend', tr);
     });
 
-      if (window.dt) {
+      if (dt) {
           dt.destroy();
-          dt = $('#pc-dt-simple').DataTable(dtConfig);
+          $('.pagination-wrapper').remove();
+          initDataTable();
       }
 
       initStatusListeners();

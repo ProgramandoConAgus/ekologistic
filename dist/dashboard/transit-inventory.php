@@ -569,12 +569,14 @@ function confirmDelete(blNumber) {
     // Solo tabla y paginador
     dom: 't<"pagination-wrapper"p>'
   };
-  $(document).ready(() => {
-    dt = $('#pc-dt-simple').DataTable(dtConfig);
 
-    // Movemos el paginador dentro del scroll container
-    $('.pagination-wrapper')
-      .appendTo( $('#pc-dt-simple').closest('.table-responsive') );
+  function initDataTable() {
+    dt = $('#pc-dt-simple').DataTable(dtConfig);
+    $('.pagination-wrapper').appendTo( $('#pc-dt-simple').closest('.table-responsive') );
+  }
+
+  $(document).ready(() => {
+    initDataTable();
   });
 </script>
 
@@ -915,9 +917,10 @@ function limpiarFiltro() {
             tbody.insertAdjacentHTML('beforeend', tr);
         });
 
-        if (window.dt) {
+        if (dt) {
             dt.destroy();
-            dt = $('#pc-dt-simple').DataTable(dtConfig);
+            $('.pagination-wrapper').remove();
+            initDataTable();
         }
 
         // Cerrar modal

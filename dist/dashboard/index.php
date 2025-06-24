@@ -777,8 +777,14 @@ function confirmDelete(blNumber) {
     language:     { paginate:{ previous:'«', next:'»' } },
     dom:          't<"pagination-wrapper"p>'  // t=table, p=paginador dentro de nuestro div
   };
-  $(document).ready(function() {
+
+  function initDataTable() {
     dt = $('#pc-dt-simple').DataTable(dtConfig);
+    $('.pagination-wrapper').appendTo( $('#pc-dt-simple').closest('.table-responsive') );
+  }
+
+  $(document).ready(function() {
+    initDataTable();
   });
 </script>
 
@@ -1199,9 +1205,10 @@ async function aplicarFiltrosAvanzados() {
       </tr>`;
     tbody.insertAdjacentHTML('beforeend', tr);
   });
-    if (window.dt) {
+    if (dt) {
       dt.destroy();
-      dt = $('#pc-dt-simple').DataTable(dtConfig);
+      $('.pagination-wrapper').remove();
+      initDataTable();
     }
 
     // Cerrar modal y re-inicializar
@@ -1293,9 +1300,10 @@ async function limpiarFiltrosAvanzados() {
     tbody.insertAdjacentHTML('beforeend', tr);
   });
 
-    if (window.dt) {
+    if (dt) {
       dt.destroy();
-      dt = $('#pc-dt-simple').DataTable(dtConfig);
+      $('.pagination-wrapper').remove();
+      initDataTable();
     }
 
     // Cerrar modal
