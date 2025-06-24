@@ -813,7 +813,7 @@ $(document).ready(() => {
 
 
 <script>
-document.getElementById("btnDescargarVisible").addEventListener("click", function () {
+document.getElementById("btnDescargarVisible").addEventListener("click", async function () {
   Swal.fire({
     title: 'Generating Excel...',
     text: 'Please wait a moment.',
@@ -821,35 +821,57 @@ document.getElementById("btnDescargarVisible").addEventListener("click", functio
     didOpen: () => Swal.showLoading()
   });
 
-  const table = document.getElementById("pc-dt-simple");
-  const ws = XLSX.utils.table_to_sheet(table, { raw: true });
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Data");
+  const customer  = document.getElementById('customerFilter').value;
+  const po        = document.getElementById('poFilter').value;
+  const container = document.getElementById('containerFilter').value;
 
-  const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  const blob = new Blob([wbout], { type: "application/octet-stream" });
+  const params = new URLSearchParams();
+  if (customer)  params.append('customer', customer);
+  if (po)        params.append('po', po);
+  if (container) params.append('container', container);
 
-  // 👉 Nombre dinámico con fecha actual
-  const today = new Date();
-  const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
-  const fileName = `total_inventory_summary_${formattedDate}.xlsx`;
+  try {
+    const res = await fetch(`../api/filters/fetchTotalInventory.php?${params.toString()}`);
+    if (!res.ok) throw new Error(res.statusText);
+    const rows = await res.json();
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
 
-  Swal.close();
-  Swal.fire({
-    icon: 'success',
-    title: 'Downloaded!',
-    text: 'The Excel file was created successfully.',
-    timer: 2000,
-    showConfirmButton: false
-  });
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
+
+    // 👉 Nombre dinámico con fecha actual
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0];
+    const fileName = `total_inventory_summary_${formattedDate}.xlsx`;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    Swal.close();
+    Swal.fire({
+      icon: 'success',
+      title: 'Downloaded!',
+      text: 'The Excel file was created successfully.',
+      timer: 2000,
+      showConfirmButton: false
+    });
+  } catch (err) {
+    console.error('Error generating Excel:', err);
+    Swal.close();
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Failed to generate the Excel file.'
+    });
+  }
 });
 </script>
 
