@@ -348,9 +348,10 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
       <!-- 3) Contenedores dinámicos -->
       <div id="incotermContainer">
         <?php foreach ($incoterms as $inc): ?>
-          <div class="incoterm-item" data-incoterm="<?= $inc['IdTipoIncoterm'] ?>" style="display: none;">
-            <h5 class="mt-3"><?= htmlspecialchars($inc['NombreTipoIncoterm']) ?></h5>
-            <table class="table table-hover table-borderless mb-0">
+        <div class="incoterm-item" data-incoterm="<?= $inc['IdTipoIncoterm'] ?>" style="display: none;">
+          <h5 class="mt-3"><?= htmlspecialchars($inc['NombreTipoIncoterm']) ?></h5>
+          <div class="fixed-table-container">
+            <table class="table table-hover table-borderless mb-0 table-sm table-shrink">  
               <thead>
                 <tr>
                   <th>Descripción</th>
@@ -431,6 +432,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
               <span class="total-incoterm" data-incoterm-total="<?= $inc['IdTipoIncoterm'] ?>">0,00</span>
             </h5>
           </div>
+        </div>
         <?php endforeach; ?>
       </div>
 

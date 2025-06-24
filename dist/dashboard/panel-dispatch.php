@@ -421,142 +421,142 @@ try {
           
         <div class="col-md-12 col-xl-12">
     <div class="card table-card">
-        <div class="card-header d-flex align-items-center justify-content-end py-3">
-            <h5 class="mb-0"></h5>
-           <!-- <div class="d-flex gap-2 align-items-center">
-              <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
-                <i class="ti ti-filter"></i> Filtros avanzados
-              </button>
-              <button class="btn btn-sm btn-secondary" onclick="limpiarFiltrosAvanzados()">
-                <i class="ti ti-x"></i> Limpiar
-              </button>
-            </div>-->
-        </div>
-        <!-- Modal de filtros -->
-        <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-              </div>
-              <div class="modal-body">
-                <form id="filterForm">
-                  <!-- Filtro por Cliente 
-                  <div class="mb-3">
-                    <label for="customerFilter" class="form-label">Cliente</label>
-                    <select class="form-select" id="customerFilter">
-                      <option value="">Todos los clientes</option>
-                      <?php
-                      // Resetear el puntero del resultado para obtener valores únicos
-                      $result->data_seek(0);
-                      $customers = [];
-                      while ($row = $result->fetch_assoc()) {
-                        if (!in_array($row['Customer'], $customers)) {
-                          $customers[] = $row['Customer'];
-                          echo '<option value="' . htmlspecialchars($row['Customer']) . '">' . htmlspecialchars($row['Customer']) . '</option>';
-                        }
-                      }
-                      $result->data_seek(0); // Resetear para el bucle principal
-                      ?>
-                    </select>
-                  </div>
-                  -->
-                  <!-- Filtro por Number PO 
-                  <div class="mb-3">
-                    <label for="poFilter" class="form-label">Número de PO</label>
-                    <input type="text" class="form-control" id="poFilter" placeholder="Ingrese número de PO">
-                  </div>
-                  -->
-                  <!-- Filtro por Numero OP (Container) -->
-                  <div class="mb-3">
-                    <label for="containerFilter" class="form-label">Número de Contenedor (OP)</label>
-                    <input type="text" class="form-control" id="containerFilter" placeholder="Ingrese número de contenedor">
-                  </div>
-                  <div class="mb-3">
-                    <label for="containerFilter" class="form-label">Date Created</label><br>
-                    <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
-                  </div>
-                </form>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
-              </div>
+        <div class="card-header d-flex align-items-center justify-content-between py-3">
+          <h5 class="mb-0">Dispatch inventory</h5>
+          <div class="d-flex gap-2 align-items-center">
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+              <i class="ti ti-filter"></i> Filtros avanzados
+            </button>
+            <button class="btn btn-sm btn-secondary" onclick="limpiarFiltrosAvanzados()">
+              <i class="ti ti-x"></i> Limpiar
+            </button>
+          </div>
+      </div>    
+      <!-- Modal de filtros -->
+      <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form id="filterForm">
+                <!-- Filtro por Num OP -->
+                <div class="mb-3">
+                  <label for="numOpFilter" class="form-label">Num OP</label>
+                  <input type="text" class="form-control" id="numOpFilter" placeholder="Ingrese número de OP">
+                </div>
+
+                <!-- Filtro por Destiny POD -->
+                <div class="mb-3">
+                  <label for="destinyFilter" class="form-label">Destiny POD</label>
+                  <input type="text" class="form-control" id="destinyFilter" placeholder="Ingrese Destiny POD">
+                </div>
+
+                <!-- Filtro por ETA Date -->
+                <div class="mb-3">
+                  <label for="rangoFechas" class="form-label">ETA Date</label><br>
+                  <input
+                    type="text"
+                    id="rangoFechas"
+                    class="form-control form-control-sm"
+                    placeholder="Seleccione rango"
+                    style="max-width: 220px;"
+                    readonly>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+              <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
             </div>
           </div>
         </div>
+      </div>
         <div class="card-body">
-        <div class="table-responsive">
-          <table id="pc-dt-simple" class="table table-hover">
-            <thead>
-              <tr>
-                <th>NUM OP</th>
-                <th>Number_Container</th>
-                <th>Booking_BK</th>
-                <th>PO Number</th>
-                <th>Entry Date</th>
-                <th>Dispatch Date</th>
-                <th>Code Product EC</th>
-                <th>Description</th>
-                <th>Qty</th>
-                <th>Unit Value</th>
-                <th>Value</th>
-                <th>Unit</th>
-                <th>Length (in)</th>
-                <th>Broad (in)</th>
-                <th>Height (in)</th>
-                <th>Weight (lb)</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php while ($row = $result->fetch_assoc()): ?>
-              <tr>
-                <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
-                <td><?= htmlspecialchars($row['Number_Container']) ?></td>
-                <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-                <td>
-                 <input
-  type="text"
-  class="form-control form-control-sm po-input"
-  data-id="<?= $row['idItem'] ?>"
-  value="<?= htmlspecialchars($row['Number_PO']) ?>"
->
-                </td>
-                <td><?= htmlspecialchars($row['Entry_Date']) ?></td>
-                <td>
-                  <input
-                    type="text"
-                    class="form-control form-control-sm dispatch-date-picker"
-                    data-id="<?= $row['id'] ?>"
-                    value="<?= htmlspecialchars($row['Out_Date']) ?>"
-                    placeholder="YYYY-MM-DD"
-                  >
-                </td>
-                <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
-                <td><?= htmlspecialchars($row['Description']) ?></td>
-                <td><?= htmlspecialchars($row['Qty']) ?></td>
-                <td><?= htmlspecialchars($row['Unit_Value']) ?></td>
-                <td><?= htmlspecialchars($row['Value']) ?></td>
-                <td><?= htmlspecialchars($row['Unit']) ?></td>
-                <td><?= htmlspecialchars($row['Length_in']) ?></td>
-                <td><?= htmlspecialchars($row['Broad_in']) ?></td>
-                <td><?= htmlspecialchars($row['Height_in']) ?></td>
-                <td><?= htmlspecialchars($row['Weight_lb']) ?></td>
-                <td >
-                  <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" data-id="<?= $row['id'] ?>">
-                    <option value="Cargado" <?= $row['Status'] == 'Cargado' ? 'selected' : '' ?>>Cargado</option>
-                  </select>
-                </td>
-              </tr>
-              <?php endwhile; ?>
-            </tbody>
-          </table>
+          <div class="table-responsive">
+            <table id="pc-dt-simple" class="table table-hover">
+              <thead>
+                <tr>
+                  <th>NUM OP</th>
+                  <th>Number_Container</th>
+                  <th>Booking_BK</th>
+                  <th>PO Number</th>
+                  <th>Lot Number</th>
+                  <th>Entry Date</th>
+                  <th>Dispatch Date</th>
+                  <th>Code Product EC</th>
+                  <th>Description</th>
+                  <th>Qty</th>
+                  <th>Unit Value</th>
+                  <th>Value</th>
+                  <th>Unit</th>
+                  <th>Length (in)</th>
+                  <th>Broad (in)</th>
+                  <th>Height (in)</th>
+                  <th>Weight (lb)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php while ($row = $result->fetch_assoc()): ?>
+                <tr>
+                  <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
+                  <td><?= htmlspecialchars($row['Number_Container']) ?></td>
+                  <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
+                  <td>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm po-input"
+                      data-id="<?= $row['idItem'] ?>"
+                      value="<?= htmlspecialchars($row['Number_PO']) ?>">
+                  </td>
+                  <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
+
+                  <!-- Entry Date con fallback -->
+                  <td>
+                    <?= !empty($row['Entry_Date'])
+                        ? htmlspecialchars($row['Entry_Date'])
+                        : '<span class="text-muted">no cargado</span>'
+                    ?>
+                  </td>
+
+                  <!-- Dispatch Date (Out_Date) con fallback -->
+                  <td>
+                    <?= !empty($row['Out_Date'])
+                        ? htmlspecialchars($row['Out_Date'])
+                        : '<span class="text-muted">no cargado</span>'
+                    ?>
+                  </td>
+
+                  <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
+                  <td><?= htmlspecialchars($row['Description']) ?></td>
+                  <td><?= htmlspecialchars($row['Qty']) ?></td>
+                  <td><?= htmlspecialchars($row['Unit_Value']) ?></td>
+                  <td><?= htmlspecialchars($row['Value']) ?></td>
+                  <td><?= htmlspecialchars($row['Unit']) ?></td>
+                  <td><?= htmlspecialchars($row['Length_in']) ?></td>
+                  <td><?= htmlspecialchars($row['Broad_in']) ?></td>
+                  <td><?= htmlspecialchars($row['Height_in']) ?></td>
+                  <td><?= htmlspecialchars($row['Weight_lb']) ?></td>
+                  <td>
+                    <select
+                      class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
+                      data-id="<?= $row['id'] ?>">
+                      <option value="Cargado" <?= $row['Status'] === 'Cargado' ? 'selected' : '' ?>>
+                        Cargado
+                      </option>
+                    </select>
+                  </td>
+                </tr>
+                <?php endwhile; ?>
+              </tbody>
+            </table>
+          </div>
         </div>
 
 
-</div>
 
     </div>
 </div>
