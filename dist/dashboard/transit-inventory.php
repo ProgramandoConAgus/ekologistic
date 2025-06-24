@@ -552,23 +552,25 @@ function confirmDelete(blNumber) {
 }
 </script>
 <script>
+  var dt;
+  const dtConfig = {
+    // Paginación
+    paging:       true,
+    pageLength:   10,
+    pagingType:   'simple_numbers',
+    language: {
+      paginate: { previous: '«', next: '»' }
+    },
+    // Quitamos buscador, selector de filas, info y orden
+    lengthChange: false,
+    searching:    false,
+    info:         false,
+    ordering:     false,
+    // Solo tabla y paginador
+    dom: 't<"pagination-wrapper"p>'
+  };
   $(document).ready(() => {
-    const dt = $('#pc-dt-simple').DataTable({
-      // Paginación
-      paging:       true,
-      pageLength:   10,
-      pagingType:   'simple_numbers',
-      language: {
-        paginate: { previous: '«', next: '»' }
-      },
-      // Quitamos buscador, selector de filas, info y orden
-      lengthChange: false,
-      searching:    false,
-      info:         false,
-      ordering:     false,
-      // Solo tabla y paginador
-      dom: 't<"pagination-wrapper"p>'
-    });
+    dt = $('#pc-dt-simple').DataTable(dtConfig);
 
     // Movemos el paginador dentro del scroll container
     $('.pagination-wrapper')
@@ -891,8 +893,8 @@ function limpiarFiltro() {
         tbody.innerHTML = '';
 
         rows.forEach(row => {
-            const newEtaDate = row['NEW ETA DATE'] ? 
-                formatPHPDate(row['NEW ETA DATE']) : 
+            const newEtaDate = row['NEW ETA DATE'] ?
+                formatPHPDate(row['NEW ETA DATE']) :
                 'No cargado';
 
             const tr = `
@@ -912,6 +914,11 @@ function limpiarFiltro() {
             </tr>`;
             tbody.insertAdjacentHTML('beforeend', tr);
         });
+
+        if (window.dt) {
+            dt.destroy();
+            dt = $('#pc-dt-simple').DataTable(dtConfig);
+        }
 
         // Cerrar modal
         const modalEl = document.getElementById('filterModal');

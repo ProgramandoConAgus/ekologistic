@@ -779,26 +779,27 @@ function confirmDelete(blNumber) {
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <!-- DataTables CSS/JS ya los tenés cargados -->
 <script>
+var dt;
+const dtConfig = {
+  paging:         true,
+  pageLength:     10,
+  pagingType:     'simple_numbers',
+  language: {
+    paginate: {
+      previous: '«',
+      next:     '»'
+    }
+  },
+
+  lengthChange:   false,
+  searching:      false,
+  info:           false,
+  ordering:       false,
+
+  dom: 't<"pagination-wrapper"p>'
+};
 $(document).ready(() => {
-  const dt = $('#pc-dt-simple').DataTable({
-    
-    paging:         true,
-    pageLength:     10,
-    pagingType:     'simple_numbers',
-    language: {
-      paginate: {
-        previous: '«',
-        next:     '»'
-      }
-    },
-
-    lengthChange:   false,
-    searching:      false,
-    info:           false,
-    ordering:       false,
-
-    dom: 't<"pagination-wrapper"p>'
-  });
+  dt = $('#pc-dt-simple').DataTable(dtConfig);
 
   $('.pagination-wrapper')
     .appendTo( $('#pc-dt-simple').closest('.table-responsive') );
@@ -885,6 +886,11 @@ async function aplicarFiltrosAvanzados() {
       tbody.insertAdjacentHTML('beforeend', tr);
     });
 
+    if (window.dt) {
+      dt.destroy();
+      dt = $('#pc-dt-simple').DataTable(dtConfig);
+    }
+
     // Cerrar modal (Bootstrap 5)
     const modalEl = document.getElementById('filterModal');
     const modal   = bootstrap.Modal.getInstance(modalEl);
@@ -927,6 +933,11 @@ async function limpiarFiltrosAvanzados() {
         </tr>`;
       tbody.insertAdjacentHTML('beforeend', tr);
     });
+
+    if (window.dt) {
+      dt.destroy();
+      dt = $('#pc-dt-simple').DataTable(dtConfig);
+    }
 
     // También cerrar modal si quieres (opcional)
     const modalEl = document.getElementById('filterModal');

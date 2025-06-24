@@ -602,18 +602,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     <script>
-  $(document).ready(function() {
+  var dt;
+  const dtConfig = {
     // 1) Inicializar DataTable con solo tabla + paginador
-    const dt = $('#pc-dt-simple').DataTable({
-      paging:       true,
-      pageLength:   10,
-      lengthChange: false,
-      searching:    false,
-      info:         false,
-      ordering:     false,
-      language:     { paginate:{ previous:'«', next:'»' } },
-      dom:          't<"pagination-wrapper"p>'
-    });
+    paging:       true,
+    pageLength:   10,
+    lengthChange: false,
+    searching:    false,
+    info:         false,
+    ordering:     false,
+    language:     { paginate:{ previous:'«', next:'»' } },
+    dom:          't<"pagination-wrapper"p>'
+  };
+  $(document).ready(function() {
+    dt = $('#pc-dt-simple').DataTable(dtConfig);
 
     // 2) Exportar Excel con SheetJS
     document.getElementById('exportBtn').addEventListener('click', () => {
@@ -706,6 +708,11 @@ try {
         tbody.insertAdjacentHTML('beforeend', tr);
     });
 
+    if (window.dt) {
+        dt.destroy();
+        dt = $('#pc-dt-simple').DataTable(dtConfig);
+    }
+
     initStatusListeners();
     initEditButtons();
     const modalEl = document.getElementById('filterModal');
@@ -770,8 +777,13 @@ async function limpiarFiltrosAvanzados() {
                 </select>
             </td>
         </tr>`;
-        tbody.insertAdjacentHTML('beforeend', tr);
-      });
+      tbody.insertAdjacentHTML('beforeend', tr);
+    });
+
+      if (window.dt) {
+          dt.destroy();
+          dt = $('#pc-dt-simple').DataTable(dtConfig);
+      }
 
       initStatusListeners();
       initEditButtons();

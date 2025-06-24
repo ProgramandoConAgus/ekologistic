@@ -766,18 +766,19 @@ function confirmDelete(blNumber) {
   </div>
 </div>
 <script>
+  var dt;
+  const dtConfig = {
+    paging:       true,
+    pageLength:   10,
+    lengthChange: false,
+    searching:    false,
+    info:         false,
+    ordering:     false,
+    language:     { paginate:{ previous:'«', next:'»' } },
+    dom:          't<"pagination-wrapper"p>'  // t=table, p=paginador dentro de nuestro div
+  };
   $(document).ready(function() {
-    const dt = $('#pc-dt-simple').DataTable({
-      paging:       true,
-      pageLength:   10,
-      lengthChange: false,
-      searching:    false,
-      info:         false,
-      ordering:     false,
-      language:     { paginate:{ previous:'«', next:'»' } },
-      dom:          't<"pagination-wrapper"p>'  // t=table, p=paginador dentro de nuestro div
-    });
-
+    dt = $('#pc-dt-simple').DataTable(dtConfig);
   });
 </script>
 
@@ -1198,7 +1199,10 @@ async function aplicarFiltrosAvanzados() {
       </tr>`;
     tbody.insertAdjacentHTML('beforeend', tr);
   });
-
+    if (window.dt) {
+      dt.destroy();
+      dt = $('#pc-dt-simple').DataTable(dtConfig);
+    }
 
     // Cerrar modal y re-inicializar
     bootstrap.Modal.getInstance(document.getElementById('filterModal')).hide();
@@ -1289,6 +1293,10 @@ async function limpiarFiltrosAvanzados() {
     tbody.insertAdjacentHTML('beforeend', tr);
   });
 
+    if (window.dt) {
+      dt.destroy();
+      dt = $('#pc-dt-simple').DataTable(dtConfig);
+    }
 
     // Cerrar modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('filterModal'));
