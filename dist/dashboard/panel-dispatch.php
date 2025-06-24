@@ -773,33 +773,26 @@ try {
     rows.forEach(row => {
         const tr = `
         <tr>
-            <td>${row['Num OP'] || ''}</td>
-            <td>${row['Destinity POD'] || ''}</td>
-            <td>${row['Booking_BK'] || ''}</td>
+            <td>${row['Num OP'] || row.NUM_OP || ''}</td>
             <td>${row['Number_Container'] || ''}</td>
-            <td>${row['Qty_Box'] || 0}</td>
-            <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
-            <td>${formatDate(row['Date created'])}</td>
-            <td>${row['Hour'] || ''}</td>
-            <td>${row['User Name'] || ''}</td>
+            <td>${row['Booking_BK'] || ''}</td>
+            <td>${row['Number_PO'] || ''}</td>
+            <td>${row.Entry_Date || ''}</td>
+            <td>${row.Out_Date || ''}</td>
+            <td>${row.Code_Product_EC || ''}</td>
+            <td>${row.Description || ''}</td>
+            <td>${row.Qty || row['Qty_Box'] || 0}</td>
+            <td>${row.Unit_Value || ''}</td>
+            <td>${row.Value || ''}</td>
+            <td>${row.Unit || ''}</td>
+            <td>${row.Length_in || ''}</td>
+            <td>${row.Broad_in || ''}</td>
+            <td>${row.Height_in || ''}</td>
+            <td>${row.Weight_lb || ''}</td>
             <td>
-                <div class="d-flex gap-0">
-                    <button class="btn d-flex align-items-center btn-edit-excel" 
-                            data-excel-path="${row['File Home'] || '#'}" 
-                            data-packing-id="${row['ITEM #'] || ''}">
-                        <i class="ti ti-edit f-30"></i>
-                    </button>
-                    <a href="${row['File Home'] || '#'}" download 
-                        class="btn d-flex align-items-center btn-download-excel">
-                        <i class="ti ti-download f-30"></i>
-                    </a>
-                </div>
-            </td>
-            <td>
-                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" 
-                        data-id="${row['ITEM #'] || ''}">
-                    <option value="Inicial" ${row.STATUS === 'Inicial' ? 'selected' : ''}>Inicial</option>
-                    <option value="Completado" ${row.STATUS === 'Completado' ? 'selected' : ''}>Completado</option>
+                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
+                        data-id="${row.id || row['ITEM #'] || ''}">
+                    <option value="Cargado" ${row.Status === 'Cargado' || row.STATUS === 'Cargado' ? 'selected' : ''}>Cargado</option>
                 </select>
             </td>
         </tr>`;
@@ -845,33 +838,26 @@ async function limpiarFiltrosAvanzados() {
       rows.forEach(row => {
         const tr = `
         <tr>
-            <td>${row['Num OP'] || ''}</td>
-            <td>${row['Destinity POD'] || ''}</td>
-            <td>${row['Booking_BK'] || ''}</td>
+            <td>${row['Num OP'] || row.NUM_OP || ''}</td>
             <td>${row['Number_Container'] || ''}</td>
-            <td>${row['Qty_Box'] || 0}</td>
-            <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
-            <td>${formatDate(row['Date created'])}</td>
-            <td>${row['Hour'] || ''}</td>
-            <td>${row['User Name'] || ''}</td>
+            <td>${row['Booking_BK'] || ''}</td>
+            <td>${row['Number_PO'] || ''}</td>
+            <td>${row.Entry_Date || ''}</td>
+            <td>${row.Out_Date || ''}</td>
+            <td>${row.Code_Product_EC || ''}</td>
+            <td>${row.Description || ''}</td>
+            <td>${row.Qty || row['Qty_Box'] || 0}</td>
+            <td>${row.Unit_Value || ''}</td>
+            <td>${row.Value || ''}</td>
+            <td>${row.Unit || ''}</td>
+            <td>${row.Length_in || ''}</td>
+            <td>${row.Broad_in || ''}</td>
+            <td>${row.Height_in || ''}</td>
+            <td>${row.Weight_lb || ''}</td>
             <td>
-                <div class="d-flex gap-0">
-                    <button class="btn d-flex align-items-center btn-edit-excel" 
-                            data-excel-path="${row['File Home'] || '#'}" 
-                            data-packing-id="${row['ITEM #'] || ''}">
-                        <i class="ti ti-edit f-30"></i>
-                    </button>
-                    <a href="${row['File Home'] || '#'}" download 
-                        class="btn d-flex align-items-center btn-download-excel">
-                        <i class="ti ti-download f-30"></i>
-                    </a>
-                </div>
-            </td>
-            <td>
-                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" 
-                        data-id="${row['ITEM #'] || ''}">
-                    <option value="Inicial" ${row.STATUS === 'Inicial' ? 'selected' : ''}>Inicial</option>
-                    <option value="Completado" ${row.STATUS === 'Completado' ? 'selected' : ''}>Completado</option>
+                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
+                        data-id="${row.id || row['ITEM #'] || ''}">
+                    <option value="Cargado" ${row.Status === 'Cargado' || row.STATUS === 'Cargado' ? 'selected' : ''}>Cargado</option>
                 </select>
             </td>
         </tr>`;

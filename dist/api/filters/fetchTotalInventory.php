@@ -22,6 +22,8 @@ $sql = "
       i.Qty_Box,
       i.Price_Box_EC       AS `PRICE BOX EC`,
       i.Total_Price_EC     AS `TOTAL PRICE EC`,
+      i.Price_Box_USA      AS `PRICE BOX USA`,
+      i.Total_Price_USA    AS `TOTAL PRICE USA`,
       CASE WHEN c.status = 'Completed' THEN 'Inventory' ELSE 'Transit' END AS `STATUS`
     FROM container c
     JOIN items i   ON c.IdContainer   = i.idContainer

@@ -889,6 +889,8 @@ async function aplicarFiltrosAvanzados() {
           <td>${row['Qty_Box']}</td>
           <td>$${Number(row['PRICE BOX EC']).toFixed(2)}</td>
           <td>$${Number(row['TOTAL PRICE EC']).toFixed(2)}</td>
+          <td>$${Number(row['PRICE BOX USA']).toFixed(2)}</td>
+          <td>$${Number(row['TOTAL PRICE USA']).toFixed(2)}</td>
           <td><span class="badge ${badgeClass}">${row.STATUS}</span></td>
         </tr>`;
       tbody.insertAdjacentHTML('beforeend', tr);
@@ -937,6 +939,8 @@ async function limpiarFiltrosAvanzados() {
           <td>${row['Qty_Box']}</td>
           <td>$${Number(row['PRICE BOX EC']).toFixed(2)}</td>
           <td>$${Number(row['TOTAL PRICE EC']).toFixed(2)}</td>
+          <td>$${Number(row['PRICE BOX USA']).toFixed(2)}</td>
+          <td>$${Number(row['TOTAL PRICE USA']).toFixed(2)}</td>
           <td><span class="badge ${badgeClass}">${row.STATUS}</span></td>
         </tr>`;
       tbody.insertAdjacentHTML('beforeend', tr);
