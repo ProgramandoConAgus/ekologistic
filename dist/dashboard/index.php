@@ -1144,6 +1144,10 @@ async function aplicarFiltrosAvanzados() {
     const containers = await res.json();
 
     const tbody = document.querySelector('#pc-dt-simple tbody');
+    if (dt) {
+      dt.destroy();
+      $('.pagination-wrapper').remove();
+    }
     tbody.innerHTML = '';
     containers.forEach(c => {
     const tr = `
@@ -1204,12 +1208,8 @@ async function aplicarFiltrosAvanzados() {
         </td>
       </tr>`;
     tbody.insertAdjacentHTML('beforeend', tr);
-  });
-    if (dt) {
-      dt.destroy();
-      $('.pagination-wrapper').remove();
-      initDataTable();
-    }
+    });
+    initDataTable();
 
     // Cerrar modal y re-inicializar
     bootstrap.Modal.getInstance(document.getElementById('filterModal')).hide();
@@ -1238,6 +1238,10 @@ async function limpiarFiltrosAvanzados() {
     const containers = await res.json();
 
     const tbody = document.querySelector('#pc-dt-simple tbody');
+    if (dt) {
+      dt.destroy();
+      $('.pagination-wrapper').remove();
+    }
     tbody.innerHTML = '';
     containers.forEach(c => {
     const tr = `
@@ -1300,11 +1304,8 @@ async function limpiarFiltrosAvanzados() {
     tbody.insertAdjacentHTML('beforeend', tr);
   });
 
-    if (dt) {
-      dt.destroy();
-      $('.pagination-wrapper').remove();
-      initDataTable();
-    }
+
+    initDataTable();
 
     // Cerrar modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('filterModal'));
@@ -1405,8 +1406,3 @@ $(document).ready(function () {
   </body>
   <!-- [Body] end -->
 </html>
-
-
-<?php
-
-?>

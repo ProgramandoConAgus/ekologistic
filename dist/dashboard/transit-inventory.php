@@ -892,6 +892,10 @@ function limpiarFiltro() {
         const rows = await res.json();
 
         const tbody = document.querySelector('#pc-dt-simple tbody');
+        if (dt) {
+            dt.destroy();
+            $('.pagination-wrapper').remove();
+        }
         tbody.innerHTML = '';
 
         rows.forEach(row => {
@@ -916,12 +920,7 @@ function limpiarFiltro() {
             </tr>`;
             tbody.insertAdjacentHTML('beforeend', tr);
         });
-
-        if (dt) {
-            dt.destroy();
-            $('.pagination-wrapper').remove();
-            initDataTable();
-        }
+        initDataTable();
 
         // Cerrar modal
         const modalEl = document.getElementById('filterModal');
@@ -996,8 +995,3 @@ async function limpiarFiltrosAvanzados() {
   </body>
   <!-- [Body] end -->
 </html>
-
-
-<?php
-
-?>

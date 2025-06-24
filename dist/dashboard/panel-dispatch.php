@@ -764,6 +764,10 @@ try {
     const rows = await res.json();
 
     const tbody = document.querySelector('#pc-dt-simple tbody');
+    if (dt) {
+        dt.destroy();
+        $('.pagination-wrapper').remove();
+    }
     tbody.innerHTML = '';
 
     rows.forEach(row => {
@@ -801,12 +805,7 @@ try {
         </tr>`;
         tbody.insertAdjacentHTML('beforeend', tr);
     });
-
-    if (dt) {
-        dt.destroy();
-        $('.pagination-wrapper').remove();
-        initDataTable();
-    }
+    initDataTable();
 
     initStatusListeners();
     initEditButtons();
@@ -837,6 +836,10 @@ async function limpiarFiltrosAvanzados() {
       const rows = await res.json();
 
       const tbody = document.querySelector('#pc-dt-simple tbody');
+      if (dt) {
+        dt.destroy();
+        $('.pagination-wrapper').remove();
+      }
       tbody.innerHTML = '';
 
       rows.forEach(row => {
@@ -874,12 +877,7 @@ async function limpiarFiltrosAvanzados() {
         </tr>`;
         tbody.insertAdjacentHTML('beforeend', tr);
       });
-
-      if (dt) {
-        dt.destroy();
-        $('.pagination-wrapper').remove();
-        initDataTable();
-      }
+      initDataTable();
 
       initStatusListeners();
       initEditButtons();
@@ -967,8 +965,3 @@ document.querySelectorAll('.btn-edit-excel').forEach(btn => {
   </body>
   <!-- [Body] end -->
 </html>
-
-
-<?php
-
-?>
