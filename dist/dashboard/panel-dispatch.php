@@ -419,8 +419,9 @@ try {
         <div class="row">
        
           
-        <div class="col-md-12 col-xl-12">
-    <div class="card table-card">
+          
+      <div class="col-md-12 col-xl-12">
+       <div class="card table-card">
         <div class="card-header d-flex align-items-center justify-content-between py-3">
           <h5 class="mb-0">Dispatch inventory</h5>
           <div class="d-flex gap-2 align-items-center">
@@ -444,14 +445,14 @@ try {
               <form id="filterForm">
                 <!-- Filtro por Num OP -->
                 <div class="mb-3">
-                  <label for="numOpFilter" class="form-label">Num OP</label>
-                  <input type="text" class="form-control" id="numOpFilter" placeholder="Ingrese número de OP">
+                  <label for="OpFilter" class="form-label">Num OP</label>
+                  <input type="text" class="form-control" id="OpFilter" placeholder="Ingrese número de OP">
                 </div>
 
                 <!-- Filtro por Destiny POD -->
                 <div class="mb-3">
-                  <label for="destinyFilter" class="form-label">Destiny POD</label>
-                  <input type="text" class="form-control" id="destinyFilter" placeholder="Ingrese Destiny POD">
+                  <label for="LotFilter" class="form-label">Lot Number</label>
+                  <input type="text" class="form-control" id="LotFilter" placeholder="Ingrese Destiny POD">
                 </div>
 
                 <!-- Filtro por ETA Date -->
@@ -736,145 +737,95 @@ function handleStatusChange() {
     actualizarStatus(id, value);
 }
 
-async function aplicarFiltrosAvanzados() {
+async function limpiarFiltrosAvanzados() {
+  // 1) Reset de los inputs del modal
+  document.getElementById("OpFilter").value    = '';
+  document.getElementById("LotFilter").value   = '';
+  document.getElementById("rangoFechas").value = '';
 
-const container = document.getElementById('containerFilter').value;
-const rango = document.getElementById('rangoFechas').value.trim();
+  // 2) Destruir cualquier flatpickr existente
+  document.querySelectorAll('.eta-date-picker, #rangoFechas').forEach(inp => {
+    if (inp._flatpickr) inp._flatpickr.destroy();
+  });
 
-const params = new URLSearchParams();
-if (container) params.append('container', container);
-
-if (rango) {
-    const partes = rango.split(' a ');
-    if (partes.length === 2) {
-        const [desde, hasta] = partes;
-        params.append('dateFrom', desde);
-        params.append('dateTo', hasta);
-    }
-}
-
-try {
-    const res = await fetch(`../api/filters/fetchPanelPL.php?${params.toString()}`);
+  try {
+    // 3) Volver a traer todos los registros (ajusta la URL al endpoint real)
+    const res = await fetch(`../api/filters/fetchIndex.php`);
     if (!res.ok) throw new Error(res.statusText);
-    const rows = await res.json();
+    const items = await res.json();
 
+    // 4) Limpiar y repoblar la tabla
     const tbody = document.querySelector('#pc-dt-simple tbody');
     tbody.innerHTML = '';
 
-    rows.forEach(row => {
-        const tr = `
+    items.forEach(c => {
+      const entryDate = c.Entry_Date
+        ? c.Entry_Date
+        : '<span class="text-muted">no cargado</span>';
+      const outDate = c.Out_Date
+        ? c.Out_Date
+        : '<span class="text-muted">no cargado</span>';
+
+      const tr = `
         <tr>
-            <td>${row['Num OP'] || ''}</td>
-            <td>${row['Destinity POD'] || ''}</td>
-            <td>${row['Booking_BK'] || ''}</td>
-            <td>${row['Number_Container'] || ''}</td>
-            <td>${row['Qty_Box'] || 0}</td>
-            <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
-            <td>${formatDate(row['Date created'])}</td>
-            <td>${row['Hour'] || ''}</td>
-            <td>${row['User Name'] || ''}</td>
-            <td>
-                <div class="d-flex gap-0">
-                    <button class="btn d-flex align-items-center btn-edit-excel" 
-                            data-excel-path="${row['File Home'] || '#'}" 
-                            data-packing-id="${row['ITEM #'] || ''}">
-                        <i class="ti ti-edit f-30"></i>
-                    </button>
-                    <a href="${row['File Home'] || '#'}" download 
-                        class="btn d-flex align-items-center btn-download-excel">
-                        <i class="ti ti-download f-30"></i>
-                    </a>
-                </div>
-            </td>
-            <td>
-                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" 
-                        data-id="${row['ITEM #'] || ''}">
-                    <option value="Inicial" ${row.STATUS === 'Inicial' ? 'selected' : ''}>Inicial</option>
-                    <option value="Completado" ${row.STATUS === 'Completado' ? 'selected' : ''}>Completado</option>
-                </select>
-            </td>
+          <td>${c.NUM_OP}</td>
+          <td>${c.Number_Container}</td>
+          <td>${c.Booking_BK}</td>
+          <td>
+            <input
+              type="text"
+              class="form-control form-control-sm po-input"
+              data-id="${c.idItem}"
+              value="${c.Number_PO || ''}">
+          </td>
+          <td>${c.Lot_Number}</td>
+          <td>${entryDate}</td>
+          <td>${outDate}</td>
+          <td>${c.Code_Product_EC}</td>
+          <td>${c.Description}</td>
+          <td>${c.Qty}</td>
+          <td>${c.Unit_Value}</td>
+          <td>${c.Value}</td>
+          <td>${c.Unit}</td>
+          <td>${c.Length_in}</td>
+          <td>${c.Broad_in}</td>
+          <td>${c.Height_in}</td>
+          <td>${c.Weight_lb}</td>
+          <td>
+            <select
+              class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
+              data-id="${c.id}">
+              <option value="Cargado" ${c.Status === 'Cargado' ? 'selected' : ''}>
+                Cargado
+              </option>
+            </select>
+          </td>
         </tr>`;
-        tbody.insertAdjacentHTML('beforeend', tr);
+
+      tbody.insertAdjacentHTML('beforeend', tr);
     });
 
+    // 5) Cerrar el modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('filterModal'));
+    if (modal) modal.hide();
+
+    // 6) Re-inicializar handlers (adapta los nombres a tus funciones reales)
     initStatusListeners();
-    initEditButtons();
-    const modalEl = document.getElementById('filterModal');
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    modal?.hide();
-
-} catch (err) {
-    console.error('Error al cargar datos:', err);
-    Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
-}
-}
-
-function formatDate(dateString) {
-if (!dateString) return '';
-const date = new Date(dateString);
-return isNaN(date) ? '' : 
-    `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
-}
-
-async function limpiarFiltrosAvanzados() {
-  document.getElementById('containerFilter').value = '';
-  document.getElementById('rangoFechas').value = '';
-
-  try {
-      const res = await fetch(`../api/filters/fetchPanelPL.php`);
-      if (!res.ok) throw new Error(res.statusText);
-      const rows = await res.json();
-
-      const tbody = document.querySelector('#pc-dt-simple tbody');
-      tbody.innerHTML = '';
-
-      rows.forEach(row => {
-        const tr = `
-        <tr>
-            <td>${row['Num OP'] || ''}</td>
-            <td>${row['Destinity POD'] || ''}</td>
-            <td>${row['Booking_BK'] || ''}</td>
-            <td>${row['Number_Container'] || ''}</td>
-            <td>${row['Qty_Box'] || 0}</td>
-            <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
-            <td>${formatDate(row['Date created'])}</td>
-            <td>${row['Hour'] || ''}</td>
-            <td>${row['User Name'] || ''}</td>
-            <td>
-                <div class="d-flex gap-0">
-                    <button class="btn d-flex align-items-center btn-edit-excel" 
-                            data-excel-path="${row['File Home'] || '#'}" 
-                            data-packing-id="${row['ITEM #'] || ''}">
-                        <i class="ti ti-edit f-30"></i>
-                    </button>
-                    <a href="${row['File Home'] || '#'}" download 
-                        class="btn d-flex align-items-center btn-download-excel">
-                        <i class="ti ti-download f-30"></i>
-                    </a>
-                </div>
-            </td>
-            <td>
-                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" 
-                        data-id="${row['ITEM #'] || ''}">
-                    <option value="Inicial" ${row.STATUS === 'Inicial' ? 'selected' : ''}>Inicial</option>
-                    <option value="Completado" ${row.STATUS === 'Completado' ? 'selected' : ''}>Completado</option>
-                </select>
-            </td>
-        </tr>`;
-        tbody.insertAdjacentHTML('beforeend', tr);
-      });
-
-      initStatusListeners();
-      initEditButtons();
-      const modalEl = document.getElementById('filterModal');
-      const modal = bootstrap.Modal.getInstance(modalEl);
-      modal?.hide();
+    initPoInputHandlers();
+    initDatePickers();
 
   } catch (err) {
-      console.error('Error al cargar datos:', err);
-      Swal.fire('Error', 'No se pudieron resetear los filtros', 'error');
+    console.error('Error al limpiar filtros avanzados:', err);
   }
 }
+
+// helper para formatear fechas sigue igual
+function formatDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-GB');
+}
+
 
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', () => {

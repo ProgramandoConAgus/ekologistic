@@ -517,10 +517,14 @@ try {
                 <td><?= htmlspecialchars($row['Broad_in']) ?></td>
                 <td><?= htmlspecialchars($row['Height_in']) ?></td>
                 <td><?= htmlspecialchars($row['Weight_lb']) ?></td>
-                <td >
-                  <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" data-id="<?= $row['id'] ?>">
-                    <option value="Cargado" <?= $row['Status'] == 'Cargado' ? 'selected' : '' ?>>Cargado</option>
-                    <option value="En Almacén" <?= $row['Status'] == 'En Almacén' ? 'selected' : '' ?>>En Almacén</option>
+                <td>
+                  <select
+                    class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
+                    data-container="<?= htmlspecialchars($row['Number_Container']) ?>"
+                    data-invoice="<?= htmlspecialchars($row['Number_Commercial_Invoice']) ?>"
+                    data-id="<?= $row['id'] ?>">
+                    <option value="Cargado"   <?= $row['Status']=='Cargado'   ? 'selected':'' ?>>Cargado</option>
+                    <option value="En Almacén"<?= $row['Status']=='En Almacén'? 'selected':'' ?>>En Almacén</option>
                   </select>
                 </td>
               </tr>
@@ -539,40 +543,54 @@ try {
 <!-- ACTUALIZAR STATUS -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Guardar cambios en Status
-    document.querySelectorAll('.status-select').forEach(select => {
-        select.addEventListener('change', function () {
-            const id = this.getAttribute('data-id'); // Id del packinglist
-            const value = this.value; // Nuevo valor seleccionado
-
-            actualizarStatus(id, value);
-        });
+  // Atacha listener a TODOS los selects
+  document.querySelectorAll('.status-select').forEach(sel => {
+    sel.addEventListener('change', function () {
+      const container = this.dataset.container;
+      const invoice   = this.dataset.invoice;
+      const value     = this.value;
+      actualizarStatus(container, invoice, value);
     });
-
-    function actualizarStatus(id, value) {
-        debugger
-        fetch('../api/dispatch_status.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, value }) // Enviamos solo id y value
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-              Swal.fire({
-              title: 'Éxito',
-              text: data.message,
-              icon: 'success',
-              confirmButtonText: 'Continuar'
-            });
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
+  });
 });
+
+
+async function actualizarStatus(container, invoice, value) {
+  try {
+    Swal.fire({ title:'Cargando', allowOutsideClick:false, didOpen:()=>Swal.showLoading() });
+
+    const res = await fetch('../api/dispatch_status.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ container, invoice, value })
+    });
+    const json = await res.json();
+    Swal.close();
+
+    if (json.success) {
+      // Si vino el número de contenedor, mostramos filas afectadas
+      if (json.container) {
+        Swal.fire({
+          icon: 'success',
+          title: `Contenedor ${json.container}`,
+          text: json.message,
+          confirmButtonText: 'OK'
+        });
+      } else {
+        Swal.fire({ icon:'success', title: json.message, toast:true, position:'top-end', timer:1500 });
+      }
+    } else {
+      Swal.fire({ icon:'error', title: json.error||'Error', toast:true, position:'top-end', timer:2000 });
+    }
+  } catch (err) {
+    Swal.close();
+    Swal.fire({ icon:'error', title:'Error de conexión', toast:true, position:'top-end', timer:2000 });
+    console.error(err);
+  }
+}
 </script>
+
+
 
 </div>
 
