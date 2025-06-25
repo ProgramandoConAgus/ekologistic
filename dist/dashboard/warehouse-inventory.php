@@ -395,77 +395,90 @@ try {
           
         <div class="col-md-12 col-xl-12">
     <div class="card table-card">
-        <div class="card-header d-flex align-items-center justify-content-end py-3">
-            <h5 class="mb-0"></h5>
-           <!-- <div class="d-flex gap-2 align-items-center">
-              <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
-                <i class="ti ti-filter"></i> Filtros avanzados
-              </button>
-              <button class="btn btn-sm btn-secondary" onclick="limpiarFiltrosAvanzados()">
-                <i class="ti ti-x"></i> Limpiar
-              </button>
-            </div>-->
-            <button style="margin-left:3%;" class="btn btn-sm btn-success">
-                <a class="text-white" href="../forms/importardispatch.php">Nuevo Dispatch Inventory</a>
-            </button>
-            <button style="margin-left:1%;" id="exportBtn" class="btn btn-sm btn-info">
-              <i class="ti ti-file-export"></i> Exportar a Excel
-            </button>
+        <div class="card-header d-flex align-items-center justify-content-between py-3">
+            <h5 class="mb-0">Warehouse Inventory</h5>
+          <!-- Botón único de acciones -->
+          <button class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#actionsModal">
+            <i class="ti ti-menu-2"></i> Acciones
+          </button>
         </div>
-        <!-- Modal de filtros -->
-        <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-          <div class="modal-dialog">
+        <!-- Modal de Acciones -->
+        <div class="modal fade" id="actionsModal" tabindex="-1" aria-labelledby="actionsModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="actionsModalLabel">Acciones</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
               </div>
-              <div class="modal-body">
-                <form id="filterForm">
-                  <!-- Filtro por Cliente 
-                  <div class="mb-3">
-                    <label for="customerFilter" class="form-label">Cliente</label>
-                    <select class="form-select" id="customerFilter">
-                      <option value="">Todos los clientes</option>
-                      <?php
-                      // Resetear el puntero del resultado para obtener valores únicos
-                      $result->data_seek(0);
-                      $customers = [];
-                      while ($row = $result->fetch_assoc()) {
-                        if (!in_array($row['Customer'], $customers)) {
-                          $customers[] = $row['Customer'];
-                          echo '<option value="' . htmlspecialchars($row['Customer']) . '">' . htmlspecialchars($row['Customer']) . '</option>';
-                        }
-                      }
-                      $result->data_seek(0); // Resetear para el bucle principal
-                      ?>
-                    </select>
-                  </div>
-                  -->
-                  <!-- Filtro por Number PO 
-                  <div class="mb-3">
-                    <label for="poFilter" class="form-label">Número de PO</label>
-                    <input type="text" class="form-control" id="poFilter" placeholder="Ingrese número de PO">
-                  </div>
-                  -->
-                  <!-- Filtro por Numero OP (Container) -->
-                  <div class="mb-3">
-                    <label for="containerFilter" class="form-label">Número de Contenedor (OP)</label>
-                    <input type="text" class="form-control" id="containerFilter" placeholder="Ingrese número de contenedor">
-                  </div>
-                  <div class="mb-3">
-                    <label for="containerFilter" class="form-label">Date Created</label><br>
-                    <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
-                  </div>
-                </form>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
+              <div class="modal-body d-flex flex-column gap-2">
+                <button type="button"
+                        class="btn btn-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#filterModal"
+                        data-bs-dismiss="modal">
+                  <i class="ti ti-filter"></i> Filtros avanzados
+                </button>
+                <button type="button"
+                        class="btn btn-secondary"
+                        id="btnClearFilters"
+                        data-bs-dismiss="modal">
+                  <i class="ti ti-x"></i> Limpiar
+                </button>
+                <a href="../forms/importardispatch.php"
+                  class="btn btn-success">
+                  <i class="ti ti-plus"></i> Nuevo Dispatch Inventory
+                </a>
+                <button type="button"
+                        id="exportBtn"
+                        class="btn btn-info">
+                  <i class="ti ti-file-export"></i> Exportar a Excel
+                </button>
               </div>
             </div>
           </div>
         </div>
+      <!-- Modal de filtros -->
+      <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form id="filterForm">
+                <!-- Filtro por Num OP -->
+                <div class="mb-3">
+                  <label for="containerFilter" class="form-label">Numero de Container</label>
+                  <input type="text" class="form-control" id="containerFilter" placeholder="Ingrese número de Container">
+                </div>
+
+                <!-- Filtro por Destiny POD -->
+                <div class="mb-3">
+                  <label for="OpFilter" class="form-label">Op Number</label>
+                  <input type="text" class="form-control" id="OpFilter" placeholder="Ingrese Lot Number">
+                </div>
+
+                <!-- Filtro por ETA Date -->
+                <div class="mb-3">
+                  <label for="rangoFechas" class="form-label">Entry Date</label><br>
+                  <input
+                    type="text"
+                    id="rangoFechas"
+                    class="form-control form-control-sm"
+                    placeholder="Seleccione rango"
+                    style="max-width: 220px;"
+                    readonly>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+              <button id="btnApplyFilters" class="btn btn-primary">Aplicar filtros</button>            
+            </div>
+          </div>
+        </div>
+      </div>
         <div class="card-body">
     <div class="table-responsive">
         <table class="table table-hover" id="pc-dt-simple">
@@ -616,219 +629,153 @@ async function actualizarStatus(container, invoice, value) {
       </div>
     </footer>
 
-
-
-
-    <script>
-  $(document).ready(function() {
-    // 1) Inicializar DataTable con solo tabla + paginador
-    const dt = $('#pc-dt-simple').DataTable({
-      paging:       true,
-      pageLength:   10,
-      lengthChange: false,
-      searching:    false,
-      info:         false,
-      ordering:     false,
-      language:     { paginate:{ previous:'«', next:'»' } },
-      dom:          't<"pagination-wrapper"p>'
-    });
-
-    // 2) Exportar Excel con SheetJS
-    document.getElementById('exportBtn').addEventListener('click', () => {
-      // convierte la tabla a libro de Excel
-      const wb = XLSX.utils.table_to_book(
-        document.getElementById('pc-dt-simple'),
-        { sheet: "Hoja1" }
-      );
-      // descarga el archivo
-      XLSX.writeFile(wb, "warehouse_inventory.xlsx");
-    });
-  });
-</script>
-
-<!--
 <script>
-
-// Función para inicializar listeners de status
-function initStatusListeners() {
-    document.querySelectorAll('.status-select').forEach(select => {
-        select.removeEventListener('change', handleStatusChange); // Eliminar existentes
-        select.addEventListener('change', handleStatusChange);
-    });
+// --- Helper para convertir fechas ---
+function toISODate(str) {
+  let d,m,y;
+  if (str.includes('/')) [d,m,y] = str.split('/');
+  else                  [y,m,d] = str.split('-');
+  return `${y.padStart(4,'0')}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
 }
 
-function handleStatusChange() {
-    const id = this.getAttribute('data-id');
-    const value = this.value;
-    actualizarStatus(id, value);
-}
+$(document).ready(function(){
+  // 1) Inicializa DataTable UNA sola vez
+  const table = $('#pc-dt-simple').DataTable({
+    paging:       true,
+    pageLength:   10,
+    lengthChange: false,
+    searching:    false,
+    info:         false,
+    ordering:     false,
+    language:     { paginate:{ previous:'«', next:'»' } },
+    dom:          't<"pagination-wrapper"p>'
+  });
+  $('.pagination-wrapper')
+    .appendTo($('#pc-dt-simple').closest('.table-responsive'));
 
-async function aplicarFiltrosAvanzados() {
+  // 2) Inicializa flatpickr en el input de rango
+  flatpickr('#rangoFechas', {
+    mode: 'range',
+    locale: 'es',
+    dateFormat: 'Y-m-d'
+  });
 
-const container = document.getElementById('containerFilter').value;
-const rango = document.getElementById('rangoFechas').value.trim();
+  // 3) Botones
+  $('#btnApplyFilters').on('click', aplicarFiltrosAvanzados);
+  $('#btnClearFilters').on('click', limpiarFiltrosAvanzados);
 
-const params = new URLSearchParams();
-if (container) params.append('container', container);
+  // 4) Exportar Excel
+  $('#exportBtn').on('click', () => {
+    const wb = XLSX.utils.table_to_book(
+      document.getElementById('pc-dt-simple'),
+      { sheet:"Hoja1" }
+    );
+    XLSX.writeFile(wb, "warehouse_inventory.xlsx");
+  });
 
-if (rango) {
-    const partes = rango.split(' a ');
-    if (partes.length === 2) {
-        const [desde, hasta] = partes;
-        params.append('dateFrom', desde);
-        params.append('dateTo', hasta);
+  // 5) Función para aplicar filtros
+  async function aplicarFiltrosAvanzados() {
+    const container = $('#containerFilter').val().trim();
+    const op        = $('#OpFilter').val().trim();
+    const rango     = $('#rangoFechas').val().trim();
+    const params    = new URLSearchParams();
+
+    if (container) params.append('container', container);
+    if (op)        params.append('op', op);
+    if (rango) {
+      const [f,t] = rango.split(' a ').map(s=>s.trim());
+      params.append('dateFrom', toISODate(f));
+      params.append('dateTo',   toISODate(t));
     }
-}
 
-try {
-    const res = await fetch(`../api/filters/fetchPanelPL.php?${params.toString()}`);
-    if (!res.ok) throw new Error(res.statusText);
-    const rows = await res.json();
-
-    const tbody = document.querySelector('#pc-dt-simple tbody');
-    tbody.innerHTML = '';
-
-    rows.forEach(row => {
-        const tr = `
-        <tr>
-            <td>${row['Num OP'] || ''}</td>
-            <td>${row['Destinity POD'] || ''}</td>
-            <td>${row['Booking_BK'] || ''}</td>
-            <td>${row['Number_Container'] || ''}</td>
-            <td>${row['Qty_Box'] || 0}</td>
-            <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
-            <td>${formatDate(row['Date created'])}</td>
-            <td>${row['Hour'] || ''}</td>
-            <td>${row['User Name'] || ''}</td>
-            <td>
-                <div class="d-flex gap-0">
-                    <button class="btn d-flex align-items-center btn-edit-excel" 
-                            data-excel-path="${row['File Home'] || '#'}" 
-                            data-packing-id="${row['ITEM #'] || ''}">
-                        <i class="ti ti-edit f-30"></i>
-                    </button>
-                    <a href="${row['File Home'] || '#'}" download 
-                        class="btn d-flex align-items-center btn-download-excel">
-                        <i class="ti ti-download f-30"></i>
-                    </a>
-                </div>
-            </td>
-            <td>
-                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" 
-                        data-id="${row['ITEM #'] || ''}">
-                    <option value="Inicial" ${row.STATUS === 'Inicial' ? 'selected' : ''}>Inicial</option>
-                    <option value="Completado" ${row.STATUS === 'Completado' ? 'selected' : ''}>Completado</option>
-                </select>
-            </td>
-        </tr>`;
-        tbody.insertAdjacentHTML('beforeend', tr);
-    });
-
-    initStatusListeners();
-    initEditButtons();
-    const modalEl = document.getElementById('filterModal');
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    modal?.hide();
-
-} catch (err) {
-    console.error('Error al cargar datos:', err);
-    Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
-}
-}
-
-function formatDate(dateString) {
-if (!dateString) return '';
-const date = new Date(dateString);
-return isNaN(date) ? '' : 
-    `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
-}
-
-async function limpiarFiltrosAvanzados() {
-  document.getElementById('containerFilter').value = '';
-  document.getElementById('rangoFechas').value = '';
-
-  try {
-      const res = await fetch(`../api/filters/fetchPanelPL.php`);
+    try {
+      const res  = await fetch(`../api/filters/fetchWarehouse.php?${params.toString()}`);
       if (!res.ok) throw new Error(res.statusText);
       const rows = await res.json();
 
-      const tbody = document.querySelector('#pc-dt-simple tbody');
-      tbody.innerHTML = '';
-
-      rows.forEach(row => {
-        const tr = `
-        <tr>
-            <td>${row['Num OP'] || ''}</td>
-            <td>${row['Destinity POD'] || ''}</td>
-            <td>${row['Booking_BK'] || ''}</td>
-            <td>${row['Number_Container'] || ''}</td>
-            <td>${row['Qty_Box'] || 0}</td>
-            <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
-            <td>${formatDate(row['Date created'])}</td>
-            <td>${row['Hour'] || ''}</td>
-            <td>${row['User Name'] || ''}</td>
-            <td>
-                <div class="d-flex gap-0">
-                    <button class="btn d-flex align-items-center btn-edit-excel" 
-                            data-excel-path="${row['File Home'] || '#'}" 
-                            data-packing-id="${row['ITEM #'] || ''}">
-                        <i class="ti ti-edit f-30"></i>
-                    </button>
-                    <a href="${row['File Home'] || '#'}" download 
-                        class="btn d-flex align-items-center btn-download-excel">
-                        <i class="ti ti-download f-30"></i>
-                    </a>
-                </div>
-            </td>
-            <td>
-                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" 
-                        data-id="${row['ITEM #'] || ''}">
-                    <option value="Inicial" ${row.STATUS === 'Inicial' ? 'selected' : ''}>Inicial</option>
-                    <option value="Completado" ${row.STATUS === 'Completado' ? 'selected' : ''}>Completado</option>
-                </select>
-            </td>
-        </tr>`;
-        tbody.insertAdjacentHTML('beforeend', tr);
+      // refresca la DataTable sin reinit
+      table.clear();
+      rows.forEach(r => {
+        table.row.add([
+          r.NUM_OP,
+          r.Number_Container,
+          r.Entry_Date,
+          r.recibo_almacen,
+          r.Lot_Number,
+          r.Booking_BK,
+          r.Number_Commercial_Invoice,
+          r.Code_Product_EC,
+          r.Description,
+          r.Qty,
+          r.Unit_Value,
+          r.Value,
+          r.Unit,
+          r.Length_in,
+          r.Broad_in,
+          r.Height_in,
+          r.Weight_lb,
+          `<select class="form-select form-select-sm status-select"
+                   data-container="${r.Number_Container}"
+                   data-invoice="${r.Number_Commercial_Invoice}">
+             <option value="Cargado"${r.Status==='Cargado'?' selected':''}>Cargado</option>
+             <option value="En Almacén"${r.Status==='En Almacén'?' selected':''}>En Almacén</option>
+           </select>`
+        ]);
       });
+      table.draw();
 
+      // cierra modal y re-ata handlers
+      bootstrap.Modal.getInstance($('#filterModal')[0])?.hide();
       initStatusListeners();
-      initEditButtons();
-      const modalEl = document.getElementById('filterModal');
-      const modal = bootstrap.Modal.getInstance(modalEl);
-      modal?.hide();
 
-  } catch (err) {
-      console.error('Error al cargar datos:', err);
-      Swal.fire('Error', 'No se pudieron resetear los filtros', 'error');
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
+    }
   }
-}
 
-// Inicialización al cargar la página
-document.addEventListener('DOMContentLoaded', () => {
-initStatusListeners();
-initEditButtons();
-});
+  // 6) Función para limpiar filtros
+  async function limpiarFiltrosAvanzados() {
+    $('#containerFilter, #OpFilter').val('');
+    const fp = document.getElementById('rangoFechas')._flatpickr;
+    if (fp) fp.clear();
+    await aplicarFiltrosAvanzados();
+  }
 
-// Función para botones de edición (ejemplo básico)
-function initEditButtons() {
-document.querySelectorAll('.btn-edit-excel').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const packingId = this.dataset.packingId;
-        const excelPath = this.dataset.excelPath;
-        // Lógica de edición aquí
-        console.log('Editar:', packingId, excelPath);
+  // 7) Re-ata listener para los selects de Status
+  function initStatusListeners() {
+    document.querySelectorAll('.status-select').forEach(sel => {
+      sel.onchange = async function() {
+        try {
+          Swal.fire({ title:'Actualizando...', didOpen: ()=> Swal.showLoading(), allowOutsideClick:false });
+          const resp = await fetch('../api/dispatch_status.php', {
+            method: 'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body: JSON.stringify({
+              container: this.dataset.container,
+              invoice:   this.dataset.invoice,
+              value:     this.value
+            })
+          });
+          const json = await resp.json();
+          Swal.close();
+          if (json.success) {
+            Swal.fire({ icon:'success', title: json.message, toast:true, position:'top-end', timer:1500 });
+          } else {
+            throw new Error(json.error || 'Error');
+          }
+        } catch (e) {
+          Swal.close();
+          Swal.fire('Error', e.message, 'error');
+        }
+      };
     });
+  }
+
+  // 8) Arranca el listener la primera vez
+  initStatusListeners();
 });
-}
 </script>
--->
-
-
-
-
-
-
-
 
 
 

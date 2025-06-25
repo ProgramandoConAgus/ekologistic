@@ -37,7 +37,7 @@ $sql = "
     d.altura_in                          AS Height_in,
     d.peso_lb                            AS Weight_lb,
     d.estado                             AS Status,
-    d.recibo_almacen
+    d.recibo_almacen                     AS Receive
 FROM container c
 INNER JOIN dispatch d
     ON c.Number_Commercial_Invoice = d.numero_factura
@@ -419,17 +419,16 @@ try {
         <div class="row">
        
           
-          
-      <div class="col-md-12 col-xl-12">
-       <div class="card table-card">
+        <div class="col-md-12 col-xl-12">
+    <div class="card table-card">
         <div class="card-header d-flex align-items-center justify-content-between py-3">
-          <h5 class="mb-0">Dispatch inventory</h5>
+          <h5 class="mb-0">Dispatch Inventory</h5>
           <div class="d-flex gap-2 align-items-center">
             <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
               <i class="ti ti-filter"></i> Filtros avanzados
             </button>
-            <button class="btn btn-sm btn-secondary" onclick="limpiarFiltrosAvanzados()">
-              <i class="ti ti-x"></i> Limpiar
+            <button id="btnClearFilters" class="btn btn-sm btn-secondary">   
+             <i class="ti ti-x"></i> Limpiar
             </button>
           </div>
       </div>    
@@ -452,7 +451,7 @@ try {
                 <!-- Filtro por Destiny POD -->
                 <div class="mb-3">
                   <label for="LotFilter" class="form-label">Lot Number</label>
-                  <input type="text" class="form-control" id="LotFilter" placeholder="Ingrese Destiny POD">
+                  <input type="text" class="form-control" id="LotFilter" placeholder="Ingrese Lot Number">
                 </div>
 
                 <!-- Filtro por ETA Date -->
@@ -470,7 +469,7 @@ try {
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-              <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
+              <button id="btnApplyFilters" class="btn btn-primary">Aplicar filtros</button>            
             </div>
           </div>
         </div>
@@ -485,6 +484,7 @@ try {
                   <th>Booking_BK</th>
                   <th>PO Number</th>
                   <th>Lot Number</th>
+                  <th>Warehouse Receive</th>
                   <th>Entry Date</th>
                   <th>Dispatch Date</th>
                   <th>Code Product EC</th>
@@ -514,6 +514,7 @@ try {
                       value="<?= htmlspecialchars($row['Number_PO']) ?>">
                   </td>
                   <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
+                  <td><?= htmlspecialchars($row['Receive']) ?></td>
 
                   <!-- Entry Date con fallback -->
                   <td>
@@ -601,28 +602,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
-$(document).ready(function() {
-  const toast = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 2000
-  });
-
-  // DataTable init...
-  $('#pc-dt-simple').DataTable({
-    paging: true,
-    pageLength: 10,
-    lengthChange: false,
-    searching: false,
-    info: false,
-    ordering: false,
-    language: { paginate:{ previous:'«', next:'»' } },
-    dom: 't<"pagination-wrapper"p>'
-  });
-  $('.pagination-wrapper')
-    .appendTo( $('#pc-dt-simple').closest('.table-responsive') );
-
   // Dispatch Date editor
   flatpickr('.dispatch-date-picker', {
     locale:'es', dateFormat:'Y-m-d',
@@ -679,7 +658,7 @@ $(document).ready(function() {
     })
     .catch(() => toast.fire({ icon: 'error', title: 'Error de red' }));
   });
-});
+
 </script>
 
 </div>
@@ -722,136 +701,131 @@ window.addEventListener('resize', function() {
 
 
 <script>
+  let table;
 
-// Función para inicializar listeners de status
-function initStatusListeners() {
-    document.querySelectorAll('.status-select').forEach(select => {
-        select.removeEventListener('change', handleStatusChange); // Eliminar existentes
-        select.addEventListener('change', handleStatusChange);
+  // Helper: convierte "d/m/Y" o "Y-m-d" a "Y-m-d"
+  function toISODate(str) {
+    let d, m, y;
+    if (str.includes('/')) [d, m, y] = str.split('/');
+    else                  [y, m, d] = str.split('-');
+    return `${y.padStart(4,'0')}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+
+  // Solo UNA inicialización de DataTable
+  $(document).ready(function(){
+    table = $('#pc-dt-simple').DataTable({
+      paging:       true,
+      pageLength:   10,
+      lengthChange: false,
+      searching:    false,
+      info:         false,
+      ordering:     false,
+      language:     { paginate:{ previous:'«', next:'»' } },
+      dom:          't<"pagination-wrapper"p>'
     });
-}
+    // Mover la paginación fuera
+    $('.pagination-wrapper')
+      .appendTo($('#pc-dt-simple').closest('.table-responsive'));
 
-function handleStatusChange() {
-    const id = this.getAttribute('data-id');
-    const value = this.value;
-    actualizarStatus(id, value);
-}
 
-async function limpiarFiltrosAvanzados() {
-  // 1) Reset de los inputs del modal
-  document.getElementById("OpFilter").value    = '';
-  document.getElementById("LotFilter").value   = '';
-  document.getElementById("rangoFechas").value = '';
+    flatpickr('#rangoFechas', {
+      mode: 'range',
+      locale: 'es',
+      dateFormat: 'Y-m-d'      // para obtener directamente "YYYY-MM-DD"
+    });
 
-  // 2) Destruir cualquier flatpickr existente
-  document.querySelectorAll('.eta-date-picker, #rangoFechas').forEach(inp => {
-    if (inp._flatpickr) inp._flatpickr.destroy();
+    // PO input handler
+    $('.po-input').off('change').on('change', function(){
+      const id = this.dataset.id, po = this.value.trim();
+      const toast = Swal.mixin({ toast:true, position:'top-end', showConfirmButton:false, timer:2000 });
+      fetch('../api/update_dispatch_po.php', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id, po })
+      })
+      .then(r=>r.json())
+      .then(j=> toast.fire({ icon: j.success?'success':'error', title: j.success?'PO actualizada':j.error }))
+      .catch(()=> toast.fire({ icon:'error', title:'Error de red' }));
+    });
+
+    // Status handler
+    $('.status-select').off('change').on('change', function(){
+      const id = this.dataset.id, value = this.value;
+      fetch('../api/dispatch_status.php', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id, value })
+      })
+      .then(r=>r.json())
+      .then(j=> Swal.fire(j.success?'Éxito':'Error', j.success? j.message : j.error, j.success?'success':'error'))
+      .catch(()=> Swal.fire('Error de red','','error'));
+    });
+
+    // Botones de filtro
+    $('#btnApplyFilters').on('click', aplicarFiltrosAvanzados);
+    $('#btnClearFilters').on('click', limpiarFiltrosAvanzados);
   });
 
-  try {
-    // 3) Volver a traer todos los registros (ajusta la URL al endpoint real)
-    const res = await fetch(`../api/filters/fetchIndex.php`);
-    if (!res.ok) throw new Error(res.statusText);
-    const items = await res.json();
+  // Función de aplicar filtros (igual que tenías)
+  async function aplicarFiltrosAvanzados() {
+    const op    = $('#OpFilter').val().trim();
+    const lot   = $('#LotFilter').val().trim();
+    const rango = $('#rangoFechas').val().trim();
+    const params = new URLSearchParams();
+    if (op)    params.append('op', op);
+    if (lot)   params.append('lot', lot);
+    if (rango) {
+      const [f,t] = rango.split(' a ').map(s=>s.trim());
+      params.append('dateFrom', toISODate(f));
+      params.append('dateTo',   toISODate(t));
+    }
 
-    // 4) Limpiar y repoblar la tabla
-    const tbody = document.querySelector('#pc-dt-simple tbody');
-    tbody.innerHTML = '';
-
-    items.forEach(c => {
-      const entryDate = c.Entry_Date
-        ? c.Entry_Date
-        : '<span class="text-muted">no cargado</span>';
-      const outDate = c.Out_Date
-        ? c.Out_Date
-        : '<span class="text-muted">no cargado</span>';
-
-      const tr = `
-        <tr>
-          <td>${c.NUM_OP}</td>
-          <td>${c.Number_Container}</td>
-          <td>${c.Booking_BK}</td>
-          <td>
-            <input
-              type="text"
-              class="form-control form-control-sm po-input"
-              data-id="${c.idItem}"
-              value="${c.Number_PO || ''}">
-          </td>
-          <td>${c.Lot_Number}</td>
-          <td>${entryDate}</td>
-          <td>${outDate}</td>
-          <td>${c.Code_Product_EC}</td>
-          <td>${c.Description}</td>
-          <td>${c.Qty}</td>
-          <td>${c.Unit_Value}</td>
-          <td>${c.Value}</td>
-          <td>${c.Unit}</td>
-          <td>${c.Length_in}</td>
-          <td>${c.Broad_in}</td>
-          <td>${c.Height_in}</td>
-          <td>${c.Weight_lb}</td>
-          <td>
-            <select
-              class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
-              data-id="${c.id}">
-              <option value="Cargado" ${c.Status === 'Cargado' ? 'selected' : ''}>
-                Cargado
-              </option>
-            </select>
-          </td>
-        </tr>`;
-
-      tbody.insertAdjacentHTML('beforeend', tr);
-    });
-
-    // 5) Cerrar el modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('filterModal'));
-    if (modal) modal.hide();
-
-    // 6) Re-inicializar handlers (adapta los nombres a tus funciones reales)
-    initStatusListeners();
-    initPoInputHandlers();
-    initDatePickers();
-
-  } catch (err) {
-    console.error('Error al limpiar filtros avanzados:', err);
+    try {
+      const res   = await fetch(`../api/filters/fetchDispatch.php?${params}`);
+      if (!res.ok) throw new Error(res.statusText);
+      const items = await res.json();
+      table.clear();
+      items.forEach(c => {
+        table.row.add([
+          c.NUM_OP,
+          c.Number_Container,
+          c.Booking_BK,
+          `<input type="text" class="form-control form-control-sm po-input" data-id="${c.idItem}" value="${c.Number_PO||''}">`,
+          c.Lot_Number,
+          c.Receive,
+          c.Entry_Date || '<span class="text-muted">no cargado</span>',
+          c.Out_Date   || '<span class="text-muted">no cargado</span>',
+          c.Code_Product_EC,
+          c.Description,
+          c.Qty,
+          c.Unit_Value,
+          c.Value,
+          c.Unit,
+          c.Length_in,
+          c.Broad_in,
+          c.Height_in,
+          c.Weight_lb,
+          `<select class="form-select form-select-sm status-select" data-id="${c.id}">
+             <option value="Cargado"${c.Status==='Cargado'?' selected':''}>Cargado</option>
+           </select>`
+        ]);
+      });
+      table.draw();
+      bootstrap.Modal.getInstance($('#filterModal')[0]).hide();
+      // vuelves a enganchar handlers sobre los nuevos inputs
+      $('.po-input').trigger('change');
+      $('.status-select').trigger('change');
+    } catch (err) {
+      console.error('Error al aplicar filtros:', err);
+    }
   }
-}
 
-// helper para formatear fechas sigue igual
-function formatDate(dateString) {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-GB');
-}
-
-
-// Inicialización al cargar la página
-document.addEventListener('DOMContentLoaded', () => {
-initStatusListeners();
-initEditButtons();
-});
-
-// Función para botones de edición (ejemplo básico)
-function initEditButtons() {
-document.querySelectorAll('.btn-edit-excel').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const packingId = this.dataset.packingId;
-        const excelPath = this.dataset.excelPath;
-        // Lógica de edición aquí
-        console.log('Editar:', packingId, excelPath);
-    });
-});
-}
+  // Limpia filtros y llama a la función anterior
+  async function limpiarFiltrosAvanzados() {
+    $('#OpFilter, #LotFilter').val('');
+    const fp = document.getElementById('rangoFechas')._flatpickr;
+    if (fp) fp.clear();
+    await aplicarFiltrosAvanzados();
+  }
 </script>
-
-
-
-
-
-
-
 
 
 
@@ -897,7 +871,10 @@ document.querySelectorAll('.btn-edit-excel').forEach(btn => {
     
     
     <script>preset_change("preset-1");</script>
-    
+  
+
+
+
   </body>
   <!-- [Body] end -->
 </html>
