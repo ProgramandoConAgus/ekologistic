@@ -18,18 +18,19 @@ try {
         d.numero_lote   AS Lot_Number,
         d.fecha_entrada AS Entry_Date,
         d.fecha_salida  AS Out_Date,
-        i.Number_PO,
+        i.Number_PO     AS Number_PO,
         d.numero_parte  AS Code_Product_EC,
-        d.descripcion,
+        d.descripcion   AS Description,
         d.cantidad      AS Qty,
-        d.valor_unitario,
+        d.valor_unitario AS Unit_Value,
         d.valor         AS Value,
         d.unidad        AS Unit,
         d.longitud_in   AS Length_in,
         d.ancho_in      AS Broad_in,
         d.altura_in     AS Height_in,
         d.peso_lb       AS Weight_lb,
-        d.estado        AS Status
+        d.estado        AS Status,
+        d.recibo_almacen AS Receive
       FROM container c
       JOIN dispatch  d ON c.Number_Commercial_Invoice=d.numero_factura
                       AND c.Number_Container=d.notas
