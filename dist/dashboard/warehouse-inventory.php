@@ -456,7 +456,7 @@ try {
                 <!-- Filtro por Destiny POD -->
                 <div class="mb-3">
                   <label for="OpFilter" class="form-label">Op Number</label>
-                  <input type="text" class="form-control" id="OpFilter" placeholder="Ingrese Lot Number">
+                  <input type="text" class="form-control" id="OpFilter" placeholder="Ingrese Op Number">
                 </div>
 
                 <!-- Filtro por ETA Date -->
