@@ -192,6 +192,7 @@ $result->data_seek(0);
                 <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
+                <li class="pc-item"><a class="pc-link" href="./pre-warehouse-usa.php">Carga Manual</a></li>
               </ul>
             </li>
 
