@@ -18,14 +18,14 @@ $end = isset($_GET['end']) ? $_GET['end'] : null;
 // Habilitar el reporte de errores en MySQLi para lanzar excepciones
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-try {
-    // Construir consulta base
-    $sql = "SELECT 
-        pl.IdPackingList AS 'ITEM #',
-        i.IdItem ,
-        c.Number_Container AS 'Number Container',
-        c.Num_OP AS 'Num OP',
-        c.Forwarder AS 'Forwarder',
+    try {
+        // Construir consulta base
+        $sql = "SELECT
+            pl.IdPackingList AS 'ITEM #',
+            i.IdItem ,
+            c.Number_Container AS 'Number Container',
+            c.Num_OP AS 'Num OP',
+            c.Forwarder AS 'Forwarder',
         c.Shipping_Line AS 'Shipping Line',
         c.Destinity_POD AS 'Destinity POD',
         c.Departure_Date_Port_Origin_EC AS 'Departure Port Origin EC',
@@ -46,15 +46,22 @@ try {
     WHERE 
         c.Status != 'completo'";
 
-    if ($start && $end) {
-        $sql .= " AND c.ETA_Date BETWEEN '$start 00:00:00' AND '$end 23:59:59'";
-    }
+      if ($start && $end) {
+          $sql .= " AND c.ETA_Date BETWEEN ? AND ?";
+      }
 
-    $sql .= " GROUP BY c.Number_Container 
-              ORDER BY pl.IdPackingList DESC";
+      $sql .= " GROUP BY c.Number_Container
+                ORDER BY pl.IdPackingList DESC";
 
-    // Ejecutar la consulta
-    $result = $conexion->query($sql);
+      // Preparar y ejecutar la consulta de forma segura
+      $stmt = $conexion->prepare($sql);
+      if ($start && $end) {
+          $startParam = "$start 00:00:00";
+          $endParam = "$end 23:59:59";
+          $stmt->bind_param('ss', $startParam, $endParam);
+      }
+      $stmt->execute();
+      $result = $stmt->get_result();
 
     // Si llegamos aquí, la consulta se ejecutó correctamente
     // Procede con la lógica para procesar los resultados
@@ -224,6 +231,7 @@ try {
                 <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
+                <li class="pc-item"><a class="pc-link" href="./pre-warehouse-usa.php">Carga Manual</a></li>
               </ul>
             </li>
 
