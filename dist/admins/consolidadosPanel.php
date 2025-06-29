@@ -46,7 +46,6 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
   <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" >
   <link rel="stylesheet" href="../assets/css/style-preset.css" >
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <style>
 .badge-select {
   border: none;
@@ -102,9 +101,9 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
               <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
-                <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
               </ul>
             </li>
@@ -392,8 +391,10 @@ if ($result && $result->num_rows > 0) {
   <td>
   <select 
     class="badge-select badge" 
-    data-id="<?=$row['ID']?>" 
+    data-id="<?=htmlspecialchars($row['ID'])?>" 
+    data-origen="<?=htmlspecialchars($row['origen'])?>" 
     style="appearance:none; width:70%; margin-left:-15%">
+
     <?php
       $queryselect  = "SELECT IdEstados, nombre FROM estadosliquidacion";
       $resultselect = $conexion->query($queryselect);
@@ -409,25 +410,24 @@ if ($result && $result->num_rows > 0) {
   </td>
 
   <td>
-    <?php if ($row['origen'] == 'exports') { ?>
-      <a href="../application/detalleLiquidacionExport.php?ExportID=<?=$row["ID"]?>" class="text-primary me-2"><i class="ti ti-eye"></i></a>
-      <?php 
-        $isDisabled = ($row['status'] == 3);
-        $href = $isDisabled ? '' : 'href="../application/editarLiquidacionExport.php?ExportID='.$row["ID"].'"';
-        $classes = 'text-warning me-2' . ($isDisabled ? ' disabled text-muted' : '');
-      ?>
-     
-    <?php } else { ?>
-      <a href="../application/detalleLiquidacionImport.php?ImportID=<?=$row["ID"]?>" class="text-primary me-2"><i class="ti ti-eye"></i></a>
-      <?php 
-        $isDisabled = ($row['status'] == 3);
-        $href = $isDisabled ? '' : 'href="../application/editarLiquidacionImport.php?ImportID='.$row["ID"].'"';
-        $classes = 'text-warning me-2' . ($isDisabled ? ' disabled text-muted' : '');
-      ?>
-     
-    <?php } ?>
-   
+    <?php 
+      $isDisabled = ($row['status'] == 3);
+      if ($row['origen'] === 'exports'): 
+        $detalleUrl = "../application/detalleLiquidacionExport.php?ExportID={$row['ID']}";
+      elseif ($row['origen'] === 'imports'):
+        $detalleUrl = "../application/detalleLiquidacionImport.php?ImportID={$row['ID']}";
+      elseif ($row['origen'] === 'despacho'):
+        $detalleUrl = "../application/detalleLiquidacionDespacho.php?DespachoID={$row['ID']}";
+      else:
+        $detalleUrl = "#";
+      endif;
+    ?>
+
+    <a href="<?= $detalleUrl ?>" class="text-primary me-2"><i class="ti ti-eye"></i></a>
+
+    
   </td>
+
 </tr>
 <?php
   }
@@ -488,7 +488,9 @@ if ($result && $result->num_rows > 0) {
 
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-      <button type="submit" class="btn btn-primary" onclick="generarExcelConsolidado(document.getElementById('num_op').value)">Generar Excel</button>
+      <button type="button" id="btnGenerarExcel" class="btn btn-primary">
+        Generar Excel
+      </button>
     </div>
   </form>
 </div>
@@ -554,7 +556,7 @@ document.getElementById('num_op').addEventListener('change', function() {
 
 </script>
 
-
+<!-- 
 <script>
   async function generarExcelConsolidado(num_op) {
 
@@ -619,13 +621,94 @@ document.getElementById('num_op').addEventListener('change', function() {
 }
 }
 
-</script>
+</script> -->
 
     </div>
   </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+document.getElementById('btnGenerarExcel').addEventListener('click', async () => {
+  const num_op = document.getElementById('num_op').value;
+  if (!num_op) return alert('Selecciona un número de operación.');
+  
+  try {
+    const resp = await fetch('../api/despacho/obtenerLiquidacionesConItems.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ num_op })
+    });
+    const { success, liquidaciones, message } = await resp.json();
+    if (!success) return alert(`Error: ${message}`);
 
+    const wb = XLSX.utils.book_new();
+    const tipos = ['exports','imports','despacho'];
 
+    // 1) Hojas individuales
+    tipos.forEach(tipo => {
+      const arr = liquidaciones.filter(l => l.origen === tipo);
+      if (!arr.length) return;
+      const liq     = arr[0];
+      const booking = liq.Booking_BK;
+      const invoice = liq.Number_Commercial_Invoice;
+      const fecha   = liq.fecha;
+      const id      = liq.id;
+
+      const datos = [];
+      datos.push([`${tipo.toUpperCase()} • ID ${id}`]);
+      datos.push([`Booking:`, booking, `Invoice:`, invoice, `Fecha:`, fecha]);
+      datos.push([]);
+      datos.push(['Descripción','Cantidad','Valor Unitario','Valor Total']);
+
+      let subtotal = 0;
+      liq.items.forEach(it => {
+        datos.push([it.NombreItems, it.Cantidad, it.ValorUnitario, it.ValorTotal]);
+        subtotal += Number(it.ValorTotal) || 0;
+      });
+      datos.push([]);
+      datos.push(['Subtotal','','', subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+
+      const ws = XLSX.utils.aoa_to_sheet(datos);
+      XLSX.utils.book_append_sheet(wb, ws, tipo.slice(0,31));
+    });
+
+    // 2) Hoja “Resumen” con los 3 bloques
+    const resumen = [];
+    resumen.push([`RESUMEN CONSOLIDADO • Operación ${num_op}`], []);
+
+    tipos.forEach(tipo => {
+      const arr = liquidaciones.filter(l => l.origen === tipo);
+      if (!arr.length) return;
+      const liq     = arr[0];
+      const booking = liq.Booking_BK;
+      const invoice = liq.Number_Commercial_Invoice;
+      const fecha   = liq.fecha;
+      const id      = liq.id;
+
+      resumen.push([tipo.toUpperCase()], []);
+      resumen.push([`ID ${id} — Booking: ${booking} — Invoice: ${invoice} — Fecha: ${fecha}`]);
+      resumen.push(['Descripción','Cantidad','Valor Unitario','Valor Total']);
+
+      let subtotal = 0;
+      liq.items.forEach(it => {
+        resumen.push([it.NombreItems, it.Cantidad, it.ValorUnitario, it.ValorTotal]);
+        subtotal += Number(it.ValorTotal) || 0;
+      });
+      resumen.push(['Subtotal','','', subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})], []);
+    });
+
+    const wsRes = XLSX.utils.aoa_to_sheet(resumen);
+    XLSX.utils.book_append_sheet(wb, wsRes, 'Resumen');
+
+    // Descargar
+    XLSX.writeFile(wb, `consolidado_liquidaciones_${num_op}.xlsx`);
+
+  } catch (err) {
+    console.error(err);
+    alert('Error al generar el archivo.');
+  }
+});
+</script>
 
 </div>
 
@@ -748,37 +831,49 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.badge-select').forEach(select => {
     select.addEventListener('change', () => {
       const newStatus = select.value;
-      const exportID  = select.dataset.exportId;
-      
-      if (!exportID) {
-        console.error('No encontré el export-id en el select.');
-        return;
+      const id        = select.dataset.id;
+      const origen    = select.dataset.origen;  // 'exports', 'imports' o 'despacho'
+
+      // Elegimos la URL y el nombre de parámetro según el origen
+      let url, param;
+      switch (origen) {
+        case 'exports':
+          url   = '../api/exports/actualizarEstado.php';
+          param = 'ExportID';
+          break;
+        case 'imports':
+          url   = '../api/imports/actualizarEstado.php';
+          param = 'ImportID';
+          break;
+        case 'despacho':
+          url   = '../api/despacho/actualizarEstado.php';
+          param = 'DespachoID';
+          break;
+        default:
+          console.error('Origen desconocido:', origen);
+          return;
       }
 
-      // Muestra un loading mientras actualiza
       Swal.fire({
         title: 'Actualizando estado…',
         allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
+        didOpen: () => Swal.showLoading()
       });
 
-      fetch('../api/exports/actualizarEstado.php', {
+      // Montamos el body con el parámetro correcto
+      const body = `${param}=${encodeURIComponent(id)}&status=${encodeURIComponent(newStatus)}`;
+
+      fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: `ExportID=${encodeURIComponent(exportID)}&status=${encodeURIComponent(newStatus)}`
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body
       })
       .then(res => res.text())
       .then(text => {
         Swal.close();
         if (text.trim() === 'OK') {
           Swal.fire('¡Listo!', 'Estado actualizado correctamente.', 'success')
-            .then(() => {
-              window.location.reload();
-            });
+            .then(() => window.location.reload());
         } else {
           Swal.fire('Error', text, 'error');
         }

@@ -3,7 +3,7 @@
 $servidor="localhost";
 $usuario="root";
 $contraseña="";
-$baseDatos="ecopacking";
+$baseDatos="ecopacking3";
 
 //Crear conexion
 

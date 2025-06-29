@@ -110,9 +110,9 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                       <polyline points="9 18 15 12 9 6"></polyline>
                     </svg></span></a>
                 <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
-                  <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
-                  <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
-                  <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
+                  <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
+                  <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
+                  <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
                   <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
                 </ul>
               </li>
