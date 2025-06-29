@@ -446,8 +446,9 @@ while ($inc = $res->fetch_assoc()) {
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
         <button class="btn btn-primary" onclick="window.location.href = '../admins/despachosPanel.php'">Volver</button>
         <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
-          Total General: $0,00
+        Total General: $0,00
         </h5>
+
         <button type="button" class="btn btn-success">Guardar</button>
       </div>
 
@@ -463,75 +464,73 @@ while ($inc = $res->fetch_assoc()) {
       </script>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const totalGeneralEl = document.getElementById('totalGeneral');
+  document.addEventListener('DOMContentLoaded', () => {
+    const totalEl     = document.getElementById('totalGeneral');
+    const contenedor  = document.getElementById('incotermContainer');
+    const selectorInc = document.getElementById('incotermSelect');
 
-  // Función para recalcular el total de un bloque (incluye impuesto)
-  function recalculaTotalBloque(block, id) {
-    let suma = 0;
-    block.querySelectorAll('tbody tr').forEach(tr => {
-      const vt = parseFloat(tr.querySelector('.valor-total').value.replace(/,/g, '.'))   || 0;
-      const vi = parseFloat(tr.querySelector('.valor-impuesto').value.replace(/,/g, '.')) || 0;
-      suma += vt + vi;
-    });
-    const span = document.querySelector(`.total-incoterm[data-incoterm-total="${id}"]`);
-    span.textContent = suma.toFixed(2);
-    return suma;
-  }
+    // Formatea 1234.5 → "1.234,50"
+    function formatCurrency(value) {
+      let parts = value.toFixed(2).split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      return parts.join(',');
+    }
+    // "1.234,50" → 1234.5
+    function parseCurrency(str) {
+      return parseFloat(str.replace(/\./g,'').replace(',','.')) || 0;
+    }
 
-  // Función para recalcular todo el formulario
-  function recalculaTodo() {
-    let general = 0;
-    document.querySelectorAll('.incoterm-item').forEach(block => {
-      const id = block.dataset.incoterm;
-      // solo sumamos bloques visibles (o todos si prefieres)
-      if (block.style.display === 'block') {
-        general += recalculaTotalBloque(block, id);
+    function recalculateGeneral() {
+      // Sólo filas de bloques visibles
+      const filas = contenedor.querySelectorAll('.incoterm-item')
+        .forEach(bloque => {
+          bloque.style.display; // forzar reflow si hiciera falta  
+        });
+      let total = 0;
+      document.querySelectorAll('.incoterm-item[style*="display: block"] tbody tr')
+        .forEach(tr => {
+          const vtInput = tr.querySelector('.valor-total');
+          const viInput = tr.querySelector('.valor-impuesto');
+          const vt = vtInput ? parseCurrency(vtInput.value) : 0;
+          const vi = viInput ? parseCurrency(viInput.value) : 0;
+          total += vt + vi;
+        });
+      totalEl.textContent = 'Total General: $' + formatCurrency(total);
+    }
+
+    // Disparamos recalculate cada vez que el usuario cambie un qty, V.U. o impuesto
+    contenedor.addEventListener('input', e => {
+      if (e.target.matches('.cantidad, .valor-unitario, .impuesto')) {
+        // primero actualizamos el valor-total y valor-impuesto de la misma fila
+        const tr = e.target.closest('tr');
+        const qty = parseFloat(tr.querySelector('.cantidad').value) || 0;
+        const vu  = parseCurrency(tr.querySelector('.valor-unitario').value);
+        const vt  = qty * vu;
+        tr.querySelector('.valor-total').value = formatCurrency(vt);
+
+        const impEl = tr.querySelector('.impuesto');
+        if (impEl) {
+          const imp = parseFloat(impEl.value) || 0;
+          const vi  = vt * (imp / 100);
+          tr.querySelector('.valor-impuesto').value = formatCurrency(vi);
+        }
+
+        recalculateGeneral();
       }
     });
-    totalGeneralEl.textContent = `$${general.toFixed(2)}`;
-  }
 
-  // Atachar listeners a cada fila/input
-  document.querySelectorAll('.incoterm-item').forEach(block => {
-    const id = block.dataset.incoterm;
-    block.querySelectorAll('tbody tr').forEach(tr => {
-      ['.cantidad', '.valor-unitario', '.impuesto'].forEach(sel => {
-        const input = tr.querySelector(sel);
-        if (!input) return;
-        input.addEventListener('input', () => {
-          // recalcular fila
-          const qtyRaw = tr.querySelector('.cantidad').value.replace(/,/g, '.');
-          const vuRaw  = tr.querySelector('.valor-unitario').value.replace(/,/g, '.');
-          const impRaw = tr.querySelector('.impuesto').value.replace(/,/g, '.');
-
-          const qty = parseFloat(qtyRaw) || 0;
-          const vu  = parseFloat(vuRaw)  || 0;
-          const imp = parseFloat(impRaw) || 0;
-
-          const vt = qty * vu;
-          const vi = vt * (imp / 100);
-
-          tr.querySelector('.valor-total').value    = vt.toFixed(2);
-          tr.querySelector('.valor-impuesto').value = vi.toFixed(2);
-
-          // recalcular totales
-          recalculaTotalBloque(block, id);
-          recalculaTodo();
-        });
+    // También recalculamos cuando cambias de Incoterm para esconder/mostrar bloques
+    selectorInc.addEventListener('change', () => {
+      // tu código de show/hide ya estaba bien:
+      document.querySelectorAll('.incoterm-item').forEach(b => {
+        b.style.display = (b.dataset.incoterm === selectorInc.value) ? 'block' : 'none';
       });
+      recalculateGeneral();
     });
-  });
 
-  // Mostrar bloque e inicializar totales al cambiar Incoterm
-  document.getElementById('incotermSelect').addEventListener('change', ev => {
-    document.querySelectorAll('.incoterm-item').forEach(b => {
-      b.style.display = (b.dataset.incoterm === ev.target.value) ? 'block' : 'none';
-    });
-    // al mostrar uno nuevo, recalculamos todo
-    recalculaTodo();
+    // cálculo inicial
+    recalculateGeneral();
   });
-});
 </script>
 
 

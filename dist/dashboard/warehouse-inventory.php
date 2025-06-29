@@ -604,7 +604,6 @@ document.addEventListener('DOMContentLoaded', function () {
     <script>
   var dt;
   const dtConfig = {
-    // 1) Inicializar DataTable con solo tabla + paginador
     paging:       true,
     pageLength:   10,
     lengthChange: false,
@@ -617,24 +616,50 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function initDataTable() {
     dt = $('#pc-dt-simple').DataTable(dtConfig);
-    $('.pagination-wrapper').appendTo( $('#pc-dt-simple').closest('.table-responsive') );
+    $('.pagination-wrapper').appendTo(
+      $('#pc-dt-simple').closest('.table-responsive')
+    );
   }
 
   $(document).ready(function() {
     initDataTable();
 
-    // 2) Exportar Excel con SheetJS
-    document.getElementById('exportBtn').addEventListener('click', () => {
-      // convierte la tabla a libro de Excel
-      const wb = XLSX.utils.table_to_book(
-        document.getElementById('pc-dt-simple'),
-        { sheet: "Hoja1" }
-      );
-      // descarga el archivo
-      XLSX.writeFile(wb, "warehouse_inventory.xlsx");
+    // Exportar TODO en UNA sola hoja, con el valor actual del select de Status
+    $('#exportBtn').on('click', function() {
+      // 1) Cabeceras
+      const headers = $('#pc-dt-simple thead th')
+        .map(function(){ return $(this).text().trim(); })
+        .get();
+      // Reemplazamos la última cabecera si es un TH vacío o “Status‎…”
+      headers[headers.length - 1] = 'Status';
+
+      // 2) Recopilar datos de todas las filas (todas las páginas)
+      const data = [];
+      dt.rows().every(function() {
+        const $tr = $(this.node());
+        const obj = {};
+        // Tomar cada <td> menos el último (status-dropdown)
+        $tr.find('td').each(function(i) {
+          if (i < headers.length - 1) {
+            obj[ headers[i] ] = $(this).text().trim();
+          }
+        });
+        // Leer valor actual del select de estado
+        obj['Status'] = $tr.find('.status-select').val() || '';
+        data.push(obj);
+      });
+
+      // 3) Generar Workbook y una sola hoja
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(data, { header: headers });
+      XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
+
+      // 4) Descargar archivo
+      XLSX.writeFile(wb, 'warehouse_inventory.xlsx');
     });
   });
 </script>
+
 
 <!--
 <script>

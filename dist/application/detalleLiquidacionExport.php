@@ -580,62 +580,78 @@ function descargarExcel() {
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script>
-function descargarExcel() {
-  const wb      = XLSX.utils.book_new();
-  const ws_data = [];
-
-  // Booking & Invoice
-  const bookingEl = document.getElementById('booking');
-  const invoiceEl = document.getElementById('commercial_Invoice');
-  ws_data.push(['N° Booking', bookingEl.textContent.trim()]);
-  ws_data.push(['Commercial Invoice', invoiceEl.textContent.trim()]);
-  ws_data.push([]);
-
-  // Cada bloque de Incoterm
-  document.querySelectorAll('.incoterm-item').forEach(block => {
-    const incName = block.querySelector('h5').textContent.trim();
-    const filas   = Array.from(block.querySelectorAll('tbody tr'));
-    const isCIF   = block.querySelector('h6') !== null; // si tiene h6 => CIF
-
-    ws_data.push([`Incoterm: ${incName}`]);
-    // Header
-    if (isCIF) {
-      ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.','% Impuesto','Valor Impuesto','Valor c/ Impuestos','Notas']);
-    } else {
-      ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.']);
-    }
-
-    // Filas
-    filas.forEach(tr => {
-      const cols = Array.from(tr.children).map(td => td.textContent.trim());
-      ws_data.push(isCIF ? cols : cols.slice(0,4));
-    });
-
-    // Totales
-    if (isCIF) {
-      const sin = block.querySelector('h6').textContent.replace(/[^0-9,]/g,'');
-      const ci  = block.querySelector('h5.text-success').textContent.replace(/[^0-9,]/g,'');
-      ws_data.push(['Total sin impuestos','', '', '', '', '', sin]);
-      ws_data.push(['Total con impuestos','', '', '', '', '', ci]);
-    } else {
-      const tot = block.querySelector('h5.text-success').textContent.replace(/[^0-9,]/g,'');
-      ws_data.push(['Total', '', '', tot]);
-    }
-
-    ws_data.push([]);
+  // 1) Asegurarnos de que el DOM esté listo
+  document.addEventListener('DOMContentLoaded', () => {
+    // Tu botón ya tiene inline onclick, así que esto es opcional
+    // si preferís delegar con addEventListener:
+    // document.getElementById('btnExport').addEventListener('click', descargarExcel);
   });
 
-  if (ws_data.length <= 3) {
-    alert('No hay datos para exportar.');
-    return;
-  }
+  function descargarExcel() {
+    const bookingEl = document.getElementById('booking');
+    const invoiceEl = document.getElementById('commercial_Invoice');
 
-  // Crear hoja y descargar
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
-  XLSX.utils.book_append_sheet(wb, ws, 'DetalleExport');
-  XLSX.writeFile(wb, `ExportID_<?= $idExport ?>.xlsx`);
-}
+    // 2) Validar que existan
+    if (!bookingEl || !invoiceEl) {
+      alert('Error: no se encontró Booking o Commercial Invoice en la página.');
+      return;
+    }
+
+    const wb      = XLSX.utils.book_new();
+    const ws_data = [];
+
+    // 3) Ahora sí, podemos leer seguros
+    ws_data.push(['N° Booking', bookingEl.textContent.trim()]);
+    ws_data.push(['Commercial Invoice', invoiceEl.textContent.trim()]);
+    ws_data.push([]);
+
+    document.querySelectorAll('.incoterm-item').forEach(block => {
+      const h5      = block.querySelector('h5');
+      const incName = h5?.textContent.trim();
+      const filas   = Array.from(block.querySelectorAll('tbody tr'));
+
+      if (!incName || filas.length === 0) return;
+
+      // Detectar si es CIF (cambialo por la lógica que ya usás)
+      const isCIF = block.dataset.incoterm.toLowerCase().includes('cif');
+
+      ws_data.push([`Incoterm: ${incName}`]);
+      ws_data.push(
+        isCIF
+          ? ['Descripción','Cantidad','Valor U.','Valor T.','% Impuesto','Valor Impuesto','Notas']
+          : ['Descripción','Cantidad','Valor U.','Valor T.']
+      );
+
+      filas.forEach(tr => {
+        const cols = Array.from(tr.children).map(td => td.textContent.trim());
+        ws_data.push(isCIF ? cols : cols.slice(0,4));
+      });
+
+      // Totales
+      if (isCIF) {
+        const totSin = block.querySelector('h6')?.textContent.replace(/[^0-9,\.]/g,'') || '';
+        const totCI  = block.querySelector('h5.text-success')?.textContent.replace(/[^0-9,\.]/g,'') || '';
+        ws_data.push(['Total sin impuestos','','','', '', '', totSin]);
+        ws_data.push(['Total con impuestos','','','', '', '', totCI]);
+      } else {
+        const tot = block.querySelector('h5.text-success')?.textContent.replace(/[^0-9,\.]/g,'') || '';
+        ws_data.push(['Total','','', tot]);
+      }
+
+      ws_data.push([]);
+    });
+
+    if (ws_data.length <= 3) {
+      alert('No hay datos para exportar.');
+      return;
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    XLSX.utils.book_append_sheet(wb, ws, 'DetalleExport');
+    XLSX.writeFile(wb, `ExportID_<?= $idExport ?>.xlsx`);
+  }
 </script>
+
 
 
 
