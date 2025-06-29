@@ -359,7 +359,8 @@ while ($row = $result->fetch_assoc()) {
   ?>
     <div class="incoterm-item mb-4" data-incoterm="<?= htmlspecialchars($nombreIncoterm) ?>">
       <h5 class="mt-3"><?= htmlspecialchars($nombreIncoterm) ?></h5>
-      <table class="table table-hover table-borderless mb-2">
+      <div class="fixed-table-container">
+      <table class="table table-hover table-borderless mb-2 table-sm table-shrink">
         <thead>
           <tr>
             <th>Descripción</th>
@@ -389,7 +390,7 @@ while ($row = $result->fetch_assoc()) {
           <?php endforeach; ?>
         </tbody>
       </table>
-    
+      </div>
     </div>
   <?php endforeach; ?>
 
