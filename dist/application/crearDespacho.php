@@ -429,8 +429,11 @@ while ($inc = $res->fetch_assoc()) {
   <tfoot>
     <tr>
       <td colspan="<?= ($inc['IdTipoIncoterm'] == 3) ? 7 : 4 ?>" class="text-center">
-        <button id="addNewDeliveryBtn" type="button" class="btn btn-primary">
+        <button id="addNewDeliveryBtn" type="button" class="btn btn-primary me-2">
           Agregar New Delivery
+        </button>
+        <button id="addStorageBtn" type="button" class="btn btn-primary">
+          Agregar Storage
         </button>
       </td>
     </tr>
@@ -562,6 +565,36 @@ document.getElementById('addNewDeliveryBtn').addEventListener('click', () => {
   `;
 
   // Insertar antes de la fila del botón para que quede arriba de ese botón
+  const addButtonRow = tbody.querySelector('tr:last-child');
+  tbody.insertBefore(tr, addButtonRow);
+});
+
+// Botón para agregar Storage
+document.getElementById('addStorageBtn').addEventListener('click', () => {
+  const tbody = document.querySelector('table tbody');
+  const tr = document.createElement('tr');
+  tr.setAttribute('data-item-id', '');
+
+  tr.innerHTML = `
+    <td>Storage</td>
+    <td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>
+    <td>
+      <div class="input-group input-group-sm">
+        <span class="input-group-text">$</span>
+        <input type="text" class="form-control valor-unitario" value="0,00">
+      </div>
+    </td>
+    <td>
+      <div class="input-group input-group-sm">
+        <span class="input-group-text">$</span>
+        <input type="text" class="form-control valor-total" value="0,00" readonly>
+      </div>
+    </td>
+    <td>
+      <button type="button" class="btn btn-danger btn-sm btn-delete-row">Eliminar</button>
+    </td>
+  `;
+
   const addButtonRow = tbody.querySelector('tr:last-child');
   tbody.insertBefore(tr, addButtonRow);
 });
