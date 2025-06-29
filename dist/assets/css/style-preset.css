@@ -15,8 +15,6 @@ h2 {
   font-weight: 700;
 }
 
-
-
 :root {
   --bs-body-bg: #F4F7FA;
   --bs-body-bg-rgb: 244, 247, 250;
@@ -287,38 +285,6 @@ h2 {
   color: var(--bs-table-color);
   border-color: var(--bs-table-border-color);
 }
-/*Este codigo modifica a las tablas de liquidaciones para adaptar al tamaño de la pantalla*/
-/* El contenedor que genera el scroll horizontal */
-.fixed-table-container {
-  overflow-x: auto;
-}
-
-/* Para que la tabla ocupe todo su ancho real (y no 100% del padre) */
-.fixed-table {
-  display: block;       /* permitir overflow en la propia tabla */
-  width: max-content;   /* ancho “mínimo” que quepa todo su contenido */
-}
-
-/* Reducir padding y fuente si quieres tablas más compactas */
-.table-sm th,
-.table-sm td {
-  padding: .3rem;
-  font-size: .85rem;
-}
-.table-sm td div{
-  flex-wrap: nowrap !important;
-}
-.table-sm td input{
-    min-width: 3rem !important;
-}
-
-/* Evitar que el texto haga wrap y mostrar “…” si desborda */
-.fixed-table th,
-.fixed-table td {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 [data-pc-preset=preset-2] {
   --pc-sidebar-active-color: #6610f2;
@@ -430,7 +396,6 @@ h2 {
   color: #6610f2;
   border-color: #f0e7fe;
 }
-
 [data-pc-preset=preset-2] .btn-light-primary .material-icons-two-tone {
   background-color: #6610f2;
 }

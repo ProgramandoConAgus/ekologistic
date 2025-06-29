@@ -37,10 +37,8 @@ $result = $conexion->query($sql);
 // Contadores totales
 $total_inventory_boxes = 0; // pongo boxes por si despues los quieren ver
 $total_transit_boxes = 0; // pongo boxes por si despues los quieren ver
-$total_cargado_boxes = 0;
 $total_inventory_price = 0;
 $total_transit_price = 0;
-$total_cargado_price = 0;
 
 // Guardo en array
 $items = [];
@@ -52,18 +50,10 @@ while ($row = $result->fetch_assoc()) {
         $status = "Inventory";
         $total_inventory_boxes += $row['Qty_Box'];
         $total_inventory_price += $row['TOTAL PRICE EC'];
-    } 
-    
-    if ($row['STATUS'] == 'Transit'){
+    } else {
         $status = "Transit";
         $total_transit_boxes += $row['Qty_Box'];
         $total_transit_price += $row['TOTAL PRICE EC'];
-    }
-
-    if ($row['STATUS'] == 'Cargado'){
-        $status = "Cargado";
-        $total_cargado_boxes += $row['Qty_Box'];
-        $total_cargado_price += $row['TOTAL PRICE EC'];
     }
 }
 
@@ -451,27 +441,6 @@ $result->data_seek(0);
                 </div>
               </div>
             </div>
-
-            <!-- Tercer tarjeta -->
-            <div class="card prod-p-card bg-warning mb-0">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="prod-icon">
-                    <i class="ti ti-checkbox text-white f-36"></i>
-                  </div>
-                  <div class="ms-auto text-end text-white">
-                    
-                      <h3 class="mb-0 text-white">
-                          
-                      $<?= number_format($total_cargado_price, 2) ?>
-                    </h3>
-                    
-                    <span>Monto Cargado</span>
-                   
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -577,18 +546,12 @@ $result->data_seek(0);
                           {
                             $row['STATUS']="Inventory";
                           }
-
-                          if($row['STATUS']=='Transit'){
+                          else{
                             $row['STATUS']="Transit";
-                          }
-
-                          if($row['STATUS'] == 'Cargado'){
-                            $row['STATUS']="Cargado";
                           }
                           $badge_color = match($row['STATUS']) {
                               'Transit' => 'bg-primary',
                               'Inventory' => 'bg-warning',
-                              'Cargado' => 'bg-info',
                               default => 'bg-secondary'
                           };
                       ?>

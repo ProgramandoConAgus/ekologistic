@@ -344,9 +344,8 @@ while ($row = $result->fetch_assoc()) {
            class="accordion-collapse collapse <?= $idx ? '' : 'show' ?>"
            aria-labelledby="heading<?= $idx ?>"
            data-bs-parent="#incotermAccordion">
-        <div style="" class="accordion-body">
-        <div class="fixed-table-container">
-        <table class="table table-hover table-borderless mb-0 table-sm table-shrink">
+        <div class="accordion-body">
+        <table class="table table-hover table-borderless mb-0">
   <thead>
     <tr>
       <th>Descripción</th>
@@ -412,7 +411,7 @@ while ($row = $result->fetch_assoc()) {
     <?php endforeach; ?>
   </tbody>
 </table>
-</div>
+
 <div class="mt-3 text-end">
   <?php if ($currentTipo === 3): ?>
     <h6 class="mb-1">Subtotal sin impuestos: $
