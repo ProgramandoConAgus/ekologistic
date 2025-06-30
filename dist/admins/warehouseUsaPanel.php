@@ -10,8 +10,8 @@ $usuario = new Usuario($conexion);
 
 $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
-// Carga manual de Warehouse USA
-$queryManual = "SELECT cajas, palets, lote_produccion, po, descripcion, invoice, fecha_ingreso, warehouse_receive FROM warehouse_usa_manual ORDER BY fecha_ingreso DESC";
+// Carga manual de Warehouse USA guardada en dispatch
+$queryManual = "SELECT cantidad AS cajas, palets, numero_lote AS lote_produccion, numero_orden_compra AS po, descripcion, numero_factura AS invoice, fecha_entrada AS fecha_ingreso, recibo_almacen AS warehouse_receive FROM dispatch WHERE notas = '' OR notas IS NULL ORDER BY fecha_entrada DESC";
 $manualRes = $conexion->query($queryManual);
 
 ?>

@@ -24,7 +24,7 @@ try {
     }
 
     $stmt = $conexion->prepare(
-        "INSERT INTO warehouse_usa_manual (cajas, palets, lote_produccion, po, descripcion, invoice, fecha_ingreso, warehouse_receive) VALUES (?,?,?,?,?,?,?,?)"
+        "INSERT INTO dispatch (cantidad, palets, numero_lote, numero_orden_compra, descripcion, numero_factura, fecha_entrada, recibo_almacen, estado) VALUES (?,?,?,?,?,?,?,?, 'Cargado')"
     );
     if (!$stmt) {
         throw new Exception('Error en prepare: ' . $conexion->error);
