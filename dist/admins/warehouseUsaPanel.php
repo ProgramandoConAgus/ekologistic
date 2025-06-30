@@ -17,7 +17,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 <!-- [Head] start -->
 
 <head>
-  <title>Liquidaciones Despacho | Eko Logistic</title>
+  <title>Warehouse USA | Eko Logistic</title>
   <!-- [Meta] -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -109,13 +109,13 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                 <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
                       <polyline points="9 18 15 12 9 6"></polyline>
                     </svg></span></a>
-                    <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
-                <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA</a></li>
-                <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
-              </ul>
+                <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
+                  <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
+                   <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA</a></li>
+                  <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
+                  <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
+                  <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
+                </ul>
               </li>
 
               <!--
@@ -285,12 +285,12 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
               <ul class="breadcrumb">
                 <li class="breadcrumb-item"><a href="../dashboard/index.html">Inicio</a></li>
                 <li class="breadcrumb-item"><a href="javascript: void(0)">Liquidaciones</a></li>
-                <li class="breadcrumb-item" aria-current="page">Despachos</li>
+                <li class="breadcrumb-item" aria-current="page">Warehouse USA</li>
               </ul>
             </div>
             <div class="col-md-12">
               <div class="page-header-title">
-                <h2 class="mb-0">Panel Despachos</h2>
+                <h2 class="mb-0">Panel Warehouse USA</h2>
               </div>
             </div>
           </div>
@@ -305,23 +305,37 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
           <div class="card table-card">
             <div class="card-body pt-3">
               <div class="d-flex justify-content-end mb-3">
-                <a class="text-white" href="../application/crearDespacho.php"><button type="button" class="btn btn-success text-white me-3">Cargar nuevo Despacho</button></a>
+                <a class="text-white" href="../application/crearWarehouseUsa.php"><button type="button" class="btn btn-success text-white me-3">Cargar nuevo Warehouse USA</button></a>
               </div>
               <div class="table-responsive">
                 <table class="table table-hover">
                   <thead>
                     <tr>
-                      <th>Booking</th>
-                      <th>Number Commercial Invoice</th>
-                      <th>Creation Date</th>
-                      <th>Status</th>
-                      <th>Action</th>
+                     <th>Fecha Entrada</th>
+      <th>Fecha de salida</th>
+      <th>Recibo de Almacén</th>
+      <th>Estado</th>
+      <th>Número de Factura</th>
+      <th>Número de Lote</th>
+      <th>Notas</th>
+      <th>Número de Orden de Compra</th>
+      <th>Número de Parte</th>
+      <th>Descripción</th>
+      <th>Modelo</th>
+      <th>Cantidad</th>
+      <th>Valor Unitario</th>
+      <th>Valor</th>
+      <th>Unidad</th>
+      <th>Longitud (in)</th>
+      <th>Ancho (in)</th>
+      <th>Altura (in)</th>
+      <th>Peso (lb)</th>
                     </tr>
                   </thead>
                   <tbody>
                     <?php
-                    $query = "SELECT DespachoID, Booking_BK, Number_Commercial_Invoice, status, creation_date 
-          FROM despacho 
+                    $query = "SELECT ImportsID, Booking_BK, Number_Commercial_Invoice, status, creation_date 
+          FROM imports 
           WHERE status != 2 
           ORDER BY creation_date";
                     $result = $conexion->query($query);
@@ -332,7 +346,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                     }
 
                     // Verificar si hay registros
-                    if ($result->num_rows > 0) {
+                    if (1==2) { // $result->num_rows > 0
                       while ($row = $result->fetch_assoc()) {
                         $fechaOriginal = $row['creation_date'];
                         $fecha = date('d/m/Y', strtotime($fechaOriginal));
@@ -345,7 +359,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                           <td>
                             <select
                               class="badge-select badge"
-                              data-export-id="<?= $row['DespachoID'] ?>"
+                              data-export-id="<?= $row['ImportsID'] ?>"
                               style="appearance:none; width:70%; margin-left:-15%">
                               <?php
                               $queryselect  = "SELECT IdEstados, nombre FROM estadosliquidacion";
@@ -361,12 +375,12 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                             </select>
                           </td>
                           <td>
-                            <a href="../application/detalleLiquidacionDespacho.php?DespachoID=<?= $row["DespachoID"] ?>" class="text-primary me-2">
+                            <a href="../application/detalleLiquidacionImport.php?ImportID=<?= $row["ImportsID"] ?>" class="text-primary me-2">
                               <i class="ti ti-eye"></i>
                             </a>
                             <?php
                             $isDisabled = ($row['status'] == 3);
-                            $href = $isDisabled ? '' : 'href="../application/editarLiquidacionDespacho.php?DespachoID=' . $row["DespachoID"] . '"';
+                            $href = $isDisabled ? '' : 'href="../application/editarLiquidacionImport.php?ImportID=' . $row["ImportsID"] . '"';
                             $classes = 'text-warning me-2' . ($isDisabled ? ' disabled text-muted' : '');
                             ?>
                             <a <?= $href ?> class="<?= $classes ?>" <?= $isDisabled ? 'aria-disabled="true" tabindex="-1"' : '' ?>>
@@ -379,7 +393,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                     } else {
                       echo "<tr><td colspan='5' class='text-center'>No hay registros disponibles.</td></tr>";
                     }
-                    ?>
+                    ?> */
                   </tbody>
 
                 </table>
@@ -523,12 +537,12 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
             }
           });
 
-          fetch('../api/despacho/actualizarEstado.php', {
+          fetch('../api/imports/actualizarEstado.php', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
               },
-               body: `DespachoID=${encodeURIComponent(importID)}&status=${encodeURIComponent(newStatus)}`
+               body: `ImportID=${encodeURIComponent(importID)}&status=${encodeURIComponent(newStatus)}`
             })
             .then(res => res.text())
             .then(text => {

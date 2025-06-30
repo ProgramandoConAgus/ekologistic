@@ -16,7 +16,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
   <!-- [Head] start -->
 
   <head>
-    <title>Liquidaciones | Crear Despacho</title>
+    <title>Liquidaciones | Crear Warehouse USA</title>
     <!-- [Meta] -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -260,14 +260,14 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
       <div class="col-md-12">
         <ul class="breadcrumb">
           <li class="breadcrumb-item"><a href="../dashboard/index.html">Inicio</a></li>
-          <li class="breadcrumb-item"><a href="javascript: void(0)">Liquidaciones</a></li>
-          <li class="breadcrumb-item"><a href="javascript: void(0)">Despacho</a></li>
+          <li class="breadcrumb-item"><a href="javascript: void(0)">Inventarios</a></li>
+          <li class="breadcrumb-item"><a href="javascript: void(0)">Warehouse USA</a></li>
           <li class="breadcrumb-item" aria-current="page">Crear</li>
         </ul>
       </div>
       <div class="col-md-12">
         <div class="page-header-title">
-          <h2 class="mb-0">Crear Despacho Liquidación</h2>
+          <h2 class="mb-0">Crear Warehouse USA</h2>
         </div>
       </div>
     </div>
@@ -279,340 +279,94 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 <div class="container mt-5">
   <div class="card shadow-sm">
-    <div class="card-body">
-
-      <!-- Dropdowns -->
-      <div class="row mb-4">
-        <div class="row">
-          <!-- Select Booking -->
-          <div class="col-md-6 mb-3">
-            <label for="bookingSelect" class="form-label">Booking</label>
-            <select id="bookingSelect" class="form-select">
-              <option selected>Seleccionar...</option>
-            <?php
-$query = "
-  SELECT DISTINCT c.Booking_BK 
-  FROM container c
-  INNER JOIN dispatch d 
-    ON c.Number_Commercial_Invoice = d.numero_factura 
-    AND c.Number_Container = d.notas 
-  WHERE d.estado = 'Cargado'
-  AND EXISTS (
-    SELECT 1 FROM imports i
-    WHERE i.Booking_BK = c.Booking_BK 
-    AND i.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-  )
-  AND EXISTS (
-    SELECT 1 FROM exports e
-    WHERE e.Booking_BK = c.Booking_BK 
-    AND e.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-  )
-  ORDER BY c.num_op, d.numero_parte
-";
-
-$result = $conexion->query($query);
-while($row = $result->fetch_assoc()) { 
-?>
-  <option value="<?= htmlspecialchars($row['Booking_BK']) ?>">
-    <?= htmlspecialchars($row['Booking_BK']) ?>
-  </option>
-<?php } ?>
-
-            </select>
-          </div>
-
-          <!-- Select Invoice -->
-          <div class="col-md-6 mb-3">
-            <label for="invoiceSelect" class="form-label">Commercial Invoice</label>
-            <select id="invoiceSelect" class="form-select" disabled>
-              <option selected>Seleccionar...</option>
-              <!-- Se autocompleta con Javascript (buscar comentario de "Completador de select")  -->
-            </select>
-          </div>
-        </div>
-
+    <form method="POST" action="guardar_warehouse.php">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Fecha Entrada</label>
+        <input type="date" name="fecha_entrada" class="form-control">
       </div>
-
-      <?php
-$incoterms = [];
-$res = $conexion->query("
-  SELECT IdTipoIncoterm, NombreTipoIncoterm
-  FROM tipoincoterm
-  WHERE IdTipoIncoterm = 7
-");
-while ($inc = $res->fetch_assoc()) {
-  $incoterms[] = $inc;
-}
-?>
-
-
-      <!-- 2) Select dinámico -->
-      <div class="mb-4">
-        <label for="incotermSelect" class="form-label">Elige Incoterm:</label>
-        <select id="incotermSelect" class="form-select">
-          <option value="">-- Selecciona --</option>
-          <?php foreach ($incoterms as $inc): ?>
-            <option value="<?= $inc['IdTipoIncoterm'] ?>">
-              <?= htmlspecialchars($inc['NombreTipoIncoterm']) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
+      <div class="col-md-4">
+        <label class="form-label">Fecha de Salida</label>
+        <input type="date" name="fecha_salida" class="form-control">
       </div>
-
-      <!-- 3) Contenedores dinámicos -->
-      <div id="incotermContainer">
-        <?php foreach ($incoterms as $inc): ?>
-          <div class="incoterm-item" data-incoterm="<?= $inc['IdTipoIncoterm'] ?>" style="display: none;">
-            <h5 class="mt-3"><?= htmlspecialchars($inc['NombreTipoIncoterm']) ?></h5>
-            <table class="table table-hover table-borderless mb-0">
-              <thead>
-                <tr>
-                  <th>Descripción</th>
-                  <th>Cantidad</th>
-                  <th>Valor U.</th>
-                  <th>Valor T.</th>
-                  <?php
-                   if($inc['IdTipoIncoterm']==3){
-                    ?>
-                  <th>% Impuesto</th>
-                  <th>Valor Impuesto</th>
-                  <th>Notas</th>
-                  <?php
-                   }
-                   ?>
-                </tr>
-              </thead>
-              <tbody>
-    <?php
-    $items = $conexion->query(
-      "SELECT IdItemsLiquidacionDespacho, NombreItems 
-       FROM itemsliquidaciondespacho
-       WHERE IdTipoIncoterm = {$inc['IdTipoIncoterm']}"
-    );
-    while ($row = $items->fetch_assoc()):
-    ?>
-      <tr data-item-id="<?= $row['IdItemsLiquidacionDespacho'] ?>">
-        <td><?= htmlspecialchars($row['NombreItems']) ?></td>
-        <td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>
-        <td>
-          <div class="input-group input-group-sm">
-            <span class="input-group-text">$</span>
-            <input type="text" class="form-control valor-unitario" value="0,00">
-          </div>
-        </td>
-        <td>
-          <div class="input-group input-group-sm">
-            <span class="input-group-text">$</span>
-            <input type="text" class="form-control valor-total" value="0,00" readonly>
-          </div>
-        </td>
-
-        <?php if($inc['IdTipoIncoterm'] == 3): ?>
-          <td>
-            <div class="input-group input-group-sm">
-              <input type="number" class="form-control impuesto" value="0" min="0" max="100">
-              <span class="input-group-text">%</span>
-            </div>
-          </td>
-          <td>
-            <div class="input-group input-group-sm">
-              <span class="input-group-text">$</span>
-              <input type="text" class="form-control valor-impuesto" value="0,00" readonly>
-            </div>
-          </td>
-          <td>
-            <input type="text" class="form-control form-control-sm notas" placeholder="Notas">
-          </td>
-        <?php endif; ?>
-      </tr>
-    <?php endwhile; ?>
-  </tbody>
-  <tfoot>
-    <tr>
-      <td colspan="<?= ($inc['IdTipoIncoterm'] == 3) ? 7 : 4 ?>" class="text-center">
-        <button id="addNewDeliveryBtn" type="button" class="btn btn-primary me-2">
-          Agregar New Delivery
-        </button>
-        <button id="addStorageBtn" type="button" class="btn btn-primary">
-          Agregar Storage
-        </button>
-      </td>
-    </tr>
-  </tfoot>
-            </table>
-
-           
-          </div>
-        <?php endforeach; ?>
+      <div class="col-md-4">
+        <label class="form-label">Recibo de Almacén</label>
+        <input type="text" name="recibo_almacen" class="form-control">
       </div>
-
-      <!-- Botones y Total General -->
-      <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
-        <button class="btn btn-primary" onclick="window.location.href = '../admins/despachosPanel.php'">Volver</button>
-        <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
-        Total General: $0,00
-        </h5>
-
-        <button type="button" class="btn btn-success">Guardar</button>
+      <div class="col-md-4">
+        <label class="form-label">Estado</label>
+        <input type="text" name="estado" class="form-control">
       </div>
-
-      <!-- Script para mostrar/ocultar -->
-      <script>
-        const sel = document.getElementById('incotermSelect');
-        const bloques = document.querySelectorAll('.incoterm-item');
-        sel.addEventListener('change', () => {
-          bloques.forEach(b => {
-            b.style.display = (b.dataset.incoterm === sel.value) ? 'block' : 'none';
-          });
-        });
-      </script>
-
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const totalEl     = document.getElementById('totalGeneral');
-    const contenedor  = document.getElementById('incotermContainer');
-    const selectorInc = document.getElementById('incotermSelect');
-
-    // Formatea 1234.5 → "1.234,50"
-    function formatCurrency(value) {
-      let parts = value.toFixed(2).split('.');
-      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-      return parts.join(',');
-    }
-    // "1.234,50" → 1234.5
-    function parseCurrency(str) {
-      return parseFloat(str.replace(/\./g,'').replace(',','.')) || 0;
-    }
-
-    function recalculateGeneral() {
-      // Sólo filas de bloques visibles
-      const filas = contenedor.querySelectorAll('.incoterm-item')
-        .forEach(bloque => {
-          bloque.style.display; // forzar reflow si hiciera falta  
-        });
-      let total = 0;
-      document.querySelectorAll('.incoterm-item[style*="display: block"] tbody tr')
-        .forEach(tr => {
-          const vtInput = tr.querySelector('.valor-total');
-          const viInput = tr.querySelector('.valor-impuesto');
-          const vt = vtInput ? parseCurrency(vtInput.value) : 0;
-          const vi = viInput ? parseCurrency(viInput.value) : 0;
-          total += vt + vi;
-        });
-      totalEl.textContent = 'Total General: $' + formatCurrency(total);
-    }
-
-    // Disparamos recalculate cada vez que el usuario cambie un qty, V.U. o impuesto
-    contenedor.addEventListener('input', e => {
-      if (e.target.matches('.cantidad, .valor-unitario, .impuesto')) {
-        // primero actualizamos el valor-total y valor-impuesto de la misma fila
-        const tr = e.target.closest('tr');
-        const qty = parseFloat(tr.querySelector('.cantidad').value) || 0;
-        const vu  = parseCurrency(tr.querySelector('.valor-unitario').value);
-        const vt  = qty * vu;
-        tr.querySelector('.valor-total').value = formatCurrency(vt);
-
-        const impEl = tr.querySelector('.impuesto');
-        if (impEl) {
-          const imp = parseFloat(impEl.value) || 0;
-          const vi  = vt * (imp / 100);
-          tr.querySelector('.valor-impuesto').value = formatCurrency(vi);
-        }
-
-        recalculateGeneral();
-      }
-    });
-
-    // También recalculamos cuando cambias de Incoterm para esconder/mostrar bloques
-    selectorInc.addEventListener('change', () => {
-      // tu código de show/hide ya estaba bien:
-      document.querySelectorAll('.incoterm-item').forEach(b => {
-        b.style.display = (b.dataset.incoterm === selectorInc.value) ? 'block' : 'none';
-      });
-      recalculateGeneral();
-    });
-
-    // cálculo inicial
-    recalculateGeneral();
-  });
-</script>
-
-
-<script>
-document.getElementById('addNewDeliveryBtn').addEventListener('click', () => {
-  const tbody = document.querySelector('table tbody');
-  const tr = document.createElement('tr');
-  tr.setAttribute('data-item-id', '');
-
-  tr.innerHTML = `
-    <td>New delivery</td>
-    <td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>
-    <td>
-      <div class="input-group input-group-sm">
-        <span class="input-group-text">$</span>
-        <input type="text" class="form-control valor-unitario" value="0,00">
+      <div class="col-md-4">
+        <label class="form-label">Número de Factura</label>
+        <input type="text" name="numero_factura" class="form-control">
       </div>
-    </td>
-    <td>
-      <div class="input-group input-group-sm">
-        <span class="input-group-text">$</span>
-        <input type="text" class="form-control valor-total" value="0,00" readonly>
+      <div class="col-md-4">
+        <label class="form-label">Número de Lote</label>
+        <input type="text" name="numero_lote" class="form-control">
       </div>
-    </td>
-    <td>
-      <button type="button" class="btn btn-danger btn-sm btn-delete-row">Eliminar</button>
-    </td>
-  `;
-
-  // Insertar antes de la fila del botón para que quede arriba de ese botón
-  const addButtonRow = tbody.querySelector('tr:last-child');
-  tbody.insertBefore(tr, addButtonRow);
-});
-
-// Botón para agregar Storage
-document.getElementById('addStorageBtn').addEventListener('click', () => {
-  const tbody = document.querySelector('table tbody');
-  const tr = document.createElement('tr');
-  tr.setAttribute('data-item-id', '');
-
-  tr.innerHTML = `
-    <td>Storage</td>
-    <td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>
-    <td>
-      <div class="input-group input-group-sm">
-        <span class="input-group-text">$</span>
-        <input type="text" class="form-control valor-unitario" value="0,00">
+      <div class="col-md-4">
+        <label class="form-label">Notas</label>
+        <input type="text" name="notas" class="form-control">
       </div>
-    </td>
-    <td>
-      <div class="input-group input-group-sm">
-        <span class="input-group-text">$</span>
-        <input type="text" class="form-control valor-total" value="0,00" readonly>
+      <div class="col-md-4">
+        <label class="form-label">Número de Orden de Compra</label>
+        <input type="text" name="orden_compra" class="form-control">
       </div>
-    </td>
-    <td>
-      <button type="button" class="btn btn-danger btn-sm btn-delete-row">Eliminar</button>
-    </td>
-  `;
-
-  const addButtonRow = tbody.querySelector('tr:last-child');
-  tbody.insertBefore(tr, addButtonRow);
-});
-
-// Delegación para eliminar filas con botón "Eliminar"
-document.querySelector('table tbody').addEventListener('click', (e) => {
-  if (e.target.classList.contains('btn-delete-row')) {
-    const row = e.target.closest('tr');
-    if (row) row.remove();
-  }
-});
-
-</script>
-
-
-
-
+      <div class="col-md-4">
+        <label class="form-label">Número de Parte</label>
+        <input type="text" name="numero_parte" class="form-control">
       </div>
+      <div class="col-12">
+        <label class="form-label">Descripción</label>
+        <textarea name="descripcion" class="form-control" rows="2"></textarea>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Modelo</label>
+        <input type="text" name="modelo" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Cantidad</label>
+        <input type="number" name="cantidad" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Valor Unitario</label>
+        <input type="text" name="valor_unitario" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Valor</label>
+        <input type="text" name="valor" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Unidad</label>
+        <input type="text" name="unidad" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Longitud (in)</label>
+        <input type="number" name="longitud" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Ancho (in)</label>
+        <input type="number" name="ancho" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Altura (in)</label>
+        <input type="number" name="altura" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Peso (lb)</label>
+        <input type="number" name="peso" step="0.01" class="form-control">
+      </div>
+    </div>
+
+    <div class="mt-4 d-flex justify-content-between">
+      <a href="../admins/despachosPanel.php" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-success">Guardar Warehouse</button>
+    </div>
+  </div>
+</form>
+
     </div>
     <!-- [ Main Content ] end -->
    <footer class="pc-footer">
