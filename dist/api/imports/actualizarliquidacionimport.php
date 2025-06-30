@@ -13,31 +13,36 @@ try {
 
     // Preparamos la consulta JOIN con la tabla incoterms para filtrar por IdIncoterms
     $sql = "
-      UPDATE itemsliquidacionimportincoterms ii
-      JOIN incotermsimport ic 
+    UPDATE itemsliquidacionimportincoterms ii
+    JOIN incotermsimport ic 
         ON ic.IdItemsLiquidacionImportIncoterm = ii.ItemsLiquidacionImportIncoterms
-      SET 
-        ii.Cantidad       = ?,
-        ii.ValorUnitario  = ?,
-        ii.ValorTotal     = ?
-      WHERE ic.IdIncotermsImport = ?
+    SET 
+        ii.Cantidad      = ?,
+        ii.ValorUnitario = ?,
+        ii.ValorTotal    = ?,
+        ii.Notas         = ?
+    WHERE ic.IdIncotermsImport = ?
     ";
-    $stmt = $conexion->prepare($sql);
-    if (!$stmt) {
-        throw new Exception("Error preparando UPDATE: " . $conexion->error);
-    }
+$stmt = $conexion->prepare($sql);
+if (!$stmt) {
+    throw new Exception("Error preparando UPDATE: " . $conexion->error);
+}
+
 $errores = [];
 foreach ($datos as $i => $d) {
     $idIncoterms   = intval($d['idIncoterms']    ?? 0);
     $cantidad      = floatval($d['cantidad']        ?? 0);
     $valorUnitario = floatval($d['valorUnitario'] ?? 0);
     $valorTotal    = floatval($d['valorTotal']    ?? ($cantidad * $valorUnitario));
+    $notas         = trim($d['notas']             ?? '');
 
+    // Ahora bind_param tiene 5 parámetros: dddsi (double,double,double,string,integer)
     $stmt->bind_param(
-        "dddi",
+        "dddsi",
         $cantidad,
         $valorUnitario,
         $valorTotal,
+        $notas,
         $idIncoterms
     );
 

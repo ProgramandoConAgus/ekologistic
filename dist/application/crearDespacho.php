@@ -370,12 +370,12 @@ while ($inc = $res->fetch_assoc()) {
                   <th>Cantidad</th>
                   <th>Valor U.</th>
                   <th>Valor T.</th>
+                  <th>Notas</th>
                   <?php
                    if($inc['IdTipoIncoterm']==3){
                     ?>
                   <th>% Impuesto</th>
                   <th>Valor Impuesto</th>
-                  <th>Notas</th>
                   <?php
                    }
                    ?>
@@ -405,7 +405,9 @@ while ($inc = $res->fetch_assoc()) {
             <input type="text" class="form-control valor-total" value="0,00" readonly>
           </div>
         </td>
-
+        <td>
+            <input type="text" class="form-control form-control-sm notas" value="" placeholder="Notas">
+        </td>
         <?php if($inc['IdTipoIncoterm'] == 3): ?>
           <td>
             <div class="input-group input-group-sm">
@@ -419,9 +421,7 @@ while ($inc = $res->fetch_assoc()) {
               <input type="text" class="form-control valor-impuesto" value="0,00" readonly>
             </div>
           </td>
-          <td>
-            <input type="text" class="form-control form-control-sm notas" placeholder="Notas">
-          </td>
+
         <?php endif; ?>
       </tr>
     <?php endwhile; ?>
@@ -444,7 +444,7 @@ while ($inc = $res->fetch_assoc()) {
 
       <!-- Botones y Total General -->
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
-        <button class="btn btn-primary" onclick="window.location.href = '../admins/importsPanel.php'">Volver</button>
+        <button class="btn btn-primary" onclick="window.location.href = '../admins/despachosPanel.php'">Volver</button>
         <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
           Total General: $0,00
         </h5>
@@ -723,6 +723,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const cantidad      = rawCant === '' ? null : parseFloat(rawCant.replace(',', '.')) || 0;
       const valorUnitario = rawVU   === '' ? null : parseFloat(rawVU.replace(',', '.')) || 0;
       const valorTotal    = (cantidad || 0) * (valorUnitario || 0);
+      const notasEl = tr.querySelector('.notas');
+      const notas   = notasEl ? notasEl.value.trim() : '';
 
       items.push({
         incotermId,
@@ -730,7 +732,8 @@ document.addEventListener('DOMContentLoaded', () => {
         descripcion,
         cantidad,
         valorUnitario,
-        valorTotal
+        valorTotal,
+        notas        // <-- lo añadimos aquí
       });
     });
 

@@ -544,10 +544,14 @@ try {
                   <td><?= htmlspecialchars($row['Weight_lb']) ?></td>
                   <td>
                     <select
-                      class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
-                      data-id="<?= $row['id'] ?>">
+                    class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
+                      data-id="<?= $row['id'] ?>"
+                      data-container="<?= htmlspecialchars($row['Number_Container']) ?>">
                       <option value="Cargado" <?= $row['Status'] === 'Cargado' ? 'selected' : '' ?>>
                         Cargado
+                      </option>
+                      <option value="En Almacén" <?= $row['Status'] === 'En Almacén' ? 'selected' : '' ?>>
+                        En Almacén
                       </option>
                     </select>
                   </td>
@@ -565,101 +569,6 @@ try {
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script> <!-- Soporte en español -->
 <!-- ACTUALIZAR STATUS -->
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Guardar cambios en Status
-    document.querySelectorAll('.status-select').forEach(select => {
-        select.addEventListener('change', function () {
-            const id = this.getAttribute('data-id'); // Id del packinglist
-            const value = this.value; // Nuevo valor seleccionado
-
-            actualizarStatus(id, value);
-        });
-    });
-
-    function actualizarStatus(id, value) {
-        debugger
-        fetch('../api/dispatch_status.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, value }) // Enviamos solo id y value
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-              Swal.fire({
-              title: 'Éxito',
-              text: data.message,
-              icon: 'success',
-              confirmButtonText: 'Continuar'
-            });
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-});
-
-
-  // Dispatch Date editor
-  flatpickr('.dispatch-date-picker', {
-    locale:'es', dateFormat:'Y-m-d',
-    onChange: (_, dateStr, inst) => {
-      fetch('../api/update_dispatch_date.php', {
-        method: 'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ id: inst.input.dataset.id, date: dateStr })
-      })
-      .then(r => r.json())
-      .then(json => {
-        if (json.success) {
-          toast.fire({ icon: 'success', title: 'Fecha actualizada' });
-        } else {
-          toast.fire({ icon: 'error', title: json.error });
-        }
-      })
-      .catch(() => toast.fire({ icon: 'error', title: 'Error de red' }));
-    }
-  });
-
-  // PO Number editor
-  $('.po-input').change(function(){
-    fetch('../api/update_dispatch_po.php', {
-      method: 'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ id: this.dataset.id, po: this.value })
-    })
-    .then(r => r.json())
-    .then(json => {
-      if (json.success) {
-        toast.fire({ icon: 'success', title: 'PO actualizada' });
-      } else {
-        toast.fire({ icon: 'error', title: json.error });
-      }
-    })
-    .catch(() => toast.fire({ icon: 'error', title: 'Error de red' }));
-  });
-
-  // Status selector
-  $('.status-select').change(function(){
-    fetch('../api/dispatch_status.php', {
-      method: 'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ id: this.dataset.id, value: this.value })
-    })
-    .then(r => r.json())
-    .then(json => {
-      if (json.success) {
-        toast.fire({ icon: 'success', title: 'Estado guardado' });
-      } else {
-        toast.fire({ icon: 'error', title: json.error });
-      }
-    })
-    .catch(() => toast.fire({ icon: 'error', title: 'Error de red' }));
-  });
-
-</script>
 
 </div>
 
@@ -696,7 +605,11 @@ window.addEventListener('resize', function() {
 });
 </script>
 
-
+<style>
+.status-select {
+  min-width: 100px;    /* ó el que necesites */
+}
+</style>
 
 
 
@@ -711,58 +624,84 @@ window.addEventListener('resize', function() {
     return `${y.padStart(4,'0')}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
   }
 
+
+
   // Solo UNA inicialización de DataTable
-  $(document).ready(function(){
-    table = $('#pc-dt-simple').DataTable({
-      paging:       true,
-      pageLength:   10,
-      lengthChange: false,
-      searching:    false,
-      info:         false,
-      ordering:     false,
-      language:     { paginate:{ previous:'«', next:'»' } },
-      dom:          't<"pagination-wrapper"p>'
-    });
-    // Mover la paginación fuera
-    $('.pagination-wrapper')
-      .appendTo($('#pc-dt-simple').closest('.table-responsive'));
-
-
-    flatpickr('#rangoFechas', {
-      mode: 'range',
-      locale: 'es',
-      dateFormat: 'Y-m-d'      // para obtener directamente "YYYY-MM-DD"
-    });
-
-    // PO input handler
-    $('.po-input').off('change').on('change', function(){
-      const id = this.dataset.id, po = this.value.trim();
-      const toast = Swal.mixin({ toast:true, position:'top-end', showConfirmButton:false, timer:2000 });
-      fetch('../api/update_dispatch_po.php', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ id, po })
-      })
-      .then(r=>r.json())
-      .then(j=> toast.fire({ icon: j.success?'success':'error', title: j.success?'PO actualizada':j.error }))
-      .catch(()=> toast.fire({ icon:'error', title:'Error de red' }));
-    });
-
-    // Status handler
-    $('.status-select').off('change').on('change', function(){
-      const id = this.dataset.id, value = this.value;
-      fetch('../api/dispatch_status.php', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ id, value })
-      })
-      .then(r=>r.json())
-      .then(j=> Swal.fire(j.success?'Éxito':'Error', j.success? j.message : j.error, j.success?'success':'error'))
-      .catch(()=> Swal.fire('Error de red','','error'));
-    });
-
-    // Botones de filtro
-    $('#btnApplyFilters').on('click', aplicarFiltrosAvanzados);
-    $('#btnClearFilters').on('click', limpiarFiltrosAvanzados);
+ $(document).ready(function(){
+  // 1) Inicializa DataTable UNA sola vez
+  table = $('#pc-dt-simple').DataTable({
+    scrollX:      true,
+    paging:       true,
+    pageLength:   10,
+    lengthChange: false,
+    searching:    false,
+    info:         false,
+    ordering:     false,
+    language:     { paginate:{ previous:'«', next:'»' } },
+    dom:          't<"pagination-wrapper"p>'
   });
+  // mueve el paginador dentro del wrapper
+  $('.pagination-wrapper')
+    .appendTo($('#pc-dt-simple').closest('.table-responsive'));
+
+  // 2) flatpickr
+  flatpickr('#rangoFechas',{ mode:'range', locale:'es', dateFormat:'Y-m-d' });
+
+  // 3) Botones de filtro
+  $('#btnApplyFilters').on('click', aplicarFiltrosAvanzados);
+  $('#btnClearFilters').on('click', limpiarFiltrosAvanzados);
+
+  $('#pc-dt-simple tbody')
+    .off('change', '.status-select')    // elimina viejos (por si acaso)
+    .on('change', '.status-select', handleStatusChange);
+
+  $('#pc-dt-simple tbody')
+  .off('change', '.po-input')
+  .on('change', '.po-input', handlePoChange);
+
+
+  });
+
+    
+    async function handleStatusChange() {
+      try {
+        const res  = await fetch('../api/actualizar_status_dispatch.php', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ id:this.dataset.id, value:this.value })
+        });
+        const json = await res.json();
+        Swal.fire(
+          json.success ? 'Éxito' : 'Error',
+          json.success ? json.message : json.error,
+          json.success ? 'success' : 'error'
+        );
+      } catch (err) {
+        Swal.fire('Error de red','','error');
+      }
+    }
+
+
+
+    async function handlePoChange() {
+      const id = this.dataset.id;
+      const po = this.value.trim();
+      try {
+        const res  = await fetch('../api/update_dispatch_po.php', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ id, po })
+        });
+        const json = await res.json();
+        Swal.fire(
+          json.success ? 'Éxito' : 'Error',
+          json.success ? json.message : json.error,
+          json.success ? 'success' : 'error'
+        );
+      } catch {
+        Swal.fire('Error de red','','error');
+      }
+    }
 
   // Función de aplicar filtros (igual que tenías)
   async function aplicarFiltrosAvanzados() {
@@ -804,15 +743,14 @@ window.addEventListener('resize', function() {
           c.Height_in,
           c.Weight_lb,
           `<select class="form-select form-select-sm status-select" data-id="${c.id}">
-             <option value="Cargado"${c.Status==='Cargado'?' selected':''}>Cargado</option>
-           </select>`
+            <option value="Cargado"${c.Status==='Cargado'?' selected':''}>Cargado</option>
+            <option value="En Almacén"${c.Status==='En Almacén'?' selected':''}>En Almacén</option>
+          </select>`
         ]);
       });
       table.draw();
       bootstrap.Modal.getInstance($('#filterModal')[0]).hide();
       // vuelves a enganchar handlers sobre los nuevos inputs
-      $('.po-input').trigger('change');
-      $('.status-select').trigger('change');
     } catch (err) {
       console.error('Error al aplicar filtros:', err);
     }
@@ -825,6 +763,7 @@ window.addEventListener('resize', function() {
     if (fp) fp.clear();
     await aplicarFiltrosAvanzados();
   }
+
 </script>
 
 

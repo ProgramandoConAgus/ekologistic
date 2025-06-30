@@ -14,6 +14,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 $sql = "
     SELECT
         d.id,
+        i.idItem AS idItem,                      -- <-- lo agregamos
         c.num_op                             AS NUM_OP,
         c.Number_Container                   AS Number_Container,
         c.Booking_BK,
@@ -31,11 +32,14 @@ $sql = "
         d.altura_in                          AS Height_in,
         d.peso_lb                            AS Weight_lb,
         d.estado                             AS Status,
-        d.recibo_almacen
+        d.recibo_almacen,
+        i.Number_PO                          AS Number_PO
     FROM container c
     INNER JOIN dispatch d
         ON c.Number_Commercial_Invoice = d.numero_factura
        AND c.Number_Container         = d.notas
+    INNER JOIN items i
+    ON i.idContainer = c.idContainer
     WHERE d.estado = 'En Almacén'
     ORDER BY c.num_op, d.numero_parte
 ";
@@ -492,6 +496,7 @@ try {
                 <th>Warehouse Receipt</th>
                 <th>Lot_Number</th>
                 <th>Booking_BK</th>
+                <th>Number_PO</th>
                 <th>Number_Commercial_Invoice</th>
                 <th>Code Product EC</th>
                 <th>Description</th>
@@ -519,6 +524,13 @@ try {
 
                 <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
                 <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
+                <td>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm po-input"
+                      data-id="<?= $row['idItem'] ?>"
+                      value="<?= htmlspecialchars($row['Number_PO']) ?>">
+                </td>                
                 <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
                 <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
                 <td><?= htmlspecialchars($row['Description']) ?></td>
@@ -703,6 +715,7 @@ $(document).ready(function(){
           r.recibo_almacen,
           r.Lot_Number,
           r.Booking_BK,
+          `<input type="text" class="form-control form-control-sm po-input" data-id="${c.idItem}" value="${c.Number_PO||''}">`,
           r.Number_Commercial_Invoice,
           r.Code_Product_EC,
           r.Description,

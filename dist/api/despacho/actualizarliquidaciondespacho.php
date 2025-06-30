@@ -13,39 +13,42 @@ try {
 
     // Preparamos la consulta JOIN con la tabla incoterms para filtrar por IdIncoterms
     $sql = "
-      UPDATE itemsliquidaciondespachoincoterms ii
-      JOIN incotermsDespacho ic 
+    UPDATE itemsliquidaciondespachoincoterms ii
+    JOIN incotermsDespacho ic 
         ON ic.IdItemsLiquidacionDespachoIncoterm = ii.IdItemsLiquidacionDespachoIncoterms
-      SET 
-        ii.Cantidad       = ?,
-        ii.ValorUnitario  = ?,
-        ii.ValorTotal     = ?
-      WHERE ic.IdIncotermsDespacho = ?
+    SET 
+        ii.Cantidad      = ?,
+        ii.ValorUnitario = ?,
+        ii.ValorTotal    = ?,
+        ii.Notas         = ?
+    WHERE ic.IdIncotermsDespacho = ?
     ";
-    $stmt = $conexion->prepare($sql);
-    if (!$stmt) {
-        throw new Exception("Error preparando UPDATE: " . $conexion->error);
-    }
-$errores = [];
-foreach ($datos as $i => $d) {
-    $idIncoterms   = intval($d['idIncoterms']    ?? 0);
-    $cantidad      = floatval($d['cantidad']        ?? 0);
-    $valorUnitario = floatval($d['valorUnitario'] ?? 0);
-    $valorTotal    = floatval($d['valorTotal']    ?? ($cantidad * $valorUnitario));
 
+$stmt = $conexion->prepare($sql);
+
+// ...
+
+foreach ($datos as $d) {
+    $cantidad      = floatval($d['cantidad']);
+    $valorUnitario = floatval($d['valorUnitario']);
+    $valorTotal    = floatval($d['valorTotal']);
+    $notas         = $d['notas'];           // cadena
+    $idIncoterms   = intval($d['idIncoterms']);
+
+    // tipos: d, d, d, s, i
     $stmt->bind_param(
-        "dddi",
-        $cantidad,
-        $valorUnitario,
-        $valorTotal,
-        $idIncoterms
+      "dddsi",
+      $cantidad,
+      $valorUnitario,
+      $valorTotal,
+      $notas,
+      $idIncoterms
     );
 
-    if (!$stmt->execute()) {
-        $errores[] = "Fila {$i} (IdIncoterms {$idIncoterms}): " . $stmt->error;
+    if (! $stmt->execute()) {
+      $errores[] = "Id {$idIncoterms}: " . $stmt->error;
     }
 }
-
 
     // Respuesta con los datos que efectivamente procesó
     if (empty($errores)) {

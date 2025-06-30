@@ -311,7 +311,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
           </thead>
           <tbody>
             <?php 
-            $query = "SELECT ExportsID, Booking_BK,Number_Commercial_Invoice,status ,creation_date FROM exports WHERE status!=2 ORDER BY creation_date";
+            $query = "SELECT ExportsID, Booking_BK,Number_Commercial_Invoice,status ,creation_date FROM exports WHERE status = 1 ORDER BY creation_date";
             $result = $conexion->query($query);
             while($row = $result->fetch_assoc()) { 
               $fechaOriginal = $row['creation_date'];

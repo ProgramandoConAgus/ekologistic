@@ -28,43 +28,49 @@ try {
 
     // 2) Recorremos los items
     foreach ($items as $item) {
-        $idItem         = intval($item['itemId']);
-        $cantidad       = floatval($item['cantidad']);
-        $valorUnitario  = floatval($item['valorUnitario']);
-        $valorTotal     = floatval($item['valorTotal']);
+    $idItem        = intval($item['itemId']);
+    $cantidad      = floatval($item['cantidad']);
+    $valorUnitario = floatval($item['valorUnitario']);
+    $valorTotal    = floatval($item['valorTotal']);
+    $notas         = trim($item['notas'] ?? '');
 
-       $stmtItemInc = $conexion->prepare(
-  "INSERT INTO itemsliquidacionimportincoterms
-   (IdItemsLiquidacionImport, Cantidad, ValorUnitario, ValorTotal)
-   VALUES (?, ?, ?, ?)"
-);
-if (!$stmtItemInc) {
-    throw new Exception("Error preparando INSERT en ItemsLiquidacionImportIncoterms: " . $conexion->error);
-}
-
-$stmtItemInc->bind_param(
-    "iddd", // 1 entero y 3 decimales
-    $idItem,
-    $cantidad,
-    $valorUnitario,
-    $valorTotal
-);
-
-$stmtItemInc->execute();
-$idItemsIncoterms = $conexion->insert_id;
-
-
-        // Insert en incoterms (vincula el item-incoterm con el export)
-        $stmtInc = $conexion->prepare(
-          "INSERT INTO incotermsimport (IdItemsLiquidacionImportIncoterm, IdImports)
-           VALUES (?, ?)"
-        );
-        if (!$stmtInc) {
-            throw new Exception("Error preparando INSERT en incotermsimport: " . $conexion->error);
-        }
-        $stmtInc->bind_param("ii", $idItemsIncoterms, $idExport);
-        $stmtInc->execute();
+    // Preparamos INSERT incluyendo la columna Notas
+    $stmtItemInc = $conexion->prepare(
+      "INSERT INTO itemsliquidacionimportincoterms
+       (IdItemsLiquidacionImport, Cantidad, ValorUnitario, ValorTotal, Notas)
+       VALUES (?, ?, ?, ?, ?)"
+    );
+    if (!$stmtItemInc) {
+        throw new Exception("Error preparando INSERT en itemsliquidacionimportincoterms: " 
+                            . $conexion->error);
     }
+
+    // 'i' → integer, 'd' → double, 's' → string
+    $stmtItemInc->bind_param(
+        "iddds",
+        $idItem,
+        $cantidad,
+        $valorUnitario,
+        $valorTotal,
+        $notas      // ← enlazamos la nota aquí
+    );
+
+    $stmtItemInc->execute();
+    $idItemsIncoterms = $conexion->insert_id;
+
+    // 3) Ahora insertamos en incotermsimport
+    $stmtInc = $conexion->prepare(
+      "INSERT INTO incotermsimport
+       (IdItemsLiquidacionImportIncoterm, IdImports)
+       VALUES (?, ?)"
+    );
+    if (!$stmtInc) {
+        throw new Exception("Error preparando INSERT en incotermsimport: " 
+                            . $conexion->error);
+    }
+    $stmtInc->bind_param("ii", $idItemsIncoterms, $idExport);
+    $stmtInc->execute();
+}
 
     echo json_encode(['success' => true]);
 } catch (Exception $e) {
