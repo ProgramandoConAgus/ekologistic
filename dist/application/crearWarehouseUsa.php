@@ -279,7 +279,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 <div class="container mt-5">
   <div class="card shadow-sm">
-    <form method="POST" action="guardar_warehouse.php">
+    <form method="POST" action="#">
   <div class="card-body">
     <div class="row g-3">
       <div class="col-md-4">
@@ -307,8 +307,8 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <input type="text" name="numero_lote" class="form-control">
       </div>
       <div class="col-md-4">
-        <label class="form-label">Notas</label>
-        <input type="text" name="notas" class="form-control">
+        <label class="form-label">Palets</label>
+        <input type="number" name="palets" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Número de Orden de Compra</label>
@@ -476,67 +476,47 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const bookingEl   = document.getElementById('bookingSelect');
-  const invoiceEl   = document.getElementById('invoiceSelect');
-  const selectEl    = document.getElementById('incotermSelect');
-  const btnGuardar  = document.querySelector('.btn-success');
+  const form = document.querySelector('form[action="#"]');
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const data = {
+      fecha_entrada: form.fecha_entrada.value,
+      fecha_salida: form.fecha_salida.value,
+      recibo_almacen: form.recibo_almacen.value.trim(),
+      estado: form.estado.value.trim(),
+      numero_factura: form.numero_factura.value.trim(),
+      numero_lote: form.numero_lote.value.trim(),
+      palets: form.palets.value.trim(),
+      orden_compra: form.orden_compra.value.trim(),
+      numero_parte: form.numero_parte.value.trim(),
+      descripcion: form.descripcion.value.trim(),
+      modelo: form.modelo.value.trim(),
+      cantidad: parseInt(form.cantidad.value) || 0,
+      valor_unitario: form.valor_unitario.value.trim(),
+      valor: form.valor.value.trim(),
+      unidad: form.unidad.value.trim(),
+      longitud: form.longitud.value,
+      ancho: form.ancho.value,
+      altura: form.altura.value,
+      peso: form.peso.value
+    };
 
-  btnGuardar.addEventListener('click', () => {
-    const booking    = bookingEl.value.trim();
-    const invoice    = invoiceEl.value.trim();
-    const incotermId = selectEl.value;
-
-    if (!booking || !invoice || !incotermId) {
-      return Swal.fire({
-        icon: 'warning',
-        title: 'Faltan datos',
-        text: 'Completa Booking, Invoice e Incoterm antes de guardar.'
-      });
-    }
-
-    const bloque = document.querySelector(`.incoterm-item[data-incoterm="${incotermId}"]`);
-    if (!bloque) return;
-
-    const items = [];
-    bloque.querySelectorAll('tbody tr').forEach(tr => {
-      const itemId      = parseInt(tr.dataset.itemId, 10);
-      const descripcion = tr.children[0].textContent.trim();
-
-      // Cantidad y valor unitario
-      const rawCant = tr.querySelector('.cantidad').value;
-      const rawVU   = tr.querySelector('.valor-unitario').value;
-
-      // Convertimos formatos con coma decimal a punto decimal
-      const cantidad      = rawCant === '' ? null : parseFloat(rawCant.replace(',', '.')) || 0;
-      const valorUnitario = rawVU   === '' ? null : parseFloat(rawVU.replace(',', '.')) || 0;
-      const valorTotal    = (cantidad || 0) * (valorUnitario || 0);
-
-      items.push({
-        incotermId,
-        itemId,
-        descripcion,
-        cantidad,
-        valorUnitario,
-        valorTotal
-      });
-    });
-
-    fetch('../api/despacho/guardarliquidaciondespacho.php', {
+    fetch('../api/warehouseusa/guardar_manual.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ booking, invoice, items })
+      body: JSON.stringify(data)
     })
     .then(r => r.json())
     .then(resp => {
       if (resp.success) {
-        Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Correcto.' })
-          .then(() => location.reload());
+        Swal.fire({ icon: 'success', title: 'Guardado', text: 'Registro creado' })
+          .then(() => location.href = '../admins/warehouseUsaPanel.php');
       } else {
-        Swal.fire({ icon: 'error', title: 'Error', text: resp.message });
+        Swal.fire({ icon: 'error', title: 'Error', text: resp.message || 'Error' });
       }
     })
     .catch(() => {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Error del servidor.' });
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Error de servidor' });
     });
   });
 });
@@ -764,8 +744,3 @@ document.addEventListener('DOMContentLoaded', () => {
   </body>
   <!-- [Body] end -->
 </html>
-
-
-<?php
-
-?>

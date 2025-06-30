@@ -10,6 +10,10 @@ $usuario = new Usuario($conexion);
 
 $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
+// Carga manual de Warehouse USA guardada en dispatch
+$queryManual = "SELECT cantidad AS cajas, notas AS palets, numero_lote AS lote_produccion, numero_orden_compra AS po, descripcion, numero_factura AS invoice, fecha_entrada AS fecha_ingreso, recibo_almacen AS warehouse_receive FROM dispatch ORDER BY fecha_entrada DESC";
+$manualRes = $conexion->query($queryManual);
+
 ?>
 
 <!DOCTYPE html>
@@ -28,6 +32,15 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
   <meta name="author" content="phoenixcoded" />
 
   <!-- [Favicon] icon -->
+  <link rel="icon" href="../assets/images/ekologistic.png" type="image/x-icon" />
+
+  <!-- jQuery (DataTables lo necesita) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- DataTables CSS y JS -->
+  <link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet" />
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
+  <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 
   <link rel="stylesheet" href="../assets/css/plugins/style.css">
   <!-- [Google Font : Public Sans] icon -->
@@ -302,104 +315,48 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
       <!-- [ Main Content ] start -->
       <div class="row">
         <div class="col-12">
-          <div class="card table-card">
-            <div class="card-body pt-3">
+          <div class="card table-card mb-4">
+            <div class="card-header"><h5>Carga Manual Warehouse USA</h5></div>
+            <div class="card-body">
               <div class="d-flex justify-content-end mb-3">
                 <a class="text-white" href="../application/crearWarehouseUsa.php"><button type="button" class="btn btn-success text-white me-3">Cargar nuevo Warehouse USA</button></a>
               </div>
               <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-sm" id="pc-dt-simple">
                   <thead>
                     <tr>
-                     <th>Fecha Entrada</th>
-      <th>Fecha de salida</th>
-      <th>Recibo de Almacén</th>
-      <th>Estado</th>
-      <th>Número de Factura</th>
-      <th>Número de Lote</th>
-      <th>Notas</th>
-      <th>Número de Orden de Compra</th>
-      <th>Número de Parte</th>
-      <th>Descripción</th>
-      <th>Modelo</th>
-      <th>Cantidad</th>
-      <th>Valor Unitario</th>
-      <th>Valor</th>
-      <th>Unidad</th>
-      <th>Longitud (in)</th>
-      <th>Ancho (in)</th>
-      <th>Altura (in)</th>
-      <th>Peso (lb)</th>
+                      <th>Cajas</th>
+                      <th>Palets</th>
+                      <th>Lote</th>
+                      <th>PO</th>
+                      <th>Descripción</th>
+                      <th>Invoice</th>
+                      <th>Fecha Ingreso</th>
+                      <th>Warehouse Receive</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <?php
-                    $query = "SELECT ImportsID, Booking_BK, Number_Commercial_Invoice, status, creation_date 
-          FROM imports 
-          WHERE status != 2 
-          ORDER BY creation_date";
-                    $result = $conexion->query($query);
-
-                    // Verificar error en consulta
-                    if (!$result) {
-                      die("Error en la consulta: " . $conexion->error);
-                    }
-
-                    // Verificar si hay registros
-                    if (1==2) { // $result->num_rows > 0
-                      while ($row = $result->fetch_assoc()) {
-                        $fechaOriginal = $row['creation_date'];
-                        $fecha = date('d/m/Y', strtotime($fechaOriginal));
-                        $hora  = date('h:i A', strtotime($fechaOriginal));
-                    ?>
+                    <?php if($manualRes && $manualRes->num_rows > 0): ?>
+                      <?php while($m = $manualRes->fetch_assoc()): ?>
                         <tr>
-                          <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-                          <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
-                          <td><?= $fecha ?> <span class="text-muted text-sm d-block"><?= $hora ?></span></td>
-                          <td>
-                            <select
-                              class="badge-select badge"
-                              data-export-id="<?= $row['ImportsID'] ?>"
-                              style="appearance:none; width:70%; margin-left:-15%">
-                              <?php
-                              $queryselect  = "SELECT IdEstados, nombre FROM estadosliquidacion";
-                              $resultselect = $conexion->query($queryselect);
-                              while ($row2 = $resultselect->fetch_assoc()) {
-                                if ($row2['IdEstados'] == 4) continue;
-                                $isSel = ($row['status'] == $row2['IdEstados']) ? ' selected' : '';
-                              ?>
-                                <option value="<?= $row2['IdEstados'] ?>" <?= $isSel ?>>
-                                  <?= $row2['nombre'] ?>
-                                </option>
-                              <?php } ?>
-                            </select>
-                          </td>
-                          <td>
-                            <a href="../application/detalleLiquidacionImport.php?ImportID=<?= $row["ImportsID"] ?>" class="text-primary me-2">
-                              <i class="ti ti-eye"></i>
-                            </a>
-                            <?php
-                            $isDisabled = ($row['status'] == 3);
-                            $href = $isDisabled ? '' : 'href="../application/editarLiquidacionImport.php?ImportID=' . $row["ImportsID"] . '"';
-                            $classes = 'text-warning me-2' . ($isDisabled ? ' disabled text-muted' : '');
-                            ?>
-                            <a <?= $href ?> class="<?= $classes ?>" <?= $isDisabled ? 'aria-disabled="true" tabindex="-1"' : '' ?>>
-                              <i class="ti ti-edit"></i>
-                            </a>
-                          </td>
+                          <td><?= htmlspecialchars($m['cajas']) ?></td>
+                          <td><?= htmlspecialchars($m['palets']) ?></td>
+                          <td><?= htmlspecialchars($m['lote_produccion']) ?></td>
+                          <td><?= htmlspecialchars($m['po']) ?></td>
+                          <td><?= htmlspecialchars($m['descripcion']) ?></td>
+                          <td><?= htmlspecialchars($m['invoice']) ?></td>
+                          <td><?= htmlspecialchars($m['fecha_ingreso']) ?></td>
+                          <td><?= htmlspecialchars($m['warehouse_receive']) ?></td>
                         </tr>
-                    <?php
-                      }
-                    } else {
-                      echo "<tr><td colspan='5' class='text-center'>No hay registros disponibles.</td></tr>";
-                    }
-                    ?> */
+                      <?php endwhile; else: ?>
+                        <tr><td colspan="8" class="text-center">Sin registros</td></tr>
+                    <?php endif; ?>
                   </tbody>
-
                 </table>
               </div>
             </div>
           </div>
+
         </div>
 
 
@@ -601,11 +558,28 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
     preset_change("preset-1");
   </script>
 
-  <script type="module">
-    import {
-      DataTable
-    } from "../assets/js/plugins/module.js"
-    window.dt = new DataTable("#pc-dt-simple");
+  <script>
+    var dt;
+    const dtConfig = {
+      paging: true,
+      pageLength: 10,
+      pagingType: 'simple_numbers',
+      language: { paginate: { previous: '«', next: '»' } },
+      lengthChange: false,
+      searching: false,
+      info: false,
+      ordering: false,
+      dom: 't<"pagination-wrapper"p>'
+    };
+
+    function initDataTable() {
+      dt = $('#pc-dt-simple').DataTable(dtConfig);
+      $('.pagination-wrapper').appendTo($('#pc-dt-simple').closest('.table-responsive'));
+    }
+
+    $(document).ready(() => {
+      initDataTable();
+    });
   </script>
   <div class="offcanvas border-0 pct-offcanvas offcanvas-end" tabindex="-1" id="offcanvas_pc_layout">
     <div class="offcanvas-header justify-content-between">
@@ -775,8 +749,3 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 <!-- [Body] end -->
 
 </html>
-
-<?php
-
-
-?>
