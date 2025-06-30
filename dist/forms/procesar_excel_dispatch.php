@@ -119,14 +119,14 @@ try {
 
         $recibo       = (string) trim($r[2]);   // recibo_almacen
         $estado       = (string) trim($r[3]);   // estado
-        $numero_fact  = intval($r[4]);          // numero_factura
-        $numero_lote  = intval($r[5]);          // numero_lote
+        $numero_fact  = trim($r[4]);            // numero_factura
+        $numero_lote  = trim($r[5]);            // numero_lote
         $notas        = (string) trim($r[6]);   // notas
-        $num_orden    = intval($r[7]);          // numero_orden_compra
+        $num_orden    = trim($r[7]);            // numero_orden_compra
         $numero_parte = (string) trim($r[8]);   // numero_parte
         $descripcion  = (string) trim($r[9]);   // descripcion
         $modelo       = (string) trim($r[10]);  // modelo
-        $cantidad     = intval($r[11]);         // cantidad
+        $cantidad     = trim($r[11]);           // cantidad
 
         // Decimales con coma → punto
         $vu_raw = str_replace(',', '.', trim($r[12]));
@@ -140,21 +140,21 @@ try {
         $altura_in = floatval(str_replace(',', '.', trim($r[17])));       // altura_in
         $peso_lb   = floatval(str_replace(',', '.', trim($r[18])));       // peso_lb
 
-        // 9) Bind de 19 parámetros (strings, ints y decimals)
+        // 9) Bind de 19 parámetros (strings y decimales)
         $stmt->bind_param(
-            'ssssiisisssiddsdddd',
+            'ssssssssssssddsdddd',
             $f1,            // 1 fecha_entrada (s)
             $f2,            // 2 fecha_salida  (s)
             $recibo,        // 3 recibo_almacen(s)
             $estado,        // 4 estado        (s)
-            $numero_fact,   // 5 numero_factura(i)
-            $numero_lote,   // 6 numero_lote   (i)
+            $numero_fact,   // 5 numero_factura(s)
+            $numero_lote,   // 6 numero_lote   (s)
             $notas,         // 7 notas         (s)
-            $num_orden,     // 8 numero_orden  (i)
+            $num_orden,     // 8 numero_orden  (s)
             $numero_parte,  // 9 numero_parte  (s)
             $descripcion,   // 10 descripcion  (s)
             $modelo,        // 11 modelo       (s)
-            $cantidad,      // 12 cantidad     (i)
+            $cantidad,      // 12 cantidad     (s)
             $valor_unitario,// 13 valor_unitario(d)
             $valor,         // 14 valor        (d)
             $unidad,        // 15 unidad       (s)

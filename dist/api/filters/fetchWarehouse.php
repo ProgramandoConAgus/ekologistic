@@ -30,8 +30,8 @@ try {
         d.ancho_in                   AS Broad_in,
         d.altura_in                  AS Height_in,
         d.peso_lb                    AS Weight_lb,
-        d.estado                     AS Status
-        i.Number_PO                  AS Number_PO,
+        d.estado                     AS Status,
+        i.Number_PO                  AS Number_PO
       FROM container c
       INNER JOIN dispatch d
         ON c.Number_Commercial_Invoice = d.numero_factura
