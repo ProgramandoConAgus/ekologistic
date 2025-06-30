@@ -32,6 +32,15 @@ $manualRes = $conexion->query($queryManual);
   <meta name="author" content="phoenixcoded" />
 
   <!-- [Favicon] icon -->
+  <link rel="icon" href="../assets/images/ekologistic.png" type="image/x-icon" />
+
+  <!-- jQuery (DataTables lo necesita) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- DataTables CSS y JS -->
+  <link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet" />
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
+  <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 
   <link rel="stylesheet" href="../assets/css/plugins/style.css">
   <!-- [Google Font : Public Sans] icon -->
@@ -549,11 +558,28 @@ $manualRes = $conexion->query($queryManual);
     preset_change("preset-1");
   </script>
 
-  <script type="module">
-    import {
-      DataTable
-    } from "../assets/js/plugins/module.js"
-    window.dt = new DataTable("#pc-dt-simple");
+  <script>
+    var dt;
+    const dtConfig = {
+      paging: true,
+      pageLength: 10,
+      pagingType: 'simple_numbers',
+      language: { paginate: { previous: '«', next: '»' } },
+      lengthChange: false,
+      searching: false,
+      info: false,
+      ordering: false,
+      dom: 't<"pagination-wrapper"p>'
+    };
+
+    function initDataTable() {
+      dt = $('#pc-dt-simple').DataTable(dtConfig);
+      $('.pagination-wrapper').appendTo($('#pc-dt-simple').closest('.table-responsive'));
+    }
+
+    $(document).ready(() => {
+      initDataTable();
+    });
   </script>
   <div class="offcanvas border-0 pct-offcanvas offcanvas-end" tabindex="-1" id="offcanvas_pc_layout">
     <div class="offcanvas-header justify-content-between">
