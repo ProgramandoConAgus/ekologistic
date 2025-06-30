@@ -37,7 +37,7 @@ $sql = "
     d.altura_in                          AS Height_in,
     d.peso_lb                            AS Weight_lb,
     d.estado                             AS Status,
-    d.recibo_almacen
+    d.recibo_almacen                     AS Receive
 FROM container c
 INNER JOIN dispatch d
     ON c.Number_Commercial_Invoice = d.numero_factura
@@ -230,10 +230,10 @@ try {
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
               <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
-                <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA</a></li>
-                <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
               </ul>
             </li>
@@ -422,71 +422,59 @@ try {
           
         <div class="col-md-12 col-xl-12">
     <div class="card table-card">
-        <div class="card-header d-flex align-items-center justify-content-end py-3">
-            <h5 class="mb-0"></h5>
-           <!-- <div class="d-flex gap-2 align-items-center">
-              <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
-                <i class="ti ti-filter"></i> Filtros avanzados
-              </button>
-              <button class="btn btn-sm btn-secondary" onclick="limpiarFiltrosAvanzados()">
-                <i class="ti ti-x"></i> Limpiar
-              </button>
-            </div>-->
-        </div>
-        <!-- Modal de filtros -->
-        <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-              </div>
-              <div class="modal-body">
-                <form id="filterForm">
-                  <!-- Filtro por Cliente 
-                  <div class="mb-3">
-                    <label for="customerFilter" class="form-label">Cliente</label>
-                    <select class="form-select" id="customerFilter">
-                      <option value="">Todos los clientes</option>
-                      <?php
-                      // Resetear el puntero del resultado para obtener valores únicos
-                      $result->data_seek(0);
-                      $customers = [];
-                      while ($row = $result->fetch_assoc()) {
-                        if (!in_array($row['Customer'], $customers)) {
-                          $customers[] = $row['Customer'];
-                          echo '<option value="' . htmlspecialchars($row['Customer']) . '">' . htmlspecialchars($row['Customer']) . '</option>';
-                        }
-                      }
-                      $result->data_seek(0); // Resetear para el bucle principal
-                      ?>
-                    </select>
-                  </div>
-                  -->
-                  <!-- Filtro por Number PO 
-                  <div class="mb-3">
-                    <label for="poFilter" class="form-label">Número de PO</label>
-                    <input type="text" class="form-control" id="poFilter" placeholder="Ingrese número de PO">
-                  </div>
-                  -->
-                  <!-- Filtro por Numero OP (Container) -->
-                  <div class="mb-3">
-                    <label for="containerFilter" class="form-label">Número de Contenedor (OP)</label>
-                    <input type="text" class="form-control" id="containerFilter" placeholder="Ingrese número de contenedor">
-                  </div>
-                  <div class="mb-3">
-                    <label for="containerFilter" class="form-label">Date Created</label><br>
-                    <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
-                  </div>
-                </form>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
-              </div>
+        <div class="card-header d-flex align-items-center justify-content-between py-3">
+          <h5 class="mb-0">Dispatch Inventory</h5>
+          <div class="d-flex gap-2 align-items-center">
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+              <i class="ti ti-filter"></i> Filtros avanzados
+            </button>
+            <button id="btnClearFilters" class="btn btn-sm btn-secondary">   
+             <i class="ti ti-x"></i> Limpiar
+            </button>
+          </div>
+      </div>    
+      <!-- Modal de filtros -->
+      <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form id="filterForm">
+                <!-- Filtro por Num OP -->
+                <div class="mb-3">
+                  <label for="OpFilter" class="form-label">Num OP</label>
+                  <input type="text" class="form-control" id="OpFilter" placeholder="Ingrese número de OP">
+                </div>
+
+                <!-- Filtro por Destiny POD -->
+                <div class="mb-3">
+                  <label for="LotFilter" class="form-label">Lot Number</label>
+                  <input type="text" class="form-control" id="LotFilter" placeholder="Ingrese Lot Number">
+                </div>
+
+                <!-- Filtro por ETA Date -->
+                <div class="mb-3">
+                  <label for="rangoFechas" class="form-label">ETA Date</label><br>
+                  <input
+                    type="text"
+                    id="rangoFechas"
+                    class="form-control form-control-sm"
+                    placeholder="Seleccione rango"
+                    style="max-width: 220px;"
+                    readonly>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+              <button id="btnApplyFilters" class="btn btn-primary">Aplicar filtros</button>            
             </div>
           </div>
         </div>
+      </div>
         <div class="card-body">
           <div class="table-responsive">
             <table id="pc-dt-simple" class="table table-hover">
@@ -576,135 +564,12 @@ try {
         </div>
 
 
-</div>
 
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script> <!-- Soporte en español -->
 <!-- ACTUALIZAR STATUS -->
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Guardar cambios en Status
-    document.querySelectorAll('.status-select').forEach(select => {
-        select.addEventListener('change', function () {
-            const id = this.getAttribute('data-id'); // Id del packinglist
-            const value = this.value; // Nuevo valor seleccionado
-
-            actualizarStatus(id, value);
-        });
-    });
-
-    function actualizarStatus(id, value) {
-        debugger
-        fetch('../api/dispatch_status.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, value }) // Enviamos solo id y value
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-              Swal.fire({
-              title: 'Éxito',
-              text: data.message,
-              icon: 'success',
-              confirmButtonText: 'Continuar'
-            });
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-});
-
-
-$(document).ready(function() {
-  const toast = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 2000
-  });
-
-  var dt;
-  const dtConfig = {
-    paging: true,
-    pageLength: 10,
-    lengthChange: false,
-    searching: false,
-    info: false,
-    ordering: false,
-    language: { paginate:{ previous:'«', next:'»' } },
-    dom: 't<"pagination-wrapper"p>'
-  };
-
-  function initDataTable() {
-    dt = $('#pc-dt-simple').DataTable(dtConfig);
-    $('.pagination-wrapper')
-      .appendTo( $('#pc-dt-simple').closest('.table-responsive') );
-  }
-  initDataTable();
-
-  // Dispatch Date editor
-  flatpickr('.dispatch-date-picker', {
-    locale:'es', dateFormat:'Y-m-d',
-    onChange: (_, dateStr, inst) => {
-      fetch('../api/update_dispatch_date.php', {
-        method: 'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ id: inst.input.dataset.id, date: dateStr })
-      })
-      .then(r => r.json())
-      .then(json => {
-        if (json.success) {
-          toast.fire({ icon: 'success', title: 'Fecha actualizada' });
-        } else {
-          toast.fire({ icon: 'error', title: json.error });
-        }
-      })
-      .catch(() => toast.fire({ icon: 'error', title: 'Error de red' }));
-    }
-  });
-
-  // PO Number editor
-  $('.po-input').change(function(){
-    fetch('../api/update_dispatch_po.php', {
-      method: 'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ id: this.dataset.id, po: this.value })
-    })
-    .then(r => r.json())
-    .then(json => {
-      if (json.success) {
-        toast.fire({ icon: 'success', title: 'PO actualizada' });
-      } else {
-        toast.fire({ icon: 'error', title: json.error });
-      }
-    })
-    .catch(() => toast.fire({ icon: 'error', title: 'Error de red' }));
-  });
-
-  // Status selector
-  $('.status-select').change(function(){
-    fetch('../api/dispatch_status.php', {
-      method: 'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ id: this.dataset.id, value: this.value })
-    })
-    .then(r => r.json())
-    .then(json => {
-      if (json.success) {
-        toast.fire({ icon: 'success', title: 'Estado guardado' });
-      } else {
-        toast.fire({ icon: 'error', title: json.error });
-      }
-    })
-    .catch(() => toast.fire({ icon: 'error', title: 'Error de red' }));
-  });
-});
-</script>
 
 </div>
 
@@ -911,13 +776,6 @@ window.addEventListener('resize', function() {
 
 
 
-
-
-
-
-
-
-
     <!-- [Page Specific JS] start -->
     <script src="../assets/js/plugins/apexcharts.min.js"></script>
     <script src="../assets/js/plugins/jsvectormap.min.js"></script>
@@ -953,7 +811,15 @@ window.addEventListener('resize', function() {
     
     
     <script>preset_change("preset-1");</script>
-    
+  
+
+
+
   </body>
   <!-- [Body] end -->
 </html>
+
+
+<?php
+
+?>

@@ -208,10 +208,10 @@ try {
         <li class="pc-item pc-hasmenu">
               <a href="#!" class="pc-link">Inventory<span class="pc-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg></span></a>
               <ul class="pc-submenu" style="display: block; box-sizing: border-box; transition-property: height, margin, padding; transition-duration: 200ms; height: 0px; overflow: hidden; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-bottom: 0px;">
-                <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
-                <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./transit-inventory.php">Transit Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./warehouse-inventory.php">WareHouse Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA</a></li>
-                <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
+                <li class="pc-item"><a class="pc-link" href="./total-inventory.php">Total Inventory</a></li>
                 <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Dispatch Inventory</a> </li>
               </ul>
             </li>
@@ -400,77 +400,90 @@ try {
           
         <div class="col-md-12 col-xl-12">
     <div class="card table-card">
-        <div class="card-header d-flex align-items-center justify-content-end py-3">
-            <h5 class="mb-0"></h5>
-           <!-- <div class="d-flex gap-2 align-items-center">
-              <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
-                <i class="ti ti-filter"></i> Filtros avanzados
-              </button>
-              <button class="btn btn-sm btn-secondary" onclick="limpiarFiltrosAvanzados()">
-                <i class="ti ti-x"></i> Limpiar
-              </button>
-            </div>-->
-            <button style="margin-left:3%;" class="btn btn-sm btn-success">
-                <a class="text-white" href="../forms/importardispatch.php">Nuevo Dispatch Inventory</a>
-            </button>
-            <button style="margin-left:1%;" id="exportBtn" class="btn btn-sm btn-info">
-              <i class="ti ti-file-export"></i> Exportar a Excel
-            </button>
+        <div class="card-header d-flex align-items-center justify-content-between py-3">
+            <h5 class="mb-0">Warehouse Inventory</h5>
+          <!-- Botón único de acciones -->
+          <button class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#actionsModal">
+            <i class="ti ti-menu-2"></i> Acciones
+          </button>
         </div>
-        <!-- Modal de filtros -->
-        <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-          <div class="modal-dialog">
+        <!-- Modal de Acciones -->
+        <div class="modal fade" id="actionsModal" tabindex="-1" aria-labelledby="actionsModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="actionsModalLabel">Acciones</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
               </div>
-              <div class="modal-body">
-                <form id="filterForm">
-                  <!-- Filtro por Cliente 
-                  <div class="mb-3">
-                    <label for="customerFilter" class="form-label">Cliente</label>
-                    <select class="form-select" id="customerFilter">
-                      <option value="">Todos los clientes</option>
-                      <?php
-                      // Resetear el puntero del resultado para obtener valores únicos
-                      $result->data_seek(0);
-                      $customers = [];
-                      while ($row = $result->fetch_assoc()) {
-                        if (!in_array($row['Customer'], $customers)) {
-                          $customers[] = $row['Customer'];
-                          echo '<option value="' . htmlspecialchars($row['Customer']) . '">' . htmlspecialchars($row['Customer']) . '</option>';
-                        }
-                      }
-                      $result->data_seek(0); // Resetear para el bucle principal
-                      ?>
-                    </select>
-                  </div>
-                  -->
-                  <!-- Filtro por Number PO 
-                  <div class="mb-3">
-                    <label for="poFilter" class="form-label">Número de PO</label>
-                    <input type="text" class="form-control" id="poFilter" placeholder="Ingrese número de PO">
-                  </div>
-                  -->
-                  <!-- Filtro por Numero OP (Container) -->
-                  <div class="mb-3">
-                    <label for="containerFilter" class="form-label">Número de Contenedor (OP)</label>
-                    <input type="text" class="form-control" id="containerFilter" placeholder="Ingrese número de contenedor">
-                  </div>
-                  <div class="mb-3">
-                    <label for="containerFilter" class="form-label">Date Created</label><br>
-                    <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
-                  </div>
-                </form>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
+              <div class="modal-body d-flex flex-column gap-2">
+                <button type="button"
+                        class="btn btn-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#filterModal"
+                        data-bs-dismiss="modal">
+                  <i class="ti ti-filter"></i> Filtros avanzados
+                </button>
+                <button type="button"
+                        class="btn btn-secondary"
+                        id="btnClearFilters"
+                        data-bs-dismiss="modal">
+                  <i class="ti ti-x"></i> Limpiar
+                </button>
+                <a href="../forms/importardispatch.php"
+                  class="btn btn-success">
+                  <i class="ti ti-plus"></i> Nuevo Dispatch Inventory
+                </a>
+                <button type="button"
+                        id="exportBtn"
+                        class="btn btn-info">
+                  <i class="ti ti-file-export"></i> Exportar a Excel
+                </button>
               </div>
             </div>
           </div>
         </div>
+      <!-- Modal de filtros -->
+      <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form id="filterForm">
+                <!-- Filtro por Num OP -->
+                <div class="mb-3">
+                  <label for="containerFilter" class="form-label">Numero de Container</label>
+                  <input type="text" class="form-control" id="containerFilter" placeholder="Ingrese número de Container">
+                </div>
+
+                <!-- Filtro por Destiny POD -->
+                <div class="mb-3">
+                  <label for="OpFilter" class="form-label">Op Number</label>
+                  <input type="text" class="form-control" id="OpFilter" placeholder="Ingrese Op Number">
+                </div>
+
+                <!-- Filtro por ETA Date -->
+                <div class="mb-3">
+                  <label for="rangoFechas" class="form-label">Entry Date</label><br>
+                  <input
+                    type="text"
+                    id="rangoFechas"
+                    class="form-control form-control-sm"
+                    placeholder="Seleccione rango"
+                    style="max-width: 220px;"
+                    readonly>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+              <button id="btnApplyFilters" class="btn btn-primary">Aplicar filtros</button>            
+            </div>
+          </div>
+        </div>
+      </div>
         <div class="card-body">
     <div class="table-responsive">
         <table class="table table-hover" id="pc-dt-simple">
@@ -530,10 +543,14 @@ try {
                 <td><?= htmlspecialchars($row['Broad_in']) ?></td>
                 <td><?= htmlspecialchars($row['Height_in']) ?></td>
                 <td><?= htmlspecialchars($row['Weight_lb']) ?></td>
-                <td >
-                  <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" data-id="<?= $row['id'] ?>">
-                    <option value="Cargado" <?= $row['Status'] == 'Cargado' ? 'selected' : '' ?>>Cargado</option>
-                    <option value="En Almacén" <?= $row['Status'] == 'En Almacén' ? 'selected' : '' ?>>En Almacén</option>
+                <td>
+                  <select
+                    class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
+                    data-container="<?= htmlspecialchars($row['Number_Container']) ?>"
+                    data-invoice="<?= htmlspecialchars($row['Number_Commercial_Invoice']) ?>"
+                    data-id="<?= $row['id'] ?>">
+                    <option value="Cargado"   <?= $row['Status']=='Cargado'   ? 'selected':'' ?>>Cargado</option>
+                    <option value="En Almacén"<?= $row['Status']=='En Almacén'? 'selected':'' ?>>En Almacén</option>
                   </select>
                 </td>
               </tr>
@@ -552,40 +569,54 @@ try {
 <!-- ACTUALIZAR STATUS -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Guardar cambios en Status
-    document.querySelectorAll('.status-select').forEach(select => {
-        select.addEventListener('change', function () {
-            const id = this.getAttribute('data-id'); // Id del packinglist
-            const value = this.value; // Nuevo valor seleccionado
-
-            actualizarStatus(id, value);
-        });
+  // Atacha listener a TODOS los selects
+  document.querySelectorAll('.status-select').forEach(sel => {
+    sel.addEventListener('change', function () {
+      const container = this.dataset.container;
+      const invoice   = this.dataset.invoice;
+      const value     = this.value;
+      actualizarStatus(container, invoice, value);
     });
-
-    function actualizarStatus(id, value) {
-        debugger
-        fetch('../api/dispatch_status.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, value }) // Enviamos solo id y value
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-              Swal.fire({
-              title: 'Éxito',
-              text: data.message,
-              icon: 'success',
-              confirmButtonText: 'Continuar'
-            });
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
+  });
 });
+
+
+async function actualizarStatus(container, invoice, value) {
+  try {
+    Swal.fire({ title:'Cargando', allowOutsideClick:false, didOpen:()=>Swal.showLoading() });
+
+    const res = await fetch('../api/dispatch_status.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ container, invoice, value })
+    });
+    const json = await res.json();
+    Swal.close();
+
+    if (json.success) {
+      // Si vino el número de contenedor, mostramos filas afectadas
+      if (json.container) {
+        Swal.fire({
+          icon: 'success',
+          title: `Contenedor ${json.container}`,
+          text: json.message,
+          confirmButtonText: 'OK'
+        });
+      } else {
+        Swal.fire({ icon:'success', title: json.message, toast:true, position:'top-end', timer:1500 });
+      }
+    } else {
+      Swal.fire({ icon:'error', title: json.error||'Error', toast:true, position:'top-end', timer:2000 });
+    }
+  } catch (err) {
+    Swal.close();
+    Swal.fire({ icon:'error', title:'Error de conexión', toast:true, position:'top-end', timer:2000 });
+    console.error(err);
+  }
+}
 </script>
+
+
 
 </div>
 
@@ -611,12 +642,18 @@ document.addEventListener('DOMContentLoaded', function () {
       </div>
     </footer>
 
+<script>
+// --- Helper para convertir fechas ---
+function toISODate(str) {
+  let d,m,y;
+  if (str.includes('/')) [d,m,y] = str.split('/');
+  else                  [y,m,d] = str.split('-');
+  return `${y.padStart(4,'0')}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+}
 
-
-
-    <script>
-  var dt;
-  const dtConfig = {
+$(document).ready(function(){
+  // 1) Inicializa DataTable UNA sola vez
+  const table = $('#pc-dt-simple').DataTable({
     paging:       true,
     pageLength:   10,
     lengthChange: false,
@@ -625,158 +662,75 @@ document.addEventListener('DOMContentLoaded', function () {
     ordering:     false,
     language:     { paginate:{ previous:'«', next:'»' } },
     dom:          't<"pagination-wrapper"p>'
-  };
+  });
+  $('.pagination-wrapper')
+    .appendTo($('#pc-dt-simple').closest('.table-responsive'));
 
-  function initDataTable() {
-    dt = $('#pc-dt-simple').DataTable(dtConfig);
-    $('.pagination-wrapper').appendTo(
-      $('#pc-dt-simple').closest('.table-responsive')
-    );
-  }
+  // 2) Inicializa flatpickr en el input de rango
+  flatpickr('#rangoFechas', {
+    mode: 'range',
+    locale: 'es',
+    dateFormat: 'Y-m-d'
+  });
 
-  $(document).ready(function() {
-    initDataTable();
+  // 3) Botones
+  $('#btnApplyFilters').on('click', aplicarFiltrosAvanzados);
+  $('#btnClearFilters').on('click', limpiarFiltrosAvanzados);
 
-    // Exportar TODO en UNA sola hoja, con el valor actual del select de Status
-    $('#exportBtn').on('click', function() {
-      // 1) Cabeceras
-      const headers = $('#pc-dt-simple thead th')
-        .map(function(){ return $(this).text().trim(); })
-        .get();
-      // Reemplazamos la última cabecera si es un TH vacío o “Status‎…”
-      headers[headers.length - 1] = 'Status';
+  // 4) Exportar Excel
+  $('#exportBtn').on('click', () => {
+    // 1) Cabeceras
+    const headers = [];
+    $('#pc-dt-simple thead th').each((_, th) => {
+      headers.push($(th).text().trim());
+    });
 
-      // 2) Recopilar datos de todas las filas (todas las páginas)
-      const data = [];
-      dt.rows().every(function() {
-        const $tr = $(this.node());
-        const obj = {};
-        // Tomar cada <td> menos el último (status-dropdown)
-        $tr.find('td').each(function(i) {
-          if (i < headers.length - 1) {
-            obj[ headers[i] ] = $(this).text().trim();
-          }
-        });
-        // Leer valor actual del select de estado
-        obj['Status'] = $tr.find('.status-select').val() || '';
-        data.push(obj);
+    // 2) Filas de datos
+    const data = [ headers ];
+    table.rows().every(function(){
+      const $row = $(this.node());
+      const rowArr = [];
+
+      $row.find('td').each((i, td) => {
+        const $td = $(td);
+
+        // si es la celda de Status, tomar el valor seleccionado
+        const $sel = $td.find('select.status-select');
+        if ($sel.length) {
+          rowArr.push($sel.val());
+        } else {
+          rowArr.push($td.text().trim());
+        }
       });
 
-      // 3) Generar Workbook y una sola hoja
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(data, { header: headers });
-      XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
-
-      // 4) Descargar archivo
-      XLSX.writeFile(wb, 'warehouse_inventory.xlsx');
+      data.push(rowArr);
     });
+
+    // 3) Generar libro y descargar
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Warehouse');
+    XLSX.writeFile(wb, 'warehouse_inventory.xlsx');
   });
-</script>
 
 
-<!--
-<script>
+  // 5) Función para aplicar filtros
+  async function aplicarFiltrosAvanzados() {
+    const container = $('#containerFilter').val().trim();
+    const op        = $('#OpFilter').val().trim();
+    const rango     = $('#rangoFechas').val().trim();
+    const params    = new URLSearchParams();
 
-// Función para inicializar listeners de status
-function initStatusListeners() {
-    document.querySelectorAll('.status-select').forEach(select => {
-        select.removeEventListener('change', handleStatusChange); // Eliminar existentes
-        select.addEventListener('change', handleStatusChange);
-    });
-}
-
-function handleStatusChange() {
-    const id = this.getAttribute('data-id');
-    const value = this.value;
-    actualizarStatus(id, value);
-}
-
-async function aplicarFiltrosAvanzados() {
-
-const container = document.getElementById('containerFilter').value;
-const rango = document.getElementById('rangoFechas').value.trim();
-
-const params = new URLSearchParams();
-if (container) params.append('container', container);
-
-if (rango) {
-    const partes = rango.split(' a ');
-    if (partes.length === 2) {
-        const [desde, hasta] = partes;
-        params.append('dateFrom', desde);
-        params.append('dateTo', hasta);
+    if (container) params.append('container', container);
+    if (op)        params.append('op', op);
+    if (rango) {
+      const [f,t] = rango.split(' a ').map(s=>s.trim());
+      params.append('dateFrom', toISODate(f));
+      params.append('dateTo',   toISODate(t));
     }
-}
 
-try {
-    const res = await fetch(`../api/filters/fetchPanelPL.php?${params.toString()}`);
-    if (!res.ok) throw new Error(res.statusText);
-    const rows = await res.json();
-
-    const tbody = document.querySelector('#pc-dt-simple tbody');
-    if (dt) {
-        dt.destroy();
-        $('.pagination-wrapper').remove();
-    }
-    tbody.innerHTML = '';
-
-    rows.forEach(row => {
-        const tr = `
-        <tr>
-            <td>${row.NUM_OP || row['Num OP'] || ''}</td>
-            <td>${row.Number_Container || ''}</td>
-            <td>${row.Entry_Date || ''}</td>
-            <td>${row.recibo_almacen || ''}</td>
-            <td>${row.Lot_Number || ''}</td>
-            <td>${row.Booking_BK || ''}</td>
-            <td>${row.Number_Commercial_Invoice || ''}</td>
-            <td>${row.Code_Product_EC || ''}</td>
-            <td>${row.Description || ''}</td>
-            <td>${row.Qty || row['Qty_Box'] || 0}</td>
-            <td>${row.Unit_Value || ''}</td>
-            <td>${row.Value || ''}</td>
-            <td>${row.Unit || ''}</td>
-            <td>${row.Length_in || ''}</td>
-            <td>${row.Broad_in || ''}</td>
-            <td>${row.Height_in || ''}</td>
-            <td>${row.Weight_lb || ''}</td>
-            <td>
-                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
-                        data-id="${row.id || row['ITEM #'] || ''}">
-                    <option value="Cargado" ${row.Status === 'Cargado' || row.STATUS === 'Cargado' ? 'selected' : ''}>Cargado</option>
-                    <option value="En Almacén" ${row.Status === 'En Almacén' || row.STATUS === 'En Almacén' ? 'selected' : ''}>En Almacén</option>
-                </select>
-            </td>
-        </tr>`;
-        tbody.insertAdjacentHTML('beforeend', tr);
-    });
-    initDataTable();
-
-    initStatusListeners();
-    initEditButtons();
-    const modalEl = document.getElementById('filterModal');
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    modal?.hide();
-
-} catch (err) {
-    console.error('Error al cargar datos:', err);
-    Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
-}
-}
-
-function formatDate(dateString) {
-if (!dateString) return '';
-const date = new Date(dateString);
-return isNaN(date) ? '' : 
-    `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
-}
-
-async function limpiarFiltrosAvanzados() {
-  document.getElementById('containerFilter').value = '';
-  document.getElementById('rangoFechas').value = '';
-
-  try {
-      const res = await fetch(`../api/filters/fetchPanelPL.php`);
+    try {
+      const res  = await fetch(`../api/filters/fetchWarehouse.php?${params.toString()}`);
       if (!res.ok) throw new Error(res.statusText);
       const rows = await res.json();
 
@@ -810,46 +764,60 @@ async function limpiarFiltrosAvanzados() {
            </select>`
         ]);
       });
-      initDataTable();
+      table.draw();
 
+      // cierra modal y re-ata handlers
+      bootstrap.Modal.getInstance($('#filterModal')[0])?.hide();
       initStatusListeners();
-      initEditButtons();
-      const modalEl = document.getElementById('filterModal');
-      const modal = bootstrap.Modal.getInstance(modalEl);
-      modal?.hide();
 
-  } catch (err) {
-      console.error('Error al cargar datos:', err);
-      Swal.fire('Error', 'No se pudieron resetear los filtros', 'error');
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
+    }
   }
-}
 
-// Inicialización al cargar la página
-document.addEventListener('DOMContentLoaded', () => {
-initStatusListeners();
-initEditButtons();
-});
+  // 6) Función para limpiar filtros
+  async function limpiarFiltrosAvanzados() {
+    $('#containerFilter, #OpFilter').val('');
+    const fp = document.getElementById('rangoFechas')._flatpickr;
+    if (fp) fp.clear();
+    await aplicarFiltrosAvanzados();
+  }
 
-// Función para botones de edición (ejemplo básico)
-function initEditButtons() {
-document.querySelectorAll('.btn-edit-excel').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const packingId = this.dataset.packingId;
-        const excelPath = this.dataset.excelPath;
-        // Lógica de edición aquí
-        console.log('Editar:', packingId, excelPath);
+  // 7) Re-ata listener para los selects de Status
+  function initStatusListeners() {
+    document.querySelectorAll('.status-select').forEach(sel => {
+      sel.onchange = async function() {
+        try {
+          Swal.fire({ title:'Actualizando...', didOpen: ()=> Swal.showLoading(), allowOutsideClick:false });
+          const resp = await fetch('../api/dispatch_status.php', {
+            method: 'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body: JSON.stringify({
+              container: this.dataset.container,
+              invoice:   this.dataset.invoice,
+              value:     this.value
+            })
+          });
+          const json = await resp.json();
+          Swal.close();
+          if (json.success) {
+            Swal.fire({ icon:'success', title: json.message, toast:true, position:'top-end', timer:1500 });
+          } else {
+            throw new Error(json.error || 'Error');
+          }
+        } catch (e) {
+          Swal.close();
+          Swal.fire('Error', e.message, 'error');
+        }
+      };
     });
+  }
+
+  // 8) Arranca el listener la primera vez
+  initStatusListeners();
 });
-}
 </script>
--->
-
-
-
-
-
-
-
 
 
 
@@ -899,3 +867,8 @@ document.querySelectorAll('.btn-edit-excel').forEach(btn => {
   </body>
   <!-- [Body] end -->
 </html>
+
+
+<?php
+
+?>
