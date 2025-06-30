@@ -9,27 +9,79 @@ try {
     }
 
     $data = json_decode(file_get_contents('php://input'), true);
-    $cajas    = intval($data['cajas']    ?? 0);
-    $palets   = intval($data['palets']   ?? 0);
-    $lote     = trim($data['lote']       ?? '');
-    $po       = trim($data['po']         ?? '');
-    $desc     = trim($data['descripcion']?? '');
-    $invoice  = trim($data['invoice']    ?? '');
-    $fecha    = trim($data['fecha_ingreso'] ?? '');
-    $receive  = trim($data['warehouse_receive'] ?? '');
+    $fechaEntrada = trim($data['fecha_entrada'] ?? '');
+    $fechaSalida  = trim($data['fecha_salida'] ?? '');
+    $recibo       = trim($data['recibo_almacen'] ?? '');
+    $estado       = trim($data['estado'] ?? '');
+    $numeroFactura= trim($data['numero_factura'] ?? '');
+    $numeroLote   = trim($data['numero_lote'] ?? '');
+    $notas        = trim($data['notas'] ?? '');
+    $ordenCompra  = trim($data['orden_compra'] ?? '');
+    $numeroParte  = trim($data['numero_parte'] ?? '');
+    $descripcion  = trim($data['descripcion'] ?? '');
+    $modelo       = trim($data['modelo'] ?? '');
+    $cantidad     = intval($data['cantidad'] ?? 0);
+    $valorUnit    = $data['valor_unitario'] === '' ? null : floatval(str_replace(',', '.', $data['valor_unitario']));
+    $valor        = $data['valor'] === '' ? null : floatval(str_replace(',', '.', $data['valor']));
+    $unidad       = trim($data['unidad'] ?? '');
+    $longitudIn   = $data['longitud'] === '' ? null : floatval(str_replace(',', '.', $data['longitud']));
+    $anchoIn      = $data['ancho'] === '' ? null : floatval(str_replace(',', '.', $data['ancho']));
+    $alturaIn     = $data['altura'] === '' ? null : floatval(str_replace(',', '.', $data['altura']));
+    $pesoLb       = $data['peso'] === '' ? null : floatval(str_replace(',', '.', $data['peso']));
 
-    if ($invoice === '' || $fecha === '') {
+    if ($numeroFactura === '' || $fechaEntrada === '') {
         echo json_encode(['success' => false, 'message' => 'Datos incompletos']);
         exit;
     }
 
     $stmt = $conexion->prepare(
-        "INSERT INTO dispatch (cantidad, palets, numero_lote, numero_orden_compra, descripcion, numero_factura, fecha_entrada, recibo_almacen, estado) VALUES (?,?,?,?,?,?,?,?, 'Cargado')"
+        "INSERT INTO dispatch (
+            fecha_entrada,
+            fecha_salida,
+            recibo_almacen,
+            estado,
+            numero_factura,
+            numero_lote,
+            notas,
+            numero_orden_compra,
+            numero_parte,
+            descripcion,
+            modelo,
+            cantidad,
+            valor_unitario,
+            valor,
+            unidad,
+            longitud_in,
+            ancho_in,
+            altura_in,
+            peso_lb
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
     );
     if (!$stmt) {
         throw new Exception('Error en prepare: ' . $conexion->error);
     }
-    $stmt->bind_param('iissssss', $cajas, $palets, $lote, $po, $desc, $invoice, $fecha, $receive);
+    $stmt->bind_param(
+        'ssssiisisssiddsdddd',
+        $fechaEntrada,
+        $fechaSalida,
+        $recibo,
+        $estado,
+        $numeroFactura,
+        $numeroLote,
+        $notas,
+        $ordenCompra,
+        $numeroParte,
+        $descripcion,
+        $modelo,
+        $cantidad,
+        $valorUnit,
+        $valor,
+        $unidad,
+        $longitudIn,
+        $anchoIn,
+        $alturaIn,
+        $pesoLb
+    );
     $stmt->execute();
     $stmt->close();
 

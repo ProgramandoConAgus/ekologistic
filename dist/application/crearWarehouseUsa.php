@@ -358,14 +358,6 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <label class="form-label">Peso (lb)</label>
         <input type="number" name="peso" step="0.01" class="form-control">
       </div>
-      <div class="col-md-4">
-        <label class="form-label">Cantidad de Cajas</label>
-        <input type="number" name="cantidad_cajas" class="form-control">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Cantidad de Palets</label>
-        <input type="number" name="cantidad_palets" class="form-control">
-      </div>
     </div>
 
     <div class="mt-4 d-flex justify-content-between">
@@ -488,14 +480,25 @@ document.addEventListener('DOMContentLoaded', () => {
   form.addEventListener('submit', e => {
     e.preventDefault();
     const data = {
-      cajas: parseInt(form.cantidad_cajas.value) || 0,
-      palets: parseInt(form.cantidad_palets.value) || 0,
-      lote: form.numero_lote.value.trim(),
-      po: form.orden_compra.value.trim(),
+      fecha_entrada: form.fecha_entrada.value,
+      fecha_salida: form.fecha_salida.value,
+      recibo_almacen: form.recibo_almacen.value.trim(),
+      estado: form.estado.value.trim(),
+      numero_factura: form.numero_factura.value.trim(),
+      numero_lote: form.numero_lote.value.trim(),
+      notas: form.notas.value.trim(),
+      orden_compra: form.orden_compra.value.trim(),
+      numero_parte: form.numero_parte.value.trim(),
       descripcion: form.descripcion.value.trim(),
-      invoice: form.numero_factura.value.trim(),
-      fecha_ingreso: form.fecha_entrada.value,
-      warehouse_receive: form.recibo_almacen.value.trim()
+      modelo: form.modelo.value.trim(),
+      cantidad: parseInt(form.cantidad.value) || 0,
+      valor_unitario: form.valor_unitario.value.trim(),
+      valor: form.valor.value.trim(),
+      unidad: form.unidad.value.trim(),
+      longitud: form.longitud.value,
+      ancho: form.ancho.value,
+      altura: form.altura.value,
+      peso: form.peso.value
     };
 
     fetch('../api/warehouseusa/guardar_manual.php', {
