@@ -15,7 +15,7 @@ try {
     $estado       = trim($data['estado'] ?? '');
     $numeroFactura= trim($data['numero_factura'] ?? '');
     $numeroLote   = trim($data['numero_lote'] ?? '');
-    $notas        = trim($data['notas'] ?? '');
+    $palets       = trim($data['palets'] ?? '');
     $ordenCompra  = trim($data['orden_compra'] ?? '');
     $numeroParte  = trim($data['numero_parte'] ?? '');
     $descripcion  = trim($data['descripcion'] ?? '');
@@ -68,7 +68,7 @@ try {
         $estado,
         $numeroFactura,
         $numeroLote,
-        $notas,
+        $palets,
         $ordenCompra,
         $numeroParte,
         $descripcion,

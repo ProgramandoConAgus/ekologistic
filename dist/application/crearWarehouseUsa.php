@@ -279,7 +279,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 <div class="container mt-5">
   <div class="card shadow-sm">
-    <form method="POST" action="guardar_warehouse.php">
+    <form method="POST" action="#">
   <div class="card-body">
     <div class="row g-3">
       <div class="col-md-4">
@@ -307,8 +307,8 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <input type="text" name="numero_lote" class="form-control">
       </div>
       <div class="col-md-4">
-        <label class="form-label">Notas</label>
-        <input type="text" name="notas" class="form-control">
+        <label class="form-label">Palets</label>
+        <input type="number" name="palets" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Número de Orden de Compra</label>
@@ -476,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const form = document.querySelector('form[action="guardar_warehouse.php"]');
+  const form = document.querySelector('form[action="#"]');
   form.addEventListener('submit', e => {
     e.preventDefault();
     const data = {
@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
       estado: form.estado.value.trim(),
       numero_factura: form.numero_factura.value.trim(),
       numero_lote: form.numero_lote.value.trim(),
-      notas: form.notas.value.trim(),
+      palets: form.palets.value.trim(),
       orden_compra: form.orden_compra.value.trim(),
       numero_parte: form.numero_parte.value.trim(),
       descripcion: form.descripcion.value.trim(),
