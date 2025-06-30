@@ -10,6 +10,10 @@ $usuario = new Usuario($conexion);
 
 $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
+// Carga manual de Warehouse USA
+$queryManual = "SELECT cajas, palets, lote_produccion, po, descripcion, invoice, fecha_ingreso, warehouse_receive FROM warehouse_usa_manual ORDER BY fecha_ingreso DESC";
+$manualRes = $conexion->query($queryManual);
+
 ?>
 
 <!DOCTYPE html>
@@ -302,6 +306,45 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
       <!-- [ Main Content ] start -->
       <div class="row">
         <div class="col-12">
+          <div class="card table-card mb-4">
+            <div class="card-header"><h5>Carga Manual Warehouse USA</h5></div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Cajas</th>
+                      <th>Palets</th>
+                      <th>Lote</th>
+                      <th>PO</th>
+                      <th>Descripción</th>
+                      <th>Invoice</th>
+                      <th>Fecha Ingreso</th>
+                      <th>Warehouse Receive</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php if($manualRes && $manualRes->num_rows > 0): ?>
+                      <?php while($m = $manualRes->fetch_assoc()): ?>
+                        <tr>
+                          <td><?= htmlspecialchars($m['cajas']) ?></td>
+                          <td><?= htmlspecialchars($m['palets']) ?></td>
+                          <td><?= htmlspecialchars($m['lote_produccion']) ?></td>
+                          <td><?= htmlspecialchars($m['po']) ?></td>
+                          <td><?= htmlspecialchars($m['descripcion']) ?></td>
+                          <td><?= htmlspecialchars($m['invoice']) ?></td>
+                          <td><?= htmlspecialchars($m['fecha_ingreso']) ?></td>
+                          <td><?= htmlspecialchars($m['warehouse_receive']) ?></td>
+                        </tr>
+                      <?php endwhile; else: ?>
+                        <tr><td colspan="8" class="text-center">Sin registros</td></tr>
+                    <?php endif; ?>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           <div class="card table-card">
             <div class="card-body pt-3">
               <div class="d-flex justify-content-end mb-3">

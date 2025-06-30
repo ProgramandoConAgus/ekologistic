@@ -358,6 +358,14 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <label class="form-label">Peso (lb)</label>
         <input type="number" name="peso" step="0.01" class="form-control">
       </div>
+      <div class="col-md-4">
+        <label class="form-label">Cantidad de Cajas</label>
+        <input type="number" name="cantidad_cajas" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Cantidad de Palets</label>
+        <input type="number" name="cantidad_palets" class="form-control">
+      </div>
     </div>
 
     <div class="mt-4 d-flex justify-content-between">
@@ -476,67 +484,36 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const bookingEl   = document.getElementById('bookingSelect');
-  const invoiceEl   = document.getElementById('invoiceSelect');
-  const selectEl    = document.getElementById('incotermSelect');
-  const btnGuardar  = document.querySelector('.btn-success');
+  const form = document.querySelector('form[action="guardar_warehouse.php"]');
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const data = {
+      cajas: parseInt(form.cantidad_cajas.value) || 0,
+      palets: parseInt(form.cantidad_palets.value) || 0,
+      lote: form.numero_lote.value.trim(),
+      po: form.orden_compra.value.trim(),
+      descripcion: form.descripcion.value.trim(),
+      invoice: form.numero_factura.value.trim(),
+      fecha_ingreso: form.fecha_entrada.value,
+      warehouse_receive: form.recibo_almacen.value.trim()
+    };
 
-  btnGuardar.addEventListener('click', () => {
-    const booking    = bookingEl.value.trim();
-    const invoice    = invoiceEl.value.trim();
-    const incotermId = selectEl.value;
-
-    if (!booking || !invoice || !incotermId) {
-      return Swal.fire({
-        icon: 'warning',
-        title: 'Faltan datos',
-        text: 'Completa Booking, Invoice e Incoterm antes de guardar.'
-      });
-    }
-
-    const bloque = document.querySelector(`.incoterm-item[data-incoterm="${incotermId}"]`);
-    if (!bloque) return;
-
-    const items = [];
-    bloque.querySelectorAll('tbody tr').forEach(tr => {
-      const itemId      = parseInt(tr.dataset.itemId, 10);
-      const descripcion = tr.children[0].textContent.trim();
-
-      // Cantidad y valor unitario
-      const rawCant = tr.querySelector('.cantidad').value;
-      const rawVU   = tr.querySelector('.valor-unitario').value;
-
-      // Convertimos formatos con coma decimal a punto decimal
-      const cantidad      = rawCant === '' ? null : parseFloat(rawCant.replace(',', '.')) || 0;
-      const valorUnitario = rawVU   === '' ? null : parseFloat(rawVU.replace(',', '.')) || 0;
-      const valorTotal    = (cantidad || 0) * (valorUnitario || 0);
-
-      items.push({
-        incotermId,
-        itemId,
-        descripcion,
-        cantidad,
-        valorUnitario,
-        valorTotal
-      });
-    });
-
-    fetch('../api/despacho/guardarliquidaciondespacho.php', {
+    fetch('../api/warehouseusa/guardar_manual.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ booking, invoice, items })
+      body: JSON.stringify(data)
     })
     .then(r => r.json())
     .then(resp => {
       if (resp.success) {
-        Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Correcto.' })
-          .then(() => location.reload());
+        Swal.fire({ icon: 'success', title: 'Guardado', text: 'Registro creado' })
+          .then(() => location.href = '../admins/warehouseUsaPanel.php');
       } else {
-        Swal.fire({ icon: 'error', title: 'Error', text: resp.message });
+        Swal.fire({ icon: 'error', title: 'Error', text: resp.message || 'Error' });
       }
     })
     .catch(() => {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Error del servidor.' });
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Error de servidor' });
     });
   });
 });
