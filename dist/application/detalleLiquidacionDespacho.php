@@ -30,6 +30,7 @@ SELECT
   il.NombreItems,
   ii.Cantidad,
   ii.ValorUnitario,
+  ii.Notas,
   (ii.Cantidad * ii.ValorUnitario) AS ValorTotal
 FROM incotermsdespacho i
 JOIN itemsliquidaciondespachoincoterms ii 
@@ -361,6 +362,7 @@ while ($row = $result->fetch_assoc()) {
             <th>Cantidad</th>
             <th>Valor U.</th>
             <th>Valor T.</th>
+            <th>Notas</th>
           </tr>
         </thead>
         <tbody>
@@ -371,6 +373,7 @@ while ($row = $result->fetch_assoc()) {
               <td><?= intval($item['Cantidad']) ?></td>
               <td>$<?= number_format(floatval($item['ValorUnitario']), 2, ',', '.') ?></td>
               <td>$<?= number_format(floatval($item['ValorTotal']),   2, ',', '.') ?></td>
+              <td><?= htmlspecialchars($item['Notas']) ?></td>
             </tr>
           <?php endforeach; ?>
         </tbody>

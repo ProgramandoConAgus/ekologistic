@@ -358,12 +358,12 @@ while ($inc = $res->fetch_assoc()) {
                   <th>Cantidad</th>
                   <th>Valor U.</th>
                   <th>Valor T.</th>
+                  <th>Notas</th>
                   <?php
                    if($inc['IdTipoIncoterm']==3){
                     ?>
                   <th>% Impuesto</th>
                   <th>Valor Impuesto</th>
-                  <th>Notas</th>
                   <?php
                    }
                    ?>
@@ -393,7 +393,10 @@ while ($inc = $res->fetch_assoc()) {
                       <input type="text" class="form-control valor-total" value="0,00" readonly>
                     </div>
                   </td>
-                  <!-- NUEVAS COLUMNAS -->
+                  <td>
+                    <input type="text" class="form-control form-control-sm notas" placeholder="Notas">
+                  </td>
+                    <!-- NUEVAS COLUMNAS -->
                    <?php
                    if($inc['IdTipoIncoterm']==3){
                     ?>
@@ -408,9 +411,6 @@ while ($inc = $res->fetch_assoc()) {
                       <span class="input-group-text">$</span>
                       <input type="text" class="form-control valor-impuesto" value="0,00" readonly>
                     </div>
-                  </td>
-                  <td>
-                    <input type="text" class="form-control form-control-sm notas" placeholder="Notas">
                   </td>
                 </tr>
                 <?php
@@ -433,7 +433,7 @@ while ($inc = $res->fetch_assoc()) {
         <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
           Total General: $0,00
         </h5>
-        <button type="button" class="btn btn-success">Guardar</button>
+        <button id="btnGuardar" type="button" class="btn btn-success">Guardar</button>
       </div>
 
       <!-- Script para mostrar/ocultar -->
@@ -631,12 +631,16 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  const btnGuardar  = document.getElementById('btnGuardar');
   const bookingEl   = document.getElementById('bookingSelect');
   const invoiceEl   = document.getElementById('invoiceSelect');
   const selectEl    = document.getElementById('incotermSelect');
-  const btnGuardar  = document.querySelector('.btn-success');
+
+  if (!btnGuardar) return console.warn('No se encontró #btnGuardar');
 
   btnGuardar.addEventListener('click', () => {
+    console.log('✔ Click en Guardar');    // <–– prueba de que el handler existe
+
     const booking    = bookingEl.value.trim();
     const invoice    = invoiceEl.value.trim();
     const incotermId = selectEl.value;
@@ -649,45 +653,23 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    const bloque = document.querySelector(`.incoterm-item[data-incoterm="${incotermId}"]`);
-    if (!bloque) return;
-
+    // Montas el array de items igual que antes...
     const items = [];
-    bloque.querySelectorAll('tbody tr').forEach(tr => {
-      const itemId      = parseInt(tr.dataset.itemId, 10);
-      const descripcion = tr.children[0].textContent.trim();
+    document.querySelectorAll(`.incoterm-item[data-incoterm="${incotermId}"] tbody tr`)
+      .forEach(tr => {
+        const itemId      = +tr.dataset.itemId;
+        const cantidad    = parseFloat(tr.querySelector('.cantidad').value.replace(',', '.')) || 0;
+        const valorUnit   = parseFloat(
+                             tr.querySelector('.valor-unitario').value
+                               .replace(/\./g,'').replace(',', '.')
+                           ) || 0;
+        const valorTotal  = cantidad * valorUnit;
+        const notas       = (tr.querySelector('.notas')?.value || '').trim();
 
-      // Cantidad y valor unitario
-      const rawCant = tr.querySelector('.cantidad').value;
-      const rawVU   = tr.querySelector('.valor-unitario').value;
-
-      // Seguridad para los últimos 3 campos
-      const impEl    = tr.querySelector('.impuesto');
-      const rawImp   = impEl    ? impEl.value    : '0';
-      const viEl     = tr.querySelector('.valor-impuesto');
-      const rawVI    = viEl     ? viEl.value     : '0';
-      const notasEl  = tr.querySelector('.notas');
-      const rawNotas = notasEl  ? notasEl.value.trim() : '';
-
-      const cantidad      = rawCant === '' ? null : parseFloat(rawCant.replace(',', '.'))      || 0;
-      const valorUnitario = rawVU   === '' ? null : parseFloat(rawVU.replace(',', '.'))       || 0;
-      const valorTotal    = (cantidad || 0) * (valorUnitario || 0);
-      const impuestoPct   = rawImp  === '' ? null : parseFloat(rawImp.replace(',', '.'))      || 0;
-      const valorImpuesto = rawVI   === '' ? null : parseFloat(rawVI.replace(',', '.'))       || 0;
-      const notas         = rawNotas === '' ? null : rawNotas;
-
-      items.push({
-        incotermId,
-        itemId,
-        descripcion,
-        cantidad,
-        valorUnitario,
-        valorTotal,
-        impuestoPct,
-        valorImpuesto,
-        notas
+        items.push({ itemId, cantidad, valorUnitario: valorUnit, valorTotal, notas });
       });
-    });
+
+    console.log({ booking, invoice, incotermId, items });  // <–– valida en consola
 
     fetch('../api/imports/guardarliquidacionimport.php', {
       method: 'POST',
@@ -696,19 +678,22 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .then(r => r.json())
     .then(resp => {
+      console.log('Respuesta del servidor:', resp);
       if (resp.success) {
-        Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Correcto.' })
+        Swal.fire('¡Guardado!', '', 'success')
           .then(() => location.reload());
       } else {
-        Swal.fire({ icon: 'error', title: 'Error', text: resp.message });
+        Swal.fire('Error', resp.message, 'error');
       }
     })
-    .catch(() => {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Error del servidor.' });
+    .catch(err => {
+      console.error(err);
+      Swal.fire('Error', 'No se pudo conectar al servidor.', 'error');
     });
   });
 });
 </script>
+
 
 
 

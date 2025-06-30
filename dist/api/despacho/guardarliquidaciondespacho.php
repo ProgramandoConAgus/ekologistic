@@ -16,7 +16,7 @@ try {
     // 1) Inserto el despacho principal
     $stmtD = $conexion->prepare(
       "INSERT INTO despacho (Booking_BK, Number_Commercial_Invoice, creation_date, status)
-       VALUES (?, ?, NOW(), 'Cargado')"
+       VALUES (?, ?, NOW(), 1)"
     );
     $stmtD->bind_param("ss", $booking, $invoice);
     $stmtD->execute();
@@ -25,45 +25,37 @@ try {
 
     // 2) Recorro los items
     foreach ($items as $item) {
-        $incotermId     = intval($item['incotermId']);
-        $itemId         = intval($item['itemId']);             // puede venir 0 para New Delivery
-        $cantidad       = floatval($item['cantidad']);
-        $valorUnitario  = floatval($item['valorUnitario']);
-        $valorTotal     = floatval($item['valorTotal']);
-        $descripcion    = trim($item['descripcion']);
+    $idItem         = intval($item['itemId']);
+    $cantidad       = floatval($item['cantidad']);
+    $valorUnitario  = floatval($item['valorUnitario']);
+    $valorTotal     = floatval($item['valorTotal']);
+    $notas          = trim($item['notas'] ?? '');
 
-        // ——————————
-        // Si es “New Delivery” (itemId = 0), lo creo en itemsliquidaciondespacho
-        if ($itemId <= 0) {
-            $stmtNew = $conexion->prepare(
-              "INSERT INTO itemsliquidaciondespacho (IdTipoIncoterm, NombreItems)
-               VALUES (?, ?)"
-            );
-            if (!$stmtNew) {
-                throw new Exception("Error preparando INSERT nuevo item: " . $conexion->error);
-            }
-            $stmtNew->bind_param("is", $incotermId, $descripcion);
-            $stmtNew->execute();
-            $itemId = $conexion->insert_id;  // ahora tenemos un ID válido
-            $stmtNew->close();
-        }
+    // Preparamos INSERT con columna Notas
+    $stmtItemInc = $conexion->prepare(
+      "INSERT INTO itemsliquidaciondespachoincoterms
+       (IdItemsLiquidacionDespacho, Cantidad, ValorUnitario, ValorTotal, Notas)
+       VALUES (?, ?, ?, ?, ?)"
+    );
+    if (!$stmtItemInc) {
+        throw new Exception("Error preparando INSERT en itemsliquidaciondespachoincoterms: " . $conexion->error);
+    }
 
-        // 3) Inserto en itemsliquidaciondespachoincoterms
-        $stmtII = $conexion->prepare(
-          "INSERT INTO itemsliquidaciondespachoincoterms
-           (IdItemsLiquidacionDespacho, Cantidad, ValorUnitario, ValorTotal)
-           VALUES (?, ?, ?, ?)"
-        );
-        if (!$stmtII) {
-            throw new Exception("Error preparando INSERT en itemsliquidaciondespachoincoterms: " . $conexion->error);
-        }
-        $stmtII->bind_param("iddd", $itemId, $cantidad, $valorUnitario, $valorTotal);
-        $stmtII->execute();
-        $idIncotermItem = $conexion->insert_id;
-        $stmtII->close();
+    // Types: i = integer, d = double, s = string
+    $stmtItemInc->bind_param(
+        "iddds",
+        $idItem,
+        $cantidad,
+        $valorUnitario,
+        $valorTotal,
+        $notas    // <-- aquí enlazamos la nota
+    );
 
-        // 4) Inserto en incotermsdespacho para vincular con el despacho
-        $stmtID = $conexion->prepare(
+    $stmtItemInc->execute();
+    $idItemsIncoterms = $conexion->insert_id;
+
+        // 3) Insert en incotermdespacho (vincula item-incoterm con despacho)
+        $stmtInc = $conexion->prepare(
           "INSERT INTO incotermsdespacho
            (IdItemsLiquidacionDespachoIncoterm, IdDespacho)
            VALUES (?, ?)"

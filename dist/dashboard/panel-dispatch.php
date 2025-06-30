@@ -488,72 +488,91 @@ try {
           </div>
         </div>
         <div class="card-body">
-        <div class="table-responsive">
-          <table id="pc-dt-simple" class="table table-hover">
-            <thead>
-              <tr>
-                <th>NUM OP</th>
-                <th>Number_Container</th>
-                <th>Booking_BK</th>
-                <th>PO Number</th>
-                <th>Entry Date</th>
-                <th>Dispatch Date</th>
-                <th>Code Product EC</th>
-                <th>Description</th>
-                <th>Qty</th>
-                <th>Unit Value</th>
-                <th>Value</th>
-                <th>Unit</th>
-                <th>Length (in)</th>
-                <th>Broad (in)</th>
-                <th>Height (in)</th>
-                <th>Weight (lb)</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php while ($row = $result->fetch_assoc()): ?>
-              <tr>
-                <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
-                <td><?= htmlspecialchars($row['Number_Container']) ?></td>
-                <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-                <td>
-                 <input
-  type="text"
-  class="form-control form-control-sm po-input"
-  data-id="<?= $row['idItem'] ?>"
-  value="<?= htmlspecialchars($row['Number_PO']) ?>"
->
-                </td>
-                <td><?= htmlspecialchars($row['Entry_Date']) ?></td>
-                <td>
-                  <input
-                    type="text"
-                    class="form-control form-control-sm dispatch-date-picker"
-                    data-id="<?= $row['id'] ?>"
-                    value="<?= htmlspecialchars($row['Out_Date']) ?>"
-                    placeholder="YYYY-MM-DD"
-                  >
-                </td>
-                <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
-                <td><?= htmlspecialchars($row['Description']) ?></td>
-                <td><?= htmlspecialchars($row['Qty']) ?></td>
-                <td><?= htmlspecialchars($row['Unit_Value']) ?></td>
-                <td><?= htmlspecialchars($row['Value']) ?></td>
-                <td><?= htmlspecialchars($row['Unit']) ?></td>
-                <td><?= htmlspecialchars($row['Length_in']) ?></td>
-                <td><?= htmlspecialchars($row['Broad_in']) ?></td>
-                <td><?= htmlspecialchars($row['Height_in']) ?></td>
-                <td><?= htmlspecialchars($row['Weight_lb']) ?></td>
-                <td >
-                  <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" data-id="<?= $row['id'] ?>">
-                    <option value="Cargado" <?= $row['Status'] == 'Cargado' ? 'selected' : '' ?>>Cargado</option>
-                  </select>
-                </td>
-              </tr>
-              <?php endwhile; ?>
-            </tbody>
-          </table>
+          <div class="table-responsive">
+            <table id="pc-dt-simple" class="table table-hover">
+              <thead>
+                <tr>
+                  <th>NUM OP</th>
+                  <th>Number_Container</th>
+                  <th>Booking_BK</th>
+                  <th>PO Number</th>
+                  <th>Lot Number</th>
+                  <th>Warehouse Receive</th>
+                  <th>Entry Date</th>
+                  <th>Dispatch Date</th>
+                  <th>Code Product EC</th>
+                  <th>Description</th>
+                  <th>Qty</th>
+                  <th>Unit Value</th>
+                  <th>Value</th>
+                  <th>Unit</th>
+                  <th>Length (in)</th>
+                  <th>Broad (in)</th>
+                  <th>Height (in)</th>
+                  <th>Weight (lb)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php while ($row = $result->fetch_assoc()): ?>
+                <tr>
+                  <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
+                  <td><?= htmlspecialchars($row['Number_Container']) ?></td>
+                  <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
+                  <td>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm po-input"
+                      data-id="<?= $row['idItem'] ?>"
+                      value="<?= htmlspecialchars($row['Number_PO']) ?>">
+                  </td>
+                  <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
+                  <td><?= htmlspecialchars($row['Receive']) ?></td>
+
+                  <!-- Entry Date con fallback -->
+                  <td>
+                    <?= !empty($row['Entry_Date'])
+                        ? htmlspecialchars($row['Entry_Date'])
+                        : '<span class="text-muted">no cargado</span>'
+                    ?>
+                  </td>
+
+                  <!-- Dispatch Date (Out_Date) con fallback -->
+                  <td>
+                    <?= !empty($row['Out_Date'])
+                        ? htmlspecialchars($row['Out_Date'])
+                        : '<span class="text-muted">no cargado</span>'
+                    ?>
+                  </td>
+
+                  <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
+                  <td><?= htmlspecialchars($row['Description']) ?></td>
+                  <td><?= htmlspecialchars($row['Qty']) ?></td>
+                  <td><?= htmlspecialchars($row['Unit_Value']) ?></td>
+                  <td><?= htmlspecialchars($row['Value']) ?></td>
+                  <td><?= htmlspecialchars($row['Unit']) ?></td>
+                  <td><?= htmlspecialchars($row['Length_in']) ?></td>
+                  <td><?= htmlspecialchars($row['Broad_in']) ?></td>
+                  <td><?= htmlspecialchars($row['Height_in']) ?></td>
+                  <td><?= htmlspecialchars($row['Weight_lb']) ?></td>
+                  <td>
+                    <select
+                    class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
+                      data-id="<?= $row['id'] ?>"
+                      data-container="<?= htmlspecialchars($row['Number_Container']) ?>">
+                      <option value="Cargado" <?= $row['Status'] === 'Cargado' ? 'selected' : '' ?>>
+                        Cargado
+                      </option>
+                      <option value="En Almacén" <?= $row['Status'] === 'En Almacén' ? 'selected' : '' ?>>
+                        En Almacén
+                      </option>
+                    </select>
+                  </td>
+                </tr>
+                <?php endwhile; ?>
+              </tbody>
+            </table>
+          </div>
         </div>
 
 
@@ -722,179 +741,165 @@ window.addEventListener('resize', function() {
 });
 </script>
 
-
+<style>
+.status-select {
+  min-width: 100px;    /* ó el que necesites */
+}
+</style>
 
 
 
 <script>
+  let table;
 
-// Función para inicializar listeners de status
-function initStatusListeners() {
-    document.querySelectorAll('.status-select').forEach(select => {
-        select.removeEventListener('change', handleStatusChange); // Eliminar existentes
-        select.addEventListener('change', handleStatusChange);
-    });
-}
-
-function handleStatusChange() {
-    const id = this.getAttribute('data-id');
-    const value = this.value;
-    actualizarStatus(id, value);
-}
-
-async function aplicarFiltrosAvanzados() {
-
-const container = document.getElementById('containerFilter').value;
-const rango = document.getElementById('rangoFechas').value.trim();
-
-const params = new URLSearchParams();
-if (container) params.append('container', container);
-
-if (rango) {
-    const partes = rango.split(' a ');
-    if (partes.length === 2) {
-        const [desde, hasta] = partes;
-        params.append('dateFrom', desde);
-        params.append('dateTo', hasta);
-    }
-}
-
-try {
-    const res = await fetch(`../api/filters/fetchPanelPL.php?${params.toString()}`);
-    if (!res.ok) throw new Error(res.statusText);
-    const rows = await res.json();
-
-    const tbody = document.querySelector('#pc-dt-simple tbody');
-    if (dt) {
-        dt.destroy();
-        $('.pagination-wrapper').remove();
-    }
-    tbody.innerHTML = '';
-
-    rows.forEach(row => {
-        const tr = `
-        <tr>
-            <td>${row['Num OP'] || row.NUM_OP || ''}</td>
-            <td>${row['Number_Container'] || ''}</td>
-            <td>${row['Booking_BK'] || ''}</td>
-            <td>${row['Number_PO'] || ''}</td>
-            <td>${row.Entry_Date || ''}</td>
-            <td>${row.Out_Date || ''}</td>
-            <td>${row.Code_Product_EC || ''}</td>
-            <td>${row.Description || ''}</td>
-            <td>${row.Qty || row['Qty_Box'] || 0}</td>
-            <td>${row.Unit_Value || ''}</td>
-            <td>${row.Value || ''}</td>
-            <td>${row.Unit || ''}</td>
-            <td>${row.Length_in || ''}</td>
-            <td>${row.Broad_in || ''}</td>
-            <td>${row.Height_in || ''}</td>
-            <td>${row.Weight_lb || ''}</td>
-            <td>
-                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
-                        data-id="${row.id || row['ITEM #'] || ''}">
-                    <option value="Cargado" ${row.Status === 'Cargado' || row.STATUS === 'Cargado' ? 'selected' : ''}>Cargado</option>
-                </select>
-            </td>
-        </tr>`;
-        tbody.insertAdjacentHTML('beforeend', tr);
-    });
-    initDataTable();
-
-    initStatusListeners();
-    initEditButtons();
-    const modalEl = document.getElementById('filterModal');
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    modal?.hide();
-
-} catch (err) {
-    console.error('Error al cargar datos:', err);
-    Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
-}
-}
-
-function formatDate(dateString) {
-if (!dateString) return '';
-const date = new Date(dateString);
-return isNaN(date) ? '' : 
-    `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
-}
-
-async function limpiarFiltrosAvanzados() {
-  document.getElementById('containerFilter').value = '';
-  document.getElementById('rangoFechas').value = '';
-
-  try {
-      const res = await fetch(`../api/filters/fetchPanelPL.php`);
-      if (!res.ok) throw new Error(res.statusText);
-      const rows = await res.json();
-
-      const tbody = document.querySelector('#pc-dt-simple tbody');
-      if (dt) {
-        dt.destroy();
-        $('.pagination-wrapper').remove();
-      }
-      tbody.innerHTML = '';
-
-      rows.forEach(row => {
-        const tr = `
-        <tr>
-            <td>${row['Num OP'] || row.NUM_OP || ''}</td>
-            <td>${row['Number_Container'] || ''}</td>
-            <td>${row['Booking_BK'] || ''}</td>
-            <td>${row['Number_PO'] || ''}</td>
-            <td>${row.Entry_Date || ''}</td>
-            <td>${row.Out_Date || ''}</td>
-            <td>${row.Code_Product_EC || ''}</td>
-            <td>${row.Description || ''}</td>
-            <td>${row.Qty || row['Qty_Box'] || 0}</td>
-            <td>${row.Unit_Value || ''}</td>
-            <td>${row.Value || ''}</td>
-            <td>${row.Unit || ''}</td>
-            <td>${row.Length_in || ''}</td>
-            <td>${row.Broad_in || ''}</td>
-            <td>${row.Height_in || ''}</td>
-            <td>${row.Weight_lb || ''}</td>
-            <td>
-                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
-                        data-id="${row.id || row['ITEM #'] || ''}">
-                    <option value="Cargado" ${row.Status === 'Cargado' || row.STATUS === 'Cargado' ? 'selected' : ''}>Cargado</option>
-                </select>
-            </td>
-        </tr>`;
-        tbody.insertAdjacentHTML('beforeend', tr);
-      });
-      initDataTable();
-
-      initStatusListeners();
-      initEditButtons();
-      const modalEl = document.getElementById('filterModal');
-      const modal = bootstrap.Modal.getInstance(modalEl);
-      modal?.hide();
-
-  } catch (err) {
-      console.error('Error al cargar datos:', err);
-      Swal.fire('Error', 'No se pudieron resetear los filtros', 'error');
+  // Helper: convierte "d/m/Y" o "Y-m-d" a "Y-m-d"
+  function toISODate(str) {
+    let d, m, y;
+    if (str.includes('/')) [d, m, y] = str.split('/');
+    else                  [y, m, d] = str.split('-');
+    return `${y.padStart(4,'0')}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
   }
-}
 
-// Inicialización al cargar la página
-document.addEventListener('DOMContentLoaded', () => {
-initStatusListeners();
-initEditButtons();
-});
 
-// Función para botones de edición (ejemplo básico)
-function initEditButtons() {
-document.querySelectorAll('.btn-edit-excel').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const packingId = this.dataset.packingId;
-        const excelPath = this.dataset.excelPath;
-        // Lógica de edición aquí
-        console.log('Editar:', packingId, excelPath);
-    });
-});
-}
+
+  // Solo UNA inicialización de DataTable
+ $(document).ready(function(){
+  // 1) Inicializa DataTable UNA sola vez
+  table = $('#pc-dt-simple').DataTable({
+    scrollX:      true,
+    paging:       true,
+    pageLength:   10,
+    lengthChange: false,
+    searching:    false,
+    info:         false,
+    ordering:     false,
+    language:     { paginate:{ previous:'«', next:'»' } },
+    dom:          't<"pagination-wrapper"p>'
+  });
+  // mueve el paginador dentro del wrapper
+  $('.pagination-wrapper')
+    .appendTo($('#pc-dt-simple').closest('.table-responsive'));
+
+  // 2) flatpickr
+  flatpickr('#rangoFechas',{ mode:'range', locale:'es', dateFormat:'Y-m-d' });
+
+  // 3) Botones de filtro
+  $('#btnApplyFilters').on('click', aplicarFiltrosAvanzados);
+  $('#btnClearFilters').on('click', limpiarFiltrosAvanzados);
+
+  $('#pc-dt-simple tbody')
+    .off('change', '.status-select')    // elimina viejos (por si acaso)
+    .on('change', '.status-select', handleStatusChange);
+
+  $('#pc-dt-simple tbody')
+  .off('change', '.po-input')
+  .on('change', '.po-input', handlePoChange);
+
+
+  });
+
+    
+    async function handleStatusChange() {
+      try {
+        const res  = await fetch('../api/actualizar_status_dispatch.php', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ id:this.dataset.id, value:this.value })
+        });
+        const json = await res.json();
+        Swal.fire(
+          json.success ? 'Éxito' : 'Error',
+          json.success ? json.message : json.error,
+          json.success ? 'success' : 'error'
+        );
+      } catch (err) {
+        Swal.fire('Error de red','','error');
+      }
+    }
+
+
+
+    async function handlePoChange() {
+      const id = this.dataset.id;
+      const po = this.value.trim();
+      try {
+        const res  = await fetch('../api/update_dispatch_po.php', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ id, po })
+        });
+        const json = await res.json();
+        Swal.fire(
+          json.success ? 'Éxito' : 'Error',
+          json.success ? json.message : json.error,
+          json.success ? 'success' : 'error'
+        );
+      } catch {
+        Swal.fire('Error de red','','error');
+      }
+    }
+
+  // Función de aplicar filtros (igual que tenías)
+  async function aplicarFiltrosAvanzados() {
+    const op    = $('#OpFilter').val().trim();
+    const lot   = $('#LotFilter').val().trim();
+    const rango = $('#rangoFechas').val().trim();
+    const params = new URLSearchParams();
+    if (op)    params.append('op', op);
+    if (lot)   params.append('lot', lot);
+    if (rango) {
+      const [f,t] = rango.split(' a ').map(s=>s.trim());
+      params.append('dateFrom', toISODate(f));
+      params.append('dateTo',   toISODate(t));
+    }
+
+    try {
+      const res   = await fetch(`../api/filters/fetchDispatch.php?${params}`);
+      if (!res.ok) throw new Error(res.statusText);
+      const items = await res.json();
+      table.clear();
+      items.forEach(c => {
+        table.row.add([
+          c.NUM_OP,
+          c.Number_Container,
+          c.Booking_BK,
+          `<input type="text" class="form-control form-control-sm po-input" data-id="${c.idItem}" value="${c.Number_PO||''}">`,
+          c.Lot_Number,
+          c.Receive,
+          c.Entry_Date || '<span class="text-muted">no cargado</span>',
+          c.Out_Date   || '<span class="text-muted">no cargado</span>',
+          c.Code_Product_EC,
+          c.Description,
+          c.Qty,
+          c.Unit_Value,
+          c.Value,
+          c.Unit,
+          c.Length_in,
+          c.Broad_in,
+          c.Height_in,
+          c.Weight_lb,
+          `<select class="form-select form-select-sm status-select" data-id="${c.id}">
+            <option value="Cargado"${c.Status==='Cargado'?' selected':''}>Cargado</option>
+            <option value="En Almacén"${c.Status==='En Almacén'?' selected':''}>En Almacén</option>
+          </select>`
+        ]);
+      });
+      table.draw();
+      bootstrap.Modal.getInstance($('#filterModal')[0]).hide();
+      // vuelves a enganchar handlers sobre los nuevos inputs
+    } catch (err) {
+      console.error('Error al aplicar filtros:', err);
+    }
+  }
+
+  // Limpia filtros y llama a la función anterior
+  async function limpiarFiltrosAvanzados() {
+    $('#OpFilter, #LotFilter').val('');
+    const fp = document.getElementById('rangoFechas')._flatpickr;
+    if (fp) fp.clear();
+    await aplicarFiltrosAvanzados();
+  }
+
 </script>
 
 

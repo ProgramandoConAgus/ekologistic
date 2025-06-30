@@ -322,7 +322,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                     <?php
                     $query = "SELECT DespachoID, Booking_BK, Number_Commercial_Invoice, status, creation_date 
           FROM despacho 
-          WHERE status != 2 
+          WHERE status = 1 
           ORDER BY creation_date";
                     $result = $conexion->query($query);
 

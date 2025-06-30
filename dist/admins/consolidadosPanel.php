@@ -329,6 +329,7 @@ LEFT JOIN (
   FROM container
   GROUP BY Number_Commercial_Invoice
 ) c ON e.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+WHERE e.status IN (2,3)
 
 UNION ALL
 
@@ -346,6 +347,7 @@ LEFT JOIN (
   FROM container
   GROUP BY Number_Commercial_Invoice
 ) c ON i.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+WHERE i.status IN (2,3)
 
 UNION ALL
 
@@ -363,18 +365,16 @@ LEFT JOIN (
   FROM container
   GROUP BY Number_Commercial_Invoice
 ) c ON d.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+WHERE d.status IN (2,3)
 
 ORDER BY creation_date DESC;
-
-
-
 ";
+
 
 $result = $conexion->query($query);
 
 if ($result && $result->num_rows > 0) {
   while($row = $result->fetch_assoc()) { 
-    if ($row['status'] != 2) continue;  // Saltar filas con status diferente de 2
     
     $fechaOriginal = $row['creation_date'];
     $fecha = date('d/m/Y', strtotime($fechaOriginal));
@@ -389,30 +389,36 @@ if ($result && $result->num_rows > 0) {
 
 
 
+  <!-- Celda de Estado -->
   <td>
-  <select 
-    class="badge-select badge" 
-    data-id="<?=htmlspecialchars($row['ID'])?>" 
-    data-origen="<?=htmlspecialchars($row['origen'])?>" 
-    style="appearance:none; width:70%; margin-left:-15%">
-
-    <?php
-      $queryselect  = "SELECT IdEstados, nombre FROM estadosliquidacion";
-      $resultselect = $conexion->query($queryselect);
-      while ($row2 = $resultselect->fetch_assoc()) {
-        if ($row2['IdEstados'] == 4) continue;
-        $isSel = ($row['status'] == $row2['IdEstados']) ? ' selected' : '';
-    ?>
-      <option value="<?=$row2['IdEstados']?>" <?=$isSel?>>
-        <?=$row2['nombre']?>
-      </option>
-    <?php } ?>
-  </select>
+    <select 
+      class="badge-select badge" 
+      data-id="<?= htmlspecialchars($row['ID']) ?>" 
+      data-origen="<?= htmlspecialchars($row['origen']) ?>"
+      style="
+        appearance: none;
+        min-width: 160px;   /* ancho mínimo para que entre 'Liquidacion Total' */
+        width: auto;        /* ajusta al contenido */
+        white-space: nowrap;/* evita que el texto se quiebre */
+      ">
+      <?php
+        $queryselect  = "SELECT IdEstados, nombre FROM estadosliquidacion";
+        $resultselect = $conexion->query($queryselect);
+        while ($row2 = $resultselect->fetch_assoc()) {
+          if ($row2['IdEstados'] == 4) continue;
+          $isSel = ($row['status'] == $row2['IdEstados']) ? ' selected' : '';
+      ?>
+        <option value="<?= $row2['IdEstados'] ?>"<?= $isSel ?>>
+          <?= $row2['nombre'] ?>
+        </option>
+      <?php } ?>
+    </select>
   </td>
 
+  <!-- Celda de Detalle -->
   <td>
     <?php 
-      $isDisabled = ($row['status'] == 3);
+      // URL de detalle según el origen
       if ($row['origen'] === 'exports'): 
         $detalleUrl = "../application/detalleLiquidacionExport.php?ExportID={$row['ID']}";
       elseif ($row['origen'] === 'imports'):
@@ -423,13 +429,13 @@ if ($result && $result->num_rows > 0) {
         $detalleUrl = "#";
       endif;
     ?>
-
-    <a href="<?= $detalleUrl ?>" class="text-primary me-2"><i class="ti ti-eye"></i></a>
-
-    
+    <a href="<?= $detalleUrl ?>" class="text-primary me-2">
+      <i class="ti ti-eye"></i>
+    </a>
   </td>
 
 </tr>
+
 <?php
   }
 } else {
@@ -697,6 +703,25 @@ document.getElementById('btnGenerarExcel').addEventListener('click', async () =>
       });
       resumen.push(['Subtotal','','', subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})], []);
     });
+
+    // Una vez escrito el archivo, actualizamos los estados
+    try {
+      const resp = await fetch('../api/despacho/actualizarEstadoConsolidado.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ num_op })
+      });
+      const data = await resp.json();
+      if (!data.success) {
+        throw new Error(data.message || 'Error desconocido');
+      }
+      Swal.fire('¡Listo!','Los estados se han marcado como “Total”.','success');
+      // recarga o actualiza la UI si hace falta:
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error','No se pudieron actualizar los estados: ' + err.message,'error');
+    }
 
     const wsRes = XLSX.utils.aoa_to_sheet(resumen);
     XLSX.utils.book_append_sheet(wb, wsRes, 'Resumen');

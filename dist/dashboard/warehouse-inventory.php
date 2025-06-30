@@ -14,6 +14,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 $sql = "
     SELECT
         d.id,
+        i.idItem AS idItem,                      -- <-- lo agregamos
         c.num_op                             AS NUM_OP,
         c.Number_Container                   AS Number_Container,
         c.Booking_BK,
@@ -31,11 +32,14 @@ $sql = "
         d.altura_in                          AS Height_in,
         d.peso_lb                            AS Weight_lb,
         d.estado                             AS Status,
-        d.recibo_almacen
+        d.recibo_almacen,
+        i.Number_PO                          AS Number_PO
     FROM container c
     INNER JOIN dispatch d
         ON c.Number_Commercial_Invoice = d.numero_factura
        AND c.Number_Container         = d.notas
+    INNER JOIN items i
+    ON i.idContainer = c.idContainer
     WHERE d.estado = 'En Almacén'
     ORDER BY c.num_op, d.numero_parte
 ";
@@ -480,6 +484,7 @@ try {
                 <th>Warehouse Receipt</th>
                 <th>Lot_Number</th>
                 <th>Booking_BK</th>
+                <th>Number_PO</th>
                 <th>Number_Commercial_Invoice</th>
                 <th>Code Product EC</th>
                 <th>Description</th>
@@ -507,6 +512,13 @@ try {
 
                 <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
                 <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
+                <td>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm po-input"
+                      data-id="<?= $row['idItem'] ?>"
+                      value="<?= htmlspecialchars($row['Number_PO']) ?>">
+                </td>                
                 <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
                 <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
                 <td><?= htmlspecialchars($row['Description']) ?></td>
@@ -768,42 +780,35 @@ async function limpiarFiltrosAvanzados() {
       if (!res.ok) throw new Error(res.statusText);
       const rows = await res.json();
 
-      const tbody = document.querySelector('#pc-dt-simple tbody');
-      if (dt) {
-          dt.destroy();
-          $('.pagination-wrapper').remove();
-      }
-      tbody.innerHTML = '';
-
-      rows.forEach(row => {
-        const tr = `
-        <tr>
-            <td>${row.NUM_OP || row['Num OP'] || ''}</td>
-            <td>${row.Number_Container || ''}</td>
-            <td>${row.Entry_Date || ''}</td>
-            <td>${row.recibo_almacen || ''}</td>
-            <td>${row.Lot_Number || ''}</td>
-            <td>${row.Booking_BK || ''}</td>
-            <td>${row.Number_Commercial_Invoice || ''}</td>
-            <td>${row.Code_Product_EC || ''}</td>
-            <td>${row.Description || ''}</td>
-            <td>${row.Qty || row['Qty_Box'] || 0}</td>
-            <td>${row.Unit_Value || ''}</td>
-            <td>${row.Value || ''}</td>
-            <td>${row.Unit || ''}</td>
-            <td>${row.Length_in || ''}</td>
-            <td>${row.Broad_in || ''}</td>
-            <td>${row.Height_in || ''}</td>
-            <td>${row.Weight_lb || ''}</td>
-            <td>
-                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
-                        data-id="${row.id || row['ITEM #'] || ''}">
-                    <option value="Cargado" ${row.Status === 'Cargado' || row.STATUS === 'Cargado' ? 'selected' : ''}>Cargado</option>
-                    <option value="En Almacén" ${row.Status === 'En Almacén' || row.STATUS === 'En Almacén' ? 'selected' : ''}>En Almacén</option>
-                </select>
-            </td>
-        </tr>`;
-      tbody.insertAdjacentHTML('beforeend', tr);
+      // refresca la DataTable sin reinit
+      table.clear();
+      rows.forEach(r => {
+        table.row.add([
+          r.NUM_OP,
+          r.Number_Container,
+          r.Entry_Date,
+          r.recibo_almacen,
+          r.Lot_Number,
+          r.Booking_BK,
+          `<input type="text" class="form-control form-control-sm po-input" data-id="${c.idItem}" value="${c.Number_PO||''}">`,
+          r.Number_Commercial_Invoice,
+          r.Code_Product_EC,
+          r.Description,
+          r.Qty,
+          r.Unit_Value,
+          r.Value,
+          r.Unit,
+          r.Length_in,
+          r.Broad_in,
+          r.Height_in,
+          r.Weight_lb,
+          `<select class="form-select form-select-sm status-select"
+                   data-container="${r.Number_Container}"
+                   data-invoice="${r.Number_Commercial_Invoice}">
+             <option value="Cargado"${r.Status==='Cargado'?' selected':''}>Cargado</option>
+             <option value="En Almacén"${r.Status==='En Almacén'?' selected':''}>En Almacén</option>
+           </select>`
+        ]);
       });
       initDataTable();
 

@@ -27,6 +27,7 @@ SELECT
   il.NombreItems,
   ii.Cantidad,
   ii.ValorUnitario,
+  ii.Notas,
   (ii.Cantidad * ii.ValorUnitario) AS ValorTotal
 FROM incotermsdespacho i
 JOIN itemsliquidaciondespachoincoterms ii 
@@ -358,7 +359,7 @@ while ($row = $result->fetch_assoc()) {
                 <th>Cantidad</th>
                 <th>Valor U.</th>
                 <th>Valor T.</th>
-               
+                <th>Notas</th>
               </tr>
             </thead>
             <tbody>
@@ -366,6 +367,7 @@ while ($row = $result->fetch_assoc()) {
                   $cant = intval($item['Cantidad']);
                   $vu   = floatval($item['ValorUnitario']);
                   $vt   = floatval($item['ValorTotal']);
+                  $No   = strval($item['Notas']);
                   $tipo = intval($item['idTipo']);  // <-- aquí
                 ?>
                 <tr data-item-id="<?= intval($item['IdIncotermsDespacho']) ?>">
@@ -385,7 +387,10 @@ while ($row = $result->fetch_assoc()) {
                       <input type="text" class="form-control valor-total" readonly value="<?= number_format($vt,2,',','.') ?>">
                     </div>
                   </td>
-
+                  <td>
+                    <input type="text" class="form-control form-control-sm notas"
+                    value="<?= htmlspecialchars($item['Notas']) ?>">
+                  </td>
                 
 
                 </tr>
