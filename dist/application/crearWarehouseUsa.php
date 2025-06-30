@@ -278,7 +278,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
 <div class="container mt-5">
-  <div class="card shadow-sm">
+  <div class="card shadow-sm mx-auto" style="max-width: 900px;">
     <form method="POST" action="#">
   <div class="card-body">
     <div class="row g-3">

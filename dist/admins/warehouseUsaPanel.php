@@ -78,6 +78,39 @@ $manualRes = $conexion->query($queryManual);
     .badge-select.total {
       background-color: #198754 !important;
     }
+
+    .table-responsive {
+      position: relative;
+      padding-bottom: 3.5rem;
+    }
+
+    .table-responsive .pagination-wrapper {
+      position: absolute;
+      bottom: 0.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      padding: 0.25rem 0;
+      z-index: 10;
+    }
+
+    .table-responsive .pagination-wrapper .pagination {
+      margin: 0;
+    }
+
+    .table-responsive .pagination-wrapper .pagination li.page-item {
+      margin: 0 0.125rem;
+    }
+
+    .table-responsive .pagination-wrapper .pagination li.page-item .page-link {
+      padding: 0.375rem 0.75rem;
+    }
+
+    .table-responsive .pagination-wrapper .pagination li.active .page-link {
+      background-color: #0d6efd;
+      border-color: #0d6efd;
+      color: #fff;
+    }
   </style>
 
 </head>
@@ -315,7 +348,7 @@ $manualRes = $conexion->query($queryManual);
       <!-- [ Main Content ] start -->
       <div class="row">
         <div class="col-12">
-          <div class="card table-card mb-4">
+          <div class="card table-card mb-4 mx-auto">
             <div class="card-header"><h5>Carga Manual Warehouse USA</h5></div>
             <div class="card-body">
               <div class="d-flex justify-content-end mb-3">
