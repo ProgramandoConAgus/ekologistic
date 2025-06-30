@@ -11,7 +11,7 @@ $usuario = new Usuario($conexion);
 $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 // Carga manual de Warehouse USA guardada en dispatch
-$queryManual = "SELECT cantidad AS cajas, notas AS palets, numero_lote AS lote_produccion, numero_orden_compra AS po, descripcion, numero_factura AS invoice, fecha_entrada AS fecha_ingreso, recibo_almacen AS warehouse_receive FROM dispatch ORDER BY fecha_entrada DESC";
+$queryManual = "SELECT id, cantidad AS cajas, notas AS palets, numero_lote AS lote_produccion, numero_orden_compra AS po, descripcion, numero_factura AS invoice, fecha_entrada AS fecha_ingreso, recibo_almacen AS warehouse_receive FROM dispatch ORDER BY fecha_entrada DESC";
 $manualRes = $conexion->query($queryManual);
 
 ?>
@@ -368,6 +368,7 @@ $manualRes = $conexion->query($queryManual);
                       <th>Invoice</th>
                       <th>Fecha Ingreso</th>
                       <th>Warehouse Receive</th>
+                      <th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -382,9 +383,13 @@ $manualRes = $conexion->query($queryManual);
                           <td><?= htmlspecialchars($m['invoice']) ?></td>
                           <td><?= htmlspecialchars($m['fecha_ingreso']) ?></td>
                           <td><?= htmlspecialchars($m['warehouse_receive']) ?></td>
+                          <td>
+                            <a href="../application/detalleWarehouseUsa.php?id=<?= $m['id'] ?>" class="text-primary me-2"><i class="ti ti-eye"></i></a>
+                            <a href="../application/editarWarehouseUsa.php?id=<?= $m['id'] ?>" class="text-warning me-2"><i class="ti ti-edit"></i></a>
+                          </td>
                         </tr>
                       <?php endwhile; else: ?>
-                        <tr><td colspan="8" class="text-center">Sin registros</td></tr>
+                        <tr><td colspan="9" class="text-center">Sin registros</td></tr>
                     <?php endif; ?>
                   </tbody>
                 </table>

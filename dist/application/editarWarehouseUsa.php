@@ -6,47 +6,15 @@ include("../con_db.php");
 $IdUsuario = $_SESSION["IdUsuario"];
 $usuario = new Usuario($conexion);
 $user = $usuario->obtenerUsuarioPorId($IdUsuario);
-
-
-$idImport = $_GET["ImportID"] ?? 0;
-
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM imports WHERE ImportsID = ?");
-$stmt->bind_param("i", $idImport);
+$id = $_GET["id"] ?? 0;
+$stmt = $conexion->prepare("SELECT * FROM dispatch WHERE id = ?");
+$stmt->bind_param("i", $id);
 $stmt->execute();
-$importsData = $stmt->get_result()->fetch_assoc();
+$warehouse = $stmt->get_result()->fetch_assoc();
 
 
 
 
-// Consulta para los incoterms y sus ítems
-$query = "
-SELECT 
-  t.NombreTipoIncoterm,
-  t.IdTipoIncoterm AS idTipo,
-  i.IdIncotermsImport,
-  il.NombreItems,
-  ii.Cantidad,
-  ii.ValorUnitario,
-  (ii.Cantidad * ii.ValorUnitario) AS ValorTotal
-FROM incotermsimport i
-JOIN itemsliquidacionimportincoterms ii ON ii.ItemsLiquidacionImportIncoterms = i.IdItemsLiquidacionImportIncoterm
-JOIN itemsliquidacionimport il ON il.IdItemsLiquidacionImport = ii.IdItemsLiquidacionImport
-JOIN tipoincoterm t ON il.IdTipoIncoterm = t.IdTipoIncoterm
-WHERE i.IdImports = ?
-ORDER BY i.IdIncotermsImport, il.NombreItems
-";
-
-$stmt = $conexion->prepare($query);
-$stmt->bind_param("i", $idImport);
-$stmt->execute();
-$result = $stmt->get_result();
-
-$incoterms = [];
-while ($row = $result->fetch_assoc()) {
-  $nombre = $row['NombreTipoIncoterm'];
-  if (!isset($incoterms[$nombre])) $incoterms[$nombre] = [];
-  $incoterms[$nombre][] = $row;
-}
 ?>
 
 
@@ -317,85 +285,86 @@ while ($row = $result->fetch_assoc()) {
 
 <div class="container mt-5">
   <div class="card shadow p-4">
-    <form method="POST" action="guardar_warehouse.php">
+    <form method="POST" action="#" id="editForm">
+      <input type="hidden" name="id" value="<?= $id ?>">
       <div class="card-body">
 
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label">Fecha Entrada</label>
-            <input type="date" name="fecha_entrada" class="form-control">
+            <input type="date" name="fecha_entrada" class="form-control" value="<?= htmlspecialchars($warehouse['fecha_entrada']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Fecha de Salida</label>
-            <input type="date" name="fecha_salida" class="form-control">
+            <input type="date" name="fecha_salida" class="form-control" value="<?= htmlspecialchars($warehouse['fecha_salida']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Recibo de Almacén</label>
-            <input type="text" name="recibo_almacen" class="form-control">
+            <input type="text" name="recibo_almacen" class="form-control" value="<?= htmlspecialchars($warehouse['recibo_almacen']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Estado</label>
-            <input type="text" name="estado" class="form-control">
+            <input type="text" name="estado" class="form-control" value="<?= htmlspecialchars($warehouse['estado']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Número de Factura</label>
-            <input type="text" name="numero_factura" class="form-control">
+            <input type="text" name="numero_factura" class="form-control" value="<?= htmlspecialchars($warehouse['numero_factura']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Número de Lote</label>
-            <input type="text" name="numero_lote" class="form-control">
+            <input type="text" name="numero_lote" class="form-control" value="<?= htmlspecialchars($warehouse['numero_lote']) ?>">
           </div>
           <div class="col-12">
             <label class="form-label">Notas</label>
-            <input type="text" name="notas" class="form-control">
+            <input type="text" name="notas" class="form-control" value="<?= htmlspecialchars($warehouse['notas']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Número de Orden de Compra</label>
-            <input type="text" name="orden_compra" class="form-control">
+            <input type="text" name="orden_compra" class="form-control" value="<?= htmlspecialchars($warehouse['numero_orden_compra']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Número de Parte</label>
-            <input type="text" name="numero_parte" class="form-control">
+            <input type="text" name="numero_parte" class="form-control" value="<?= htmlspecialchars($warehouse['numero_parte']) ?>">
           </div>
           <div class="col-12">
             <label class="form-label">Descripción</label>
-            <textarea name="descripcion" class="form-control" rows="2"></textarea>
+            <textarea name="descripcion" class="form-control" rows="2"><?= htmlspecialchars($warehouse['descripcion']) ?></textarea>
           </div>
           <div class="col-md-4">
             <label class="form-label">Modelo</label>
-            <input type="text" name="modelo" class="form-control">
+            <input type="text" name="modelo" class="form-control" value="<?= htmlspecialchars($warehouse['modelo']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Cantidad</label>
-            <input type="number" name="cantidad" class="form-control">
+            <input type="number" name="cantidad" class="form-control" value="<?= htmlspecialchars($warehouse['cantidad']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Valor Unitario</label>
-            <input type="text" name="valor_unitario" class="form-control">
+            <input type="text" name="valor_unitario" class="form-control" value="<?= htmlspecialchars($warehouse['valor_unitario']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Valor</label>
-            <input type="text" name="valor" class="form-control">
+            <input type="text" name="valor" class="form-control" value="<?= htmlspecialchars($warehouse['valor']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Unidad</label>
-            <input type="text" name="unidad" class="form-control">
+            <input type="text" name="unidad" class="form-control" value="<?= htmlspecialchars($warehouse['unidad']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Longitud (in)</label>
-            <input type="number" name="longitud" class="form-control">
+            <input type="number" name="longitud" class="form-control" value="<?= htmlspecialchars($warehouse['longitud_in']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Ancho (in)</label>
-            <input type="number" name="ancho" class="form-control">
+            <input type="number" name="ancho" class="form-control" value="<?= htmlspecialchars($warehouse['ancho_in']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Altura (in)</label>
-            <input type="number" name="altura" class="form-control">
+            <input type="number" name="altura" class="form-control" value="<?= htmlspecialchars($warehouse['altura_in']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Peso (lb)</label>
-            <input type="number" name="peso" step="0.01" class="form-control">
+            <input type="number" name="peso" step="0.01" class="form-control" value="<?= htmlspecialchars($warehouse['peso_lb']) ?>">
           </div>
         </div>
 
@@ -512,68 +481,54 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 
-
-
-<!-- Actualizar datos-->
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('btnGuardar');
-  if (!btn) return;
+document.getElementById('editForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const form = e.target;
+  const data = {
+    id: form.id.value,
+    fecha_entrada: form.fecha_entrada.value,
+    fecha_salida: form.fecha_salida.value,
+    recibo_almacen: form.recibo_almacen.value.trim(),
+    estado: form.estado.value.trim(),
+    numero_factura: form.numero_factura.value.trim(),
+    numero_lote: form.numero_lote.value.trim(),
+    palets: form.notas.value.trim(),
+    orden_compra: form.orden_compra.value.trim(),
+    numero_parte: form.numero_parte.value.trim(),
+    descripcion: form.descripcion.value.trim(),
+    modelo: form.modelo.value.trim(),
+    cantidad: parseInt(form.cantidad.value) || 0,
+    valor_unitario: form.valor_unitario.value.trim(),
+    valor: form.valor.value.trim(),
+    unidad: form.unidad.value.trim(),
+    longitud: form.longitud.value,
+    ancho: form.ancho.value,
+    altura: form.altura.value,
+    peso: form.peso.value
+  };
 
-  btn.addEventListener('click', () => {
-    const datos = [];
-
-    document.querySelectorAll('.accordion-item tbody tr').forEach(row => {
-      // 1) ID de la fila de pivot
-      const idInc = parseInt(row.dataset.itemId, 10);
-
-      // 2) Cantidad y Valor Unitario
-      const qtyRaw  = row.querySelector('.cantidad')?.value       .replace(',', '.') || '0';
-      const vuRaw   = row.querySelector('.valor-unitario')?.value
-                       .replace(/\./g,'').replace(',', '.')       || '0';
-      const cantidad      = parseFloat(qtyRaw)      || 0;
-      const valorUnitario = parseFloat(vuRaw)       || 0;
-
-      // 3) Recalcular Totales
-      const valorTotal    = cantidad * valorUnitario;
-
-      const impRaw        = row.querySelector('.impuesto')?.value .replace(',', '.') || '0';
-      const impuestoPct   = parseFloat(impRaw)       || 0;
-      const valorImpuesto = valorTotal * (impuestoPct / 100);
-
-      const notas         = row.querySelector('.notas')?.value.trim() || '';
-
-      datos.push({
-        idIncoterms: idInc,
-        cantidad,
-        valorUnitario,
-        valorTotal,
-        impuestoPct,
-        valorImpuesto,
-        notas
-      });
-    });
-
-    fetch('../api/imports/actualizarliquidacionimport.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ datos })
-    })
-    .then(r => r.json())
-    .then(json => {
-      if (json.success) {
-        Swal.fire('Guardado', json.message || 'Actualizado con éxito', 'success')
-          .then(() => location.reload());
-      } else {
-        Swal.fire('Error', json.message || 'No se pudo guardar', 'error');
-      }
-    })
-    .catch(() => {
-      Swal.fire('Error', 'Error de red o del servidor', 'error');
-    });
+  fetch('../api/warehouseusa/actualizar_manual.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  .then(r => r.json())
+  .then(resp => {
+    if (resp.success) {
+      Swal.fire({icon:'success',title:'Actualizado',text:'Registro actualizado'})
+        .then(() => location.href = '../admins/warehouseUsaPanel.php');
+    } else {
+      Swal.fire({icon:'error',title:'Error',text: resp.message || 'Error'});
+    }
+  })
+  .catch(() => {
+    Swal.fire({icon:'error',title:'Error',text:'Error de servidor'});
   });
 });
 </script>
+
+
 
 
 
@@ -792,8 +747,3 @@ document.addEventListener('DOMContentLoaded', () => {
   </body>
   <!-- [Body] end -->
 </html>
-
-
-<?php
-
-?>
