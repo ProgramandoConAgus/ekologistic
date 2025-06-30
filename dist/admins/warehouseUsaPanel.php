@@ -349,11 +349,13 @@ $manualRes = $conexion->query($queryManual);
       <div class="row">
         <div class="col-12">
           <div class="card table-card mb-4 mx-auto">
-            <div class="card-header"><h5>Carga Manual Warehouse USA</h5></div>
-            <div class="card-body">
-              <div class="d-flex justify-content-end mb-3">
-                <a class="text-white" href="../application/crearWarehouseUsa.php"><button type="button" class="btn btn-success text-white me-3">Cargar nuevo Warehouse USA</button></a>
+            <div class="card-header">
+              <div class="d-flex justify-content-end">
+                <a class="text-white" href="../application/crearWarehouseUsa.php"><button type="button" class="btn btn-success text-white me-2">Cargar nuevo Warehouse USA</button></a>
               </div>
+            </div>
+            <div class="card-body">
+              
               <div class="table-responsive">
                 <table class="table table-sm" id="pc-dt-simple">
                   <thead>
