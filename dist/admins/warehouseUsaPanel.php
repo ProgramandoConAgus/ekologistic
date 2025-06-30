@@ -309,8 +309,11 @@ $manualRes = $conexion->query($queryManual);
           <div class="card table-card mb-4">
             <div class="card-header"><h5>Carga Manual Warehouse USA</h5></div>
             <div class="card-body">
+              <div class="d-flex justify-content-end mb-3">
+                <a class="text-white" href="../application/crearWarehouseUsa.php"><button type="button" class="btn btn-success text-white me-3">Cargar nuevo Warehouse USA</button></a>
+              </div>
               <div class="table-responsive">
-                <table class="table table-sm">
+                <table class="table table-sm" id="pc-dt-simple">
                   <thead>
                     <tr>
                       <th>Cajas</th>
@@ -345,104 +348,6 @@ $manualRes = $conexion->query($queryManual);
             </div>
           </div>
 
-          <div class="card table-card">
-            <div class="card-body pt-3">
-              <div class="d-flex justify-content-end mb-3">
-                <a class="text-white" href="../application/crearWarehouseUsa.php"><button type="button" class="btn btn-success text-white me-3">Cargar nuevo Warehouse USA</button></a>
-              </div>
-              <div class="table-responsive">
-                <table class="table table-hover">
-                  <thead>
-                    <tr>
-                     <th>Fecha Entrada</th>
-      <th>Fecha de salida</th>
-      <th>Recibo de Almacén</th>
-      <th>Estado</th>
-      <th>Número de Factura</th>
-      <th>Número de Lote</th>
-      <th>Notas</th>
-      <th>Número de Orden de Compra</th>
-      <th>Número de Parte</th>
-      <th>Descripción</th>
-      <th>Modelo</th>
-      <th>Cantidad</th>
-      <th>Valor Unitario</th>
-      <th>Valor</th>
-      <th>Unidad</th>
-      <th>Longitud (in)</th>
-      <th>Ancho (in)</th>
-      <th>Altura (in)</th>
-      <th>Peso (lb)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <?php
-                    $query = "SELECT ImportsID, Booking_BK, Number_Commercial_Invoice, status, creation_date 
-          FROM imports 
-          WHERE status != 2 
-          ORDER BY creation_date";
-                    $result = $conexion->query($query);
-
-                    // Verificar error en consulta
-                    if (!$result) {
-                      die("Error en la consulta: " . $conexion->error);
-                    }
-
-                    // Verificar si hay registros
-                    if (1==2) { // $result->num_rows > 0
-                      while ($row = $result->fetch_assoc()) {
-                        $fechaOriginal = $row['creation_date'];
-                        $fecha = date('d/m/Y', strtotime($fechaOriginal));
-                        $hora  = date('h:i A', strtotime($fechaOriginal));
-                    ?>
-                        <tr>
-                          <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-                          <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
-                          <td><?= $fecha ?> <span class="text-muted text-sm d-block"><?= $hora ?></span></td>
-                          <td>
-                            <select
-                              class="badge-select badge"
-                              data-export-id="<?= $row['ImportsID'] ?>"
-                              style="appearance:none; width:70%; margin-left:-15%">
-                              <?php
-                              $queryselect  = "SELECT IdEstados, nombre FROM estadosliquidacion";
-                              $resultselect = $conexion->query($queryselect);
-                              while ($row2 = $resultselect->fetch_assoc()) {
-                                if ($row2['IdEstados'] == 4) continue;
-                                $isSel = ($row['status'] == $row2['IdEstados']) ? ' selected' : '';
-                              ?>
-                                <option value="<?= $row2['IdEstados'] ?>" <?= $isSel ?>>
-                                  <?= $row2['nombre'] ?>
-                                </option>
-                              <?php } ?>
-                            </select>
-                          </td>
-                          <td>
-                            <a href="../application/detalleLiquidacionImport.php?ImportID=<?= $row["ImportsID"] ?>" class="text-primary me-2">
-                              <i class="ti ti-eye"></i>
-                            </a>
-                            <?php
-                            $isDisabled = ($row['status'] == 3);
-                            $href = $isDisabled ? '' : 'href="../application/editarLiquidacionImport.php?ImportID=' . $row["ImportsID"] . '"';
-                            $classes = 'text-warning me-2' . ($isDisabled ? ' disabled text-muted' : '');
-                            ?>
-                            <a <?= $href ?> class="<?= $classes ?>" <?= $isDisabled ? 'aria-disabled="true" tabindex="-1"' : '' ?>>
-                              <i class="ti ti-edit"></i>
-                            </a>
-                          </td>
-                        </tr>
-                    <?php
-                      }
-                    } else {
-                      echo "<tr><td colspan='5' class='text-center'>No hay registros disponibles.</td></tr>";
-                    }
-                    ?> */
-                  </tbody>
-
-                </table>
-              </div>
-            </div>
-          </div>
         </div>
 
 
