@@ -744,8 +744,3 @@ document.addEventListener('DOMContentLoaded', () => {
   </body>
   <!-- [Body] end -->
 </html>
-
-
-<?php
-
-?>

@@ -816,8 +816,3 @@ $manualRes = $conexion->query($queryManual);
 <!-- [Body] end -->
 
 </html>
-
-<?php
-
-
-?>
