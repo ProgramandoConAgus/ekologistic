@@ -8,54 +8,11 @@ include("../con_db.php");
 $IdUsuario = $_SESSION["IdUsuario"];
 $usuario = new Usuario($conexion);
 $user = $usuario->obtenerUsuarioPorId($IdUsuario);
-
-$idImport = $_GET["ImportID"] ?? 0;
-
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM imports WHERE ImportsID = ?");
-if (!$stmt) {
-  die("Error en prepare: " . $conexion->error);
-}
-
-$stmt->bind_param("i", $idImport);
+$id = $_GET["id"] ?? 0;
+$stmt = $conexion->prepare("SELECT * FROM dispatch WHERE id = ?");
+$stmt->bind_param("i", $id);
 $stmt->execute();
-$importsData = $stmt->get_result()->fetch_assoc();
-
-// Consulta para los incoterms y sus ítems
-$query = "
-  SELECT 
-    t.IdTipoIncoterm    AS idTipo,
-    t.NombreTipoIncoterm,
-    i.IdIncotermsImport,
-    il.NombreItems,
-    ii.Cantidad,
-    ii.ValorUnitario,
-    (ii.Cantidad * ii.ValorUnitario) AS ValorTotal
-  FROM incotermsimport i
-  JOIN itemsliquidacionimportincoterms ii 
-    ON ii.ItemsLiquidacionImportIncoterms = i.IdItemsLiquidacionImportIncoterm
-  JOIN itemsliquidacionimport il 
-    ON il.IdItemsLiquidacionImport = ii.IdItemsLiquidacionImport
-  JOIN tipoincoterm t 
-    ON il.IdTipoIncoterm = t.IdTipoIncoterm
-  WHERE i.IdImports = ?
-  ORDER BY il.IdItemsLiquidacionImport
-";
-
-$stmt = $conexion->prepare($query);
-if (!$stmt) {
-  die("Error en prepare: " . $conexion->error);
-}
-
-$stmt->bind_param("i", $idImport);
-$stmt->execute();
-$result = $stmt->get_result();
-
-$incoterms = [];
-while ($row = $result->fetch_assoc()) {
-  $nombre = $row['NombreTipoIncoterm'];
-  if (!isset($incoterms[$nombre])) $incoterms[$nombre] = [];
-  $incoterms[$nombre][] = $row;
-}
+$warehouse = $stmt->get_result()->fetch_assoc();
 ?>
 
 
@@ -394,19 +351,19 @@ while ($row = $result->fetch_assoc()) {
         </div>
         <div class="col-md-4">
           <label class="form-label">Longitud (in)</label>
-          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['longitud']) ?></div>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['longitud_in']) ?></div>
         </div>
         <div class="col-md-4">
           <label class="form-label">Ancho (in)</label>
-          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['ancho']) ?></div>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['ancho_in']) ?></div>
         </div>
         <div class="col-md-4">
           <label class="form-label">Altura (in)</label>
-          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['altura']) ?></div>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['altura_in']) ?></div>
         </div>
         <div class="col-md-4">
           <label class="form-label">Peso (lb)</label>Detalle Warehouse USA
-          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['peso']) ?></div>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['peso_lb']) ?></div>
         </div>
       </div>
 
@@ -761,8 +718,3 @@ function descargarExcel() {
   </body>
   <!-- [Body] end -->
 </html>
-
-
-<?php
-
-?>
