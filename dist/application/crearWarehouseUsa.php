@@ -354,7 +354,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <input type="number" name="cantidad" class="form-control">
       </div>
       <div class="col-md-4">
-        <label class="form-label">Total de Cajas</label>
+        <label class="form-label">Cantidad Total</label>
         <input type="number" name="cantidadTotal" class="form-control">
       </div>
       <div class="col-md-4">

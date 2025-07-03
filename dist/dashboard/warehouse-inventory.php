@@ -20,7 +20,7 @@ $sql = "
         c.Booking_BK,
         d.numero_lote                        AS Lot_Number,
         d.fecha_entrada                      AS Entry_Date,
-        c.Number_Commercial_Invoice          AS Number_Commercial_Invoice,
+        i.Number_Commercial_Invoice          AS Number_Commercial_Invoice,
         d.numero_parte                       AS Code_Product_EC,
         d.descripcion                        AS Description,
         d.cantidad                           AS Qty,
@@ -35,11 +35,11 @@ $sql = "
         d.recibo_almacen,
         i.Number_PO                          AS Number_PO
     FROM container c
-    INNER JOIN dispatch d
-        ON c.Number_Commercial_Invoice = d.numero_factura
-       AND c.Number_Container         = d.notas
     INNER JOIN items i
     ON i.idContainer = c.idContainer
+    INNER JOIN dispatch d
+    ON i.Number_Commercial_Invoice = d.numero_factura
+    AND c.Number_Container         = d.notas
     WHERE d.estado = 'En Almacén'
     ORDER BY c.num_op, d.numero_parte
 ";
