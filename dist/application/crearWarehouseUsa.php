@@ -8,6 +8,13 @@ $usuario= new Usuario($conexion);
 
 $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
+  $stmtPL = $conexion->prepare("
+    SELECT IdPackingList
+    FROM packing_list
+    ORDER BY Date_Created DESC
+  ");
+  $stmtPL->execute();
+  $packingLists = $stmtPL->get_result()->fetch_all(MYSQLI_ASSOC);
 ?>
 
 
@@ -283,6 +290,17 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
   <div class="card-body">
     <div class="row g-3">
       <div class="col-md-4">
+        <label class="form-label" for="packingList">Packing List</label>
+        <select name="packing_list" id="packingList" class="form-control">
+          <option value="">-- Selecciona --</option>
+          <?php foreach($packingLists as $pl): ?>
+            <option value="<?= $pl['IdPackingList'] ?>">
+              <?= htmlspecialchars($pl['IdPackingList']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="col-md-4">
         <label class="form-label">Fecha Entrada</label>
         <input type="date" name="fecha_entrada" class="form-control">
       </div>
@@ -295,8 +313,13 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <input type="text" name="recibo_almacen" class="form-control">
       </div>
       <div class="col-md-4">
-        <label class="form-label">Estado</label>
-        <input type="text" name="estado" class="form-control">
+        <label class="form-label" for="estado">Estado</label>
+        <select name="estado" id="estado" class="form-control">
+          <option value="">-- Selecciona --</option>
+          <option value="En Almacén">En Almacén</option>
+          <option value="Cargado">Cargado</option>
+          <option value="Transit">Transit</option>
+        </select>
       </div>
       <div class="col-md-4">
         <label class="form-label">Número de Factura</label>
@@ -305,10 +328,6 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
       <div class="col-md-4">
         <label class="form-label">Número de Lote</label>
         <input type="text" name="numero_lote" class="form-control">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Palets</label>
-        <input type="number" name="palets" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Número de Orden de Compra</label>
@@ -327,8 +346,16 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <input type="text" name="modelo" class="form-control">
       </div>
       <div class="col-md-4">
-        <label class="form-label">Cantidad</label>
+        <label class="form-label">Palets</label>
+        <input type="number" name="palets" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Cantidad de Cajas</label>
         <input type="number" name="cantidad" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Total de Cajas</label>
+        <input type="number" name="cantidadTotal" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Valor Unitario</label>
@@ -521,6 +548,31 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+</script>
+<script>
+  document.getElementById('packingList').addEventListener('change', function() {
+    const id = this.value;
+    if (!id) return;
+
+    fetch(`../api/warehouseusa/get_packing_list_info.php?packing_list=${encodeURIComponent(id)}`)
+      .then(r => r.json())
+      .then(resp => {
+        if (!resp.success) {
+          return Swal.fire('Error', resp.msg, 'error');
+        }
+        const d = resp.data;
+        // Rellenar campos
+        document.querySelector('input[name="numero_factura"]').value     = d.numero_factura;
+        document.querySelector('input[name="cantidadTotal"]').value      = d.cantidad_total;
+        document.querySelector('input[name="numero_lote"]').value        = d.numero_lote;
+        document.querySelector('input[name="numero_parte"]').value       = d.numero_parte;
+        document.querySelector('input[name="orden_compra"]').value       = d.numero_orden_compra;
+      })
+      .catch(err => {
+        console.error(err);
+        Swal.fire('Error','No se pudo obtener datos','error');
+      });
+  });
 </script>
 
 
