@@ -1,28 +1,69 @@
 <?php
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 require '../../con_db.php';
 
-// Obtener parámetros
 $booking     = $_GET['booking']     ?? '';
 $description = $_GET['description'] ?? '';
 if (!$booking || !$description) {
-    echo json_encode(['success' => false, 'msg' => 'Faltan parámetros requeridos']);
+    echo json_encode(['success'=>false,'msg'=>'Faltan parámetros requeridos']);
     exit;
 }
 
-// Consulta para obtener datos del ítem
 $sql = "
 SELECT
-    i.Qty_Box             AS cantidad,
-    i.Price_Box_EC        AS valor_unitario,
-    i.Total_Price_EC      AS valor,
-    i.Packing_Unit        AS unidad,
-    i.Total_Weight_kg     AS peso_kg
-FROM items i
-JOIN container c ON i.idContainer = c.IdContainer
-WHERE c.Booking_BK = ?
-  AND i.Description = ?
-LIMIT 1";
+    i.Qty_Box                       AS cantidad,
+    i.Price_Box_EC                  AS valor_unitario,
+    i.Total_Price_EC                AS valor,
+    i.Packing_Unit                  AS unidad,
+    ROUND(i.Total_Weight_kg*2.20462,2) AS peso,
+
+    i.Number_Commercial_Invoice     AS numero_factura,
+    i.Number_Lot                    AS numero_lote,
+    i.Number_PO                     AS numero_orden_compra,
+    i.Code_Product_EC               AS numero_parte,
+
+    d.recibo_almacen                AS recibo_almacen
+
+  FROM items i
+  JOIN container c 
+    ON i.idContainer = c.IdContainer
+
+  -- Sólo unimos por Number_Container, para traer el recibo
+  LEFT JOIN dispatch d
+    ON d.notas = c.Number_Container
+
+  WHERE c.Booking_BK   = ?
+    AND i.Description  = ?
+  LIMIT 1
+";
+$sql = "
+SELECT
+    i.Qty_Box                       AS cantidad,
+    i.Price_Box_EC                  AS valor_unitario,
+    i.Total_Price_EC                AS valor,
+    i.Packing_Unit                  AS unidad,
+    ROUND(i.Total_Weight_kg*2.20462,2) AS peso,
+
+    i.Number_Commercial_Invoice     AS numero_factura,
+    i.Number_Lot                    AS numero_lote,
+    i.Number_PO                     AS numero_orden_compra,
+    i.Code_Product_EC               AS numero_parte,
+
+    d.recibo_almacen                AS recibo_almacen
+
+  FROM items i
+  JOIN container c 
+    ON i.idContainer = c.IdContainer
+
+  -- Sólo unimos por Number_Container, para traer el recibo
+  LEFT JOIN dispatch d
+    ON d.notas = c.Number_Container
+
+  WHERE c.Booking_BK   = ?
+    AND i.Description  = ?
+  LIMIT 1
+";
+
 
 $stmt = $conexion->prepare($sql);
 $stmt->bind_param('ss', $booking, $description);
@@ -30,23 +71,8 @@ $stmt->execute();
 $item = $stmt->get_result()->fetch_assoc();
 
 if (!$item) {
-    echo json_encode(['success' => false, 'msg' => 'Producto no encontrado']);
+    echo json_encode(['success'=>false,'msg'=>'Producto no encontrado']);
     exit;
 }
 
-// Convertir peso de kg a libras (lb)
-$peso_lb = round($item['peso_kg'] * 2.20462, 2);
-
-// Preparar respuesta
-$response = [
-    'success' => true,
-    'data'    => [
-        'cantidad'        => $item['cantidad'],       // Cantidad de cajas
-        'valor_unitario'  => $item['valor_unitario'], // Valor unitario (EC)
-        'valor'           => $item['valor'],          // Valor total (EC)
-        'unidad'          => $item['unidad'],         // Packing unit
-        'peso'            => $peso_lb                  // Peso total en libras
-    ]
-];
-
-echo json_encode($response);
+echo json_encode(['success'=>true,'data'=>$item], JSON_UNESCAPED_UNICODE);

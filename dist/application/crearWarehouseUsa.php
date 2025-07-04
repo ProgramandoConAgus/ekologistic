@@ -352,10 +352,6 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
           <option value="">-- Selecciona --</option>
         </select>
       </div>
-      <div class="col-12">
-        <label class="form-label">Descripción</label>
-        <textarea name="descripcion" class="form-control" rows="2"></textarea>
-      </div>
       <div class="col-md-4">
         <label class="form-label">Modelo</label>
         <input type="text" name="modelo" class="form-control">
@@ -641,6 +637,20 @@ document.getElementById('descripcionSelect').addEventListener('change', function
       document.querySelector('input[name="unidad"]').value         = i.unidad;
       document.querySelector('input[name="peso"]').value           = i.peso;
       // …y cualquier otro campo que necesites
+      
+      // 2) Rellenar los <select> y habilitarlos
+        const facturaSel = document.getElementById('facturaSelect');
+        const loteSel    = document.getElementById('loteSelect');
+        const ordenSel   = document.getElementById('ordenSelect');
+        const parteSel   = document.getElementById('parteSelect');
+
+        facturaSel.value = i.numero_factura;        facturaSel.disabled = false;
+        loteSel.value    = i.numero_lote;           loteSel.disabled    = false;
+        ordenSel.value   = i.numero_orden_compra;   ordenSel.disabled   = false;
+        parteSel.value   = i.numero_parte;          parteSel.disabled   = false;
+
+      // 3) Recibo de almacén
+        document.querySelector('input[name="recibo_almacen"]').value = i.recibo_almacen || '';
     })
     .catch(() => Swal.fire('Error', 'No se pudo cargar el detalle', 'error'));
 });
