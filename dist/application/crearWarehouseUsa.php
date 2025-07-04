@@ -303,7 +303,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
       </div>
       <div class="col-md-4">
         <label class="form-label" for="descripcionSelect">Descripción</label>
-        <select id="descripcionSelect" class="form-control" disabled>
+        <select id="descripcionSelect" name="descripcion" class="form-control" disabled>
           <option value="">-- Selecciona --</option>
         </select>
       </div>
