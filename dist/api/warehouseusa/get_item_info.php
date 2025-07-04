@@ -31,9 +31,9 @@ SELECT
 
   -- Tomamos la orden de compra desde dispatch
   LEFT JOIN dispatch d
-    ON c.Number_Commercial_Invoice = d.numero_factura
-   AND c.Number_Container         = d.notas
-   AND d.numero_parte             = i.Code_Product_EC
+    ON i.Number_Commercial_Invoice = d.numero_factura
+   AND c.Number_Container          = d.notas
+   AND d.numero_parte              = i.Code_Product_EC
 
   WHERE c.Booking_BK   = ?
     AND i.Description  = ?
