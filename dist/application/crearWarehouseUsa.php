@@ -335,6 +335,10 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         </select>
       </div>
       <div class="col-md-4">
+        <label class="form-label">Número de Operación</label>
+        <input type="text" name="numero_operacion" class="form-control" readonly>
+      </div>
+      <div class="col-md-4">
         <label class="form-label" for="loteSelect">Número de Lote</label>
         <select id="loteSelect" name="numero_lote" class="form-control" disabled>
           <option value="">-- Selecciona --</option>
@@ -648,6 +652,7 @@ document.getElementById('descripcionSelect').addEventListener('change', function
         loteSel.value    = i.numero_lote;           loteSel.disabled    = false;
         ordenSel.value   = i.numero_orden_compra;   ordenSel.disabled   = false;
         parteSel.value   = i.numero_parte;          parteSel.disabled   = false;
+        document.querySelector('input[name="numero_operacion"]').value = i.numero_operacion || '';
 
       // 3) Recibo de almacén
         document.querySelector('input[name="recibo_almacen"]').value = i.recibo_almacen || '';
