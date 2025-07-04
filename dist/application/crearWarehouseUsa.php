@@ -612,6 +612,7 @@ document.getElementById('bookingSelect').addEventListener('change', function() {
       fillSelect(loteSel,    resp.numero_lote);
       fillSelect(ordenSel,   resp.numero_orden_compra);
       fillSelect(parteSel,   resp.numero_parte);
+      document.querySelector('input[name="numero_operacion"]').value = resp.numero_operacion || '';
       descSelect.dataset.booking = booking;
       descSelect.disabled = false;
       document.querySelector('input[name="cantidadTotal"]').value = resp.cantidad_total;
