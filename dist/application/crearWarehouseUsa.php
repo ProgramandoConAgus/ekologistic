@@ -398,6 +398,26 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
       </div>
     </div>
 
+    <div id="extraBlock" style="display:none;" class="mt-3">
+      <div class="alert alert-warning mb-3">
+        Faltan <span id="remainingBoxes">0</span> cajas por registrar
+      </div>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Modelo adicional</label>
+          <input type="text" name="modelo_extra" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Palets</label>
+          <input type="number" name="palets_extra" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Cantidad de Cajas</label>
+          <input type="number" name="cantidad_extra" class="form-control">
+        </div>
+      </div>
+    </div>
+
     <div class="mt-4 d-flex justify-content-between">
       <a href="../admins/despachosPanel.php" class="btn btn-secondary">Cancelar</a>
       <button type="submit" class="btn btn-success">Guardar Warehouse</button>
@@ -618,7 +638,7 @@ document.getElementById('bookingSelect').addEventListener('change', function() {
 });
 
 // Al cambiar descripción
-document.getElementById('descripcionSelect').addEventListener('change', function() {
+  document.getElementById('descripcionSelect').addEventListener('change', function() {
   const description = this.value;
   const booking     = this.dataset.booking;
   if (!description) return;
@@ -652,9 +672,33 @@ document.getElementById('descripcionSelect').addEventListener('change', function
       // 3) Recibo de almacén
         document.querySelector('input[name="recibo_almacen"]').value = i.recibo_almacen || '';
     })
-    .catch(() => Swal.fire('Error', 'No se pudo cargar el detalle', 'error'));
+  .catch(() => Swal.fire('Error', 'No se pudo cargar el detalle', 'error'));
 });
 
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const paletsInput = document.querySelector('input[name="palets"]');
+  const cajasInput  = document.querySelector('input[name="cantidad"]');
+  const totalInput  = document.querySelector('input[name="cantidadTotal"]');
+  const extraBlock  = document.getElementById('extraBlock');
+  const remainingSpan = document.getElementById('remainingBoxes');
+
+  function updateRemaining() {
+    const palets = parseInt(paletsInput.value) || 0;
+    const cajas  = parseInt(cajasInput.value) || 0;
+    const total  = parseInt(totalInput.value) || 0;
+    const diff   = total - palets * cajas;
+    remainingSpan.textContent = diff;
+    extraBlock.style.display = diff > 0 ? 'block' : 'none';
+  }
+
+  [paletsInput, cajasInput, totalInput].forEach(el =>
+    el.addEventListener('input', updateRemaining)
+  );
+
+  updateRemaining();
+});
 </script>
 
 
