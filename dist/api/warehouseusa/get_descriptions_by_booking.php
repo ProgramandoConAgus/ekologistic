@@ -27,19 +27,17 @@ while ($row = $res1->fetch_assoc()) {
 }
 
 // 2) Obtener totales y datos (cajas, facturas, lotes, órdenes, partes)
+//    Se consultan únicamente los registros de la tabla items para no depender
+//    de la información almacenada en dispatch.
 $sql2 = "
 SELECT
     SUM(i.Qty_Box) AS cantidad_total,
     GROUP_CONCAT(DISTINCT i.Number_Commercial_Invoice) AS numero_factura,
     GROUP_CONCAT(DISTINCT i.Number_Lot SEPARATOR ', ') AS numero_lote,
-    GROUP_CONCAT(DISTINCT d.numero_orden_compra SEPARATOR ', ') AS numero_orden_compra,
+    GROUP_CONCAT(DISTINCT i.Number_PO SEPARATOR ', ') AS numero_orden_compra,
     GROUP_CONCAT(DISTINCT i.Code_Product_EC SEPARATOR ', ') AS numero_parte
 FROM items i
 JOIN container c ON i.idContainer = c.IdContainer
-LEFT JOIN dispatch d
-  ON i.Number_Commercial_Invoice = d.numero_factura
- AND c.Number_Container          = d.notas
- AND d.numero_parte              = i.Code_Product_EC
 WHERE c.Booking_BK = ?
 ";
 $stmt2 = $conexion->prepare($sql2);
