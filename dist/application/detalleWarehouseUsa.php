@@ -285,7 +285,7 @@ $warehouse = $stmt->get_result()->fetch_assoc();
     $totalGeneral = 0;
 ?>
 <div class="container mt-5">
-  <div class="card shadow p-4">
+  <div class="card shadow-sm mx-auto" style="max-width: 900px;">
     <div class="card-body">
 
       <div class="row g-3">

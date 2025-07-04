@@ -284,7 +284,7 @@ $warehouse = $stmt->get_result()->fetch_assoc();
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
 <div class="container mt-5">
-  <div class="card shadow p-4">
+  <div class="card shadow-sm mx-auto" style="max-width: 900px;">
     <form method="POST" action="#" id="editForm">
       <input type="hidden" name="id" value="<?= $id ?>">
       <div class="card-body">
