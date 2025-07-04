@@ -30,8 +30,7 @@ if (!$idContainer) {
     exit;
 }
 
-// Actualizar Number_PO en items para ese containera
-$update = "UPDATE items SET Number_PO = ? WHERE id_container = ?";
+$update = "UPDATE items SET Number_PO = ? WHERE idContainer = ?";
 $stmt2 = $conexion->prepare($update);
 $stmt2->bind_param('si', $po, $idContainer);
 
