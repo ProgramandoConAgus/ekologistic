@@ -285,7 +285,7 @@ $warehouse = $stmt->get_result()->fetch_assoc();
     $totalGeneral = 0;
 ?>
 <div class="container mt-5">
-  <div class="card shadow p-4">
+  <div class="card shadow-sm mx-auto" style="max-width: 900px;">
     <div class="card-body">
 
       <div class="row g-3">
@@ -313,13 +313,9 @@ $warehouse = $stmt->get_result()->fetch_assoc();
           <label class="form-label">Número de Lote</label>
           <div class="form-control bg-light"><?= htmlspecialchars($warehouse['numero_lote']) ?></div>
         </div>
-        <div class="col-12">
-          <label class="form-label">Notas</label>
-          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['notas']) ?></div>
-        </div>
         <div class="col-md-4">
           <label class="form-label">Orden de Compra</label>
-          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['orden_compra']) ?></div>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['numero_orden_compra']) ?></div>
         </div>
         <div class="col-md-4">
           <label class="form-label">Número de Parte</label>
@@ -332,6 +328,10 @@ $warehouse = $stmt->get_result()->fetch_assoc();
         <div class="col-md-4">
           <label class="form-label">Modelo</label>
           <div class="form-control bg-light"><?= htmlspecialchars($warehouse['modelo']) ?></div>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Palets</label>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['notas']) ?></div>
         </div>
         <div class="col-md-4">
           <label class="form-label">Cantidad</label>

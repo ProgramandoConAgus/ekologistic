@@ -363,7 +363,7 @@ $manualRes = $conexion->query($queryManual);
                       <th>Cajas</th>
                       <th>Palets</th>
                       <th>Lote</th>
-                      <th>PO</th>
+                      <th>Num Orden de Compra</th>
                       <th>Descripción</th>
                       <th>Invoice</th>
                       <th>Fecha Ingreso</th>

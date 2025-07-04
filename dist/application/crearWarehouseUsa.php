@@ -8,6 +8,14 @@ $usuario= new Usuario($conexion);
 
 $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
+  $stmtBookings = $conexion->prepare("
+    SELECT DISTINCT Booking_BK
+    FROM container
+    ORDER BY Booking_BK
+  ");
+  $stmtBookings->execute();
+  $bookings = $stmtBookings->get_result()->fetch_all(MYSQLI_ASSOC);
+
 ?>
 
 
@@ -283,6 +291,23 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
   <div class="card-body">
     <div class="row g-3">
       <div class="col-md-4">
+        <label class="form-label" for="bookingSelect">Booking</label>
+        <select name="booking" id="bookingSelect" class="form-control">
+          <option value="">-- Selecciona --</option>
+          <?php foreach($bookings as $b): ?>
+            <option value="<?= htmlspecialchars($b['Booking_BK']) ?>">
+              <?= htmlspecialchars($b['Booking_BK']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="descripcionSelect">Descripción</label>
+        <select id="descripcionSelect" name="descripcion" class="form-control" disabled>
+          <option value="">-- Selecciona --</option>
+        </select>
+      </div>
+      <div class="col-md-4">
         <label class="form-label">Fecha Entrada</label>
         <input type="date" name="fecha_entrada" class="form-control">
       </div>
@@ -295,40 +320,53 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <input type="text" name="recibo_almacen" class="form-control">
       </div>
       <div class="col-md-4">
-        <label class="form-label">Estado</label>
-        <input type="text" name="estado" class="form-control">
+        <label class="form-label" for="estado">Estado</label>
+        <select name="estado" id="estado" class="form-control">
+          <option value="">-- Selecciona --</option>
+          <option value="En Almacén">En Almacén</option>
+          <option value="Cargado">Cargado</option>
+          <option value="Transit">Transit</option>
+        </select>
       </div>
       <div class="col-md-4">
-        <label class="form-label">Número de Factura</label>
-        <input type="text" name="numero_factura" class="form-control">
+        <label class="form-label" for="facturaSelect">Número de Factura</label>
+        <select id="facturaSelect" name="numero_factura" class="form-control" disabled>
+          <option value="">-- Selecciona --</option>
+        </select>
       </div>
       <div class="col-md-4">
-        <label class="form-label">Número de Lote</label>
-        <input type="text" name="numero_lote" class="form-control">
+        <label class="form-label" for="loteSelect">Número de Lote</label>
+        <select id="loteSelect" name="numero_lote" class="form-control" disabled>
+          <option value="">-- Selecciona --</option>
+        </select>
       </div>
       <div class="col-md-4">
-        <label class="form-label">Palets</label>
-        <input type="number" name="palets" class="form-control">
+        <label class="form-label" for="ordenSelect">Número de Orden de Compra</label>
+        <select id="ordenSelect" name="orden_compra" class="form-control" disabled>
+          <option value="">-- Selecciona --</option>
+        </select>
       </div>
       <div class="col-md-4">
-        <label class="form-label">Número de Orden de Compra</label>
-        <input type="text" name="orden_compra" class="form-control">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Número de Parte</label>
-        <input type="text" name="numero_parte" class="form-control">
-      </div>
-      <div class="col-12">
-        <label class="form-label">Descripción</label>
-        <textarea name="descripcion" class="form-control" rows="2"></textarea>
+        <label class="form-label" for="parteSelect">Número de Parte</label>
+        <select id="parteSelect" name="numero_parte" class="form-control" disabled>
+          <option value="">-- Selecciona --</option>
+        </select>
       </div>
       <div class="col-md-4">
         <label class="form-label">Modelo</label>
         <input type="text" name="modelo" class="form-control">
       </div>
       <div class="col-md-4">
-        <label class="form-label">Cantidad</label>
+        <label class="form-label">Palets</label>
+        <input type="number" name="palets" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Cantidad de Cajas</label>
         <input type="number" name="cantidad" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Cantidad Total</label>
+        <input type="number" name="cantidadTotal" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Valor Unitario</label>
@@ -487,7 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
       numero_factura: form.numero_factura.value.trim(),
       numero_lote: form.numero_lote.value.trim(),
       palets: form.palets.value.trim(),
-      orden_compra: form.orden_compra.value.trim(),
+      orden_compra: (function(v){ v = v.trim(); return v.toLowerCase()==='stock' ? '0' : v; })(form.orden_compra.value),
       numero_parte: form.numero_parte.value.trim(),
       descripcion: form.descripcion.value.trim(),
       modelo: form.modelo.value.trim(),
@@ -519,6 +557,102 @@ document.addEventListener('DOMContentLoaded', () => {
       Swal.fire({ icon: 'error', title: 'Error', text: 'Error de servidor' });
     });
   });
+});
+
+</script>
+<script>
+
+const facturaSel = document.getElementById('facturaSelect');
+const loteSel    = document.getElementById('loteSelect');
+const ordenSel   = document.getElementById('ordenSelect');
+const parteSel   = document.getElementById('parteSelect');
+
+function fillSelect(selectEl, csv) {
+  selectEl.innerHTML = '<option value="">-- Selecciona --</option>';
+  csv.split(',').forEach(val => {
+    const v = val.trim();
+    if (v) {
+      const o = document.createElement('option');
+      o.value = v;
+      o.textContent = v;
+      selectEl.appendChild(o);
+    }
+  });
+  selectEl.disabled = false;
+}
+// Al cambiar booking
+document.getElementById('bookingSelect').addEventListener('change', function() {
+  const booking = this.value;
+  const descSelect = document.getElementById('descripcionSelect');
+
+  // reseteo
+  descSelect.innerHTML = '<option value="">-- Selecciona --</option>';
+  descSelect.disabled = true;
+
+  if (!booking) return;
+
+  fetch(`../api/warehouseusa/get_descriptions_by_booking.php?booking=${encodeURIComponent(booking)}`)
+    .then(r => r.json())
+    .then(resp => {
+      if (!resp.success) {
+        return Swal.fire('Error', resp.msg, 'error');
+      }
+      resp.descriptions.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        descSelect.appendChild(opt);
+      });
+
+      fillSelect(facturaSel, resp.numero_factura);
+      fillSelect(loteSel,    resp.numero_lote);
+      fillSelect(ordenSel,   resp.numero_orden_compra);
+      fillSelect(parteSel,   resp.numero_parte);
+      descSelect.dataset.booking = booking;
+      descSelect.disabled = false;
+      document.querySelector('input[name="cantidadTotal"]').value = resp.cantidad_total;
+      // guardo el booking para el siguiente fetch
+      descSelect.dataset.booking = booking;
+    })
+    .catch(() => Swal.fire('Error', 'No se pudo cargar descripciones', 'error'));
+});
+
+// Al cambiar descripción
+document.getElementById('descripcionSelect').addEventListener('change', function() {
+  const description = this.value;
+  const booking     = this.dataset.booking;
+  if (!description) return;
+
+  fetch(`../api/warehouseusa/get_item_info.php?booking=${encodeURIComponent(booking)}&description=${encodeURIComponent(description)}`)
+    .then(r => r.json())
+    .then(resp => {
+      if (!resp.success) {
+        return Swal.fire('Error', resp.msg, 'error');
+      }
+      const i = resp.data;
+      // Mapea aquí los campos de tu form:
+      document.querySelector('input[name="cantidad"]').value       = i.cantidad;
+      document.querySelector('input[name="valor_unitario"]').value = i.valor_unitario;
+      document.querySelector('input[name="valor"]').value          = i.valor;
+      document.querySelector('input[name="unidad"]').value         = i.unidad;
+      document.querySelector('input[name="peso"]').value           = i.peso;
+      // …y cualquier otro campo que necesites
+      
+      // 2) Rellenar los <select> y habilitarlos
+        const facturaSel = document.getElementById('facturaSelect');
+        const loteSel    = document.getElementById('loteSelect');
+        const ordenSel   = document.getElementById('ordenSelect');
+        const parteSel   = document.getElementById('parteSelect');
+
+        facturaSel.value = i.numero_factura;        facturaSel.disabled = false;
+        loteSel.value    = i.numero_lote;           loteSel.disabled    = false;
+        ordenSel.value   = i.numero_orden_compra;   ordenSel.disabled   = false;
+        parteSel.value   = i.numero_parte;          parteSel.disabled   = false;
+
+      // 3) Recibo de almacén
+        document.querySelector('input[name="recibo_almacen"]').value = i.recibo_almacen || '';
+    })
+    .catch(() => Swal.fire('Error', 'No se pudo cargar el detalle', 'error'));
 });
 
 </script>
