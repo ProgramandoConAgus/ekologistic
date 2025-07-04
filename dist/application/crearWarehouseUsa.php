@@ -687,8 +687,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateRemaining() {
     const palets = parseInt(paletsInput.value) || 0;
     const cajas  = parseInt(cajasInput.value) || 0;
-    const total  = parseInt(totalInput.value) || 0;
-    const diff   = total - palets * cajas;
+    let total  = parseInt(totalInput.value) || 0;
+    let diff   = total - palets * cajas;
+
+    if (diff < 0) {
+      total = palets * cajas;
+      totalInput.value = total;
+      diff = 0;
+    }
+
     remainingSpan.textContent = diff;
     extraBlock.style.display = diff > 0 ? 'block' : 'none';
   }
