@@ -294,20 +294,9 @@ $query = "
   SELECT DISTINCT c.Booking_BK 
   FROM container c
   INNER JOIN dispatch d 
-    ON c.Number_Commercial_Invoice = d.numero_factura 
-    AND c.Number_Container = d.notas 
+    ON c.Number_Container = d.notas 
   WHERE d.estado = 'Cargado'
-  AND EXISTS (
-    SELECT 1 FROM imports i
-    WHERE i.Booking_BK = c.Booking_BK 
-    AND i.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-  )
-  AND EXISTS (
-    SELECT 1 FROM exports e
-    WHERE e.Booking_BK = c.Booking_BK 
-    AND e.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-  )
-  ORDER BY c.num_op, d.numero_parte
+  
 ";
 
 $result = $conexion->query($query);
@@ -541,8 +530,15 @@ while ($inc = $res->fetch_assoc()) {
 <script>
 document.getElementById('addNewDeliveryBtn').addEventListener('click', () => {
   const tbody = document.querySelector('table tbody');
+
+  // Buscar el item-id del ítem original con nombre "New delivery"
+  const original = [...tbody.querySelectorAll('tr[data-item-id]')].find(tr =>
+    tr.children[0].textContent.trim().toLowerCase() === 'new delivery'
+  );
+  const itemId = original ? original.dataset.itemId : '';
+
   const tr = document.createElement('tr');
-  tr.setAttribute('data-item-id', '');
+  tr.setAttribute('data-item-id', itemId);
 
   tr.innerHTML = `
     <td>New delivery</td>
@@ -560,20 +556,26 @@ document.getElementById('addNewDeliveryBtn').addEventListener('click', () => {
       </div>
     </td>
     <td>
+      <input type="text" class="form-control form-control-sm notas" placeholder="Notas">
+    </td>
+    <td>
       <button type="button" class="btn btn-danger btn-sm btn-delete-row">Eliminar</button>
     </td>
   `;
 
-  // Insertar antes de la fila del botón para que quede arriba de ese botón
   const addButtonRow = tbody.querySelector('tr:last-child');
   tbody.insertBefore(tr, addButtonRow);
 });
-
-// Botón para agregar Storage
 document.getElementById('addStorageBtn').addEventListener('click', () => {
   const tbody = document.querySelector('table tbody');
+
+  const original = [...tbody.querySelectorAll('tr[data-item-id]')].find(tr =>
+    tr.children[0].textContent.trim().toLowerCase() === 'storage'
+  );
+  const itemId = original ? original.dataset.itemId : '';
+
   const tr = document.createElement('tr');
-  tr.setAttribute('data-item-id', '');
+  tr.setAttribute('data-item-id', itemId);
 
   tr.innerHTML = `
     <td>Storage</td>
@@ -591,6 +593,9 @@ document.getElementById('addStorageBtn').addEventListener('click', () => {
       </div>
     </td>
     <td>
+      <input type="text" class="form-control form-control-sm notas" placeholder="Notas">
+    </td>
+    <td>
       <button type="button" class="btn btn-danger btn-sm btn-delete-row">Eliminar</button>
     </td>
   `;
@@ -598,6 +603,7 @@ document.getElementById('addStorageBtn').addEventListener('click', () => {
   const addButtonRow = tbody.querySelector('tr:last-child');
   tbody.insertBefore(tr, addButtonRow);
 });
+
 
 // Delegación para eliminar filas con botón "Eliminar"
 document.querySelector('table tbody').addEventListener('click', (e) => {

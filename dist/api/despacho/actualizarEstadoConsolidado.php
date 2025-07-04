@@ -19,7 +19,8 @@ try {
     // 1) Exports
     $sql = "
       UPDATE exports e
-      JOIN container c ON c.Number_Commercial_Invoice = e.Number_Commercial_Invoice
+      JOIN items i ON e.Number_Commercial_Invoice = i.Number_Commercial_Invoice
+      JOIN container c ON i.idContainer = c.IdContainer
       SET e.status = 3
       WHERE c.num_op = ? AND e.status = 2
     ";
@@ -29,10 +30,11 @@ try {
 
     // 2) Imports
     $sql = "
-      UPDATE imports i
-      JOIN container c ON c.Number_Commercial_Invoice = i.Number_Commercial_Invoice
-      SET i.status = 3
-      WHERE c.num_op = ? AND i.status = 2
+      UPDATE imports i2
+      JOIN items i ON i2.Number_Commercial_Invoice = i.Number_Commercial_Invoice
+      JOIN container c ON i.idContainer = c.IdContainer
+      SET i2.status = 3
+      WHERE c.num_op = ? AND i2.status = 2
     ";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("s", $num_op);
@@ -41,7 +43,8 @@ try {
     // 3) Despacho
     $sql = "
       UPDATE despacho d
-      JOIN container c ON c.Number_Commercial_Invoice = d.Number_Commercial_Invoice
+      JOIN items i ON d.Number_Commercial_Invoice = i.Number_Commercial_Invoice
+      JOIN container c ON i.idContainer = c.IdContainer
       SET d.status = 3
       WHERE c.num_op = ? AND d.status = 2
     ";
@@ -54,9 +57,10 @@ try {
 
     echo json_encode(['success' => true]);
 } catch (Exception $e) {
-    if ($conexion->in_transaction) {
-        $conexion->rollback();
-    }
+    $conexion->rollback();
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    echo json_encode([
+        'success' => false,
+        'message' => $e->getMessage()
+    ]);
 }

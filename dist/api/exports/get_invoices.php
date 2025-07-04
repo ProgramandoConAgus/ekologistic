@@ -4,10 +4,12 @@ require '../../con_db.php';
 if (isset($_GET['booking'])) {
     $booking = $_GET['booking'];
 
-    $stmt = $conexion->prepare("SELECT DISTINCT d.numero_factura 
-                                 FROM container c 
+    $stmt = $conexion->prepare("SELECT DISTINCT i.Number_Commercial_Invoice	 as numero_factura
+                                 FROM items i
+                                 JOIN container c
+                                 ON i.idContainer= c.IdContainer 
                                  INNER JOIN dispatch d 
-                                 ON c.Number_Commercial_Invoice = d.numero_factura 
+                                 ON i.Number_Commercial_Invoice = d.numero_factura 
                                  AND c.Number_Container = d.notas 
                                  WHERE d.estado = 'Cargado' AND c.Booking_BK = ?");
     $stmt->bind_param("s", $booking);

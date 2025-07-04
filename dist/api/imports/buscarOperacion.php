@@ -16,61 +16,65 @@ try {
 
     $query = "
        SELECT 
-          e.ExportsID AS ID,
-          e.Booking_BK,
-          e.Number_Commercial_Invoice,
-          e.status,
-          e.creation_date,
-          c.num_op,
-          'exports' AS origen
-        FROM exports e
-        LEFT JOIN (
-          SELECT Number_Commercial_Invoice, MIN(num_op) AS num_op
-          FROM container
-          WHERE num_op = ?
-          GROUP BY Number_Commercial_Invoice
-        ) c ON e.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-        WHERE e.status = 2 AND c.num_op IS NOT NULL
+  e.ExportsID AS ID,
+  e.Booking_BK,
+  e.Number_Commercial_Invoice,
+  e.status,
+  e.creation_date,
+  c.num_op,
+  'exports' AS origen
+FROM exports e
+LEFT JOIN (
+  SELECT i.Number_Commercial_Invoice, MIN(ct.num_op) AS num_op
+  FROM items i
+  INNER JOIN container ct ON i.idContainer = ct.IdContainer
+  WHERE ct.num_op = ?
+  GROUP BY i.Number_Commercial_Invoice
+) c ON e.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+WHERE e.status = 2 AND c.num_op IS NOT NULL
 
-        UNION ALL
+UNION ALL
 
-        SELECT 
-          i.ImportsID AS ID,
-          i.Booking_BK,
-          i.Number_Commercial_Invoice,
-          i.status,
-          i.creation_date,
-          c.num_op,
-          'imports' AS origen
-        FROM imports i
-        LEFT JOIN (
-          SELECT Number_Commercial_Invoice, MIN(num_op) AS num_op
-          FROM container
-          WHERE num_op = ?
-          GROUP BY Number_Commercial_Invoice
-        ) c ON i.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-        WHERE i.status = 2 AND c.num_op IS NOT NULL
+SELECT 
+  i.ImportsID AS ID,
+  i.Booking_BK,
+  i.Number_Commercial_Invoice,
+  i.status,
+  i.creation_date,
+  c.num_op,
+  'imports' AS origen
+FROM imports i
+LEFT JOIN (
+  SELECT i.Number_Commercial_Invoice, MIN(ct.num_op) AS num_op
+  FROM items i
+  INNER JOIN container ct ON i.idContainer = ct.IdContainer
+  WHERE ct.num_op = ?
+  GROUP BY i.Number_Commercial_Invoice
+) c ON i.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+WHERE i.status = 2 AND c.num_op IS NOT NULL
 
-        UNION ALL
+UNION ALL
 
-        SELECT 
-          d.DespachoID AS ID,
-          d.Booking_BK,
-          d.Number_Commercial_Invoice,
-          d.status,
-          d.creation_date,
-          c.num_op,
-          'despacho' AS origen
-        FROM despacho d
-        LEFT JOIN (
-          SELECT Number_Commercial_Invoice, MIN(num_op) AS num_op
-          FROM container
-          WHERE num_op = ?
-          GROUP BY Number_Commercial_Invoice
-        ) c ON d.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-        WHERE d.status = 2 AND c.num_op IS NOT NULL
+SELECT 
+  d.DespachoID AS ID,
+  d.Booking_BK,
+  d.Number_Commercial_Invoice,
+  d.status,
+  d.creation_date,
+  c.num_op,
+  'despacho' AS origen
+FROM despacho d
+LEFT JOIN (
+  SELECT i.Number_Commercial_Invoice, MIN(ct.num_op) AS num_op
+  FROM items i
+  INNER JOIN container ct ON i.idContainer = ct.IdContainer
+  WHERE ct.num_op = ?
+  GROUP BY i.Number_Commercial_Invoice
+) c ON d.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+WHERE d.status = 2 AND c.num_op IS NOT NULL
 
-        ORDER BY creation_date DESC
+ORDER BY creation_date DESC
+
     ";
 
     $stmt = $conexion->prepare($query);

@@ -12,11 +12,10 @@ $po = $input['po'];
 include('../con_db.php');
 
 // Primero obtener el id_container asociado a ese dispatch
-$query = "SELECT c.id 
+$query = "SELECT c.IdContainer 
           FROM container c
           INNER JOIN dispatch d 
-              ON c.Number_Commercial_Invoice = d.numero_factura
-             AND c.Number_Container = d.notas
+             ON c.Number_Container = d.notas
           WHERE d.id = ?";
 
 $stmt = $conexion->prepare($query);
@@ -27,7 +26,7 @@ $stmt->fetch();
 $stmt->close();
 
 if (!$idContainer) {
-    echo json_encode(['success'=>false, 'error'=>'No se encontró el container asociado']);
+    echo json_encode(['success'=>false, 'error'=>'No se encontró el container asociado', 'id'=>$idContainer]);
     exit;
 }
 

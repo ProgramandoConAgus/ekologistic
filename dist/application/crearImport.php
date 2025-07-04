@@ -293,8 +293,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
                 $query = "SELECT DISTINCT c.Booking_BK 
                           FROM container c 
                           INNER JOIN dispatch d 
-                          ON c.Number_Commercial_Invoice = d.numero_factura 
-                          AND c.Number_Container = d.notas 
+                          ON c.Number_Container = d.notas 
                           WHERE d.estado = 'Cargado' 
                           ORDER BY c.num_op, d.numero_parte";
                 $result = $conexion->query($query);

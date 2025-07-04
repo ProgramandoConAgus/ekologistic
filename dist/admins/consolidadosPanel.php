@@ -313,7 +313,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
             </tr>
           </thead>
         <tbody>
-<?php 
+        <?php
 $query = "
 SELECT 
   e.ExportsID AS ID,
@@ -325,10 +325,12 @@ SELECT
   'exports' AS origen
 FROM exports e
 LEFT JOIN (
-  SELECT Number_Commercial_Invoice, MIN(num_op) AS num_op
-  FROM container
-  GROUP BY Number_Commercial_Invoice
+  SELECT i.Number_Commercial_Invoice, ct.Booking_BK, MIN(ct.num_op) AS num_op
+  FROM items i
+  INNER JOIN container ct ON i.idContainer = ct.IdContainer
+  GROUP BY i.Number_Commercial_Invoice, ct.Booking_BK
 ) c ON e.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+   AND e.Booking_BK = c.Booking_BK
 WHERE e.status IN (2,3)
 
 UNION ALL
@@ -343,10 +345,12 @@ SELECT
   'imports' AS origen
 FROM imports i
 LEFT JOIN (
-  SELECT Number_Commercial_Invoice, MIN(num_op) AS num_op
-  FROM container
-  GROUP BY Number_Commercial_Invoice
+  SELECT i.Number_Commercial_Invoice, ct.Booking_BK, MIN(ct.num_op) AS num_op
+  FROM items i
+  INNER JOIN container ct ON i.idContainer = ct.IdContainer
+  GROUP BY i.Number_Commercial_Invoice, ct.Booking_BK
 ) c ON i.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+   AND i.Booking_BK = c.Booking_BK
 WHERE i.status IN (2,3)
 
 UNION ALL
@@ -361,14 +365,18 @@ SELECT
   'despacho' AS origen
 FROM despacho d
 LEFT JOIN (
-  SELECT Number_Commercial_Invoice, MIN(num_op) AS num_op
-  FROM container
-  GROUP BY Number_Commercial_Invoice
+  SELECT i.Number_Commercial_Invoice, ct.Booking_BK, MIN(ct.num_op) AS num_op
+  FROM items i
+  INNER JOIN container ct ON i.idContainer = ct.IdContainer
+  GROUP BY i.Number_Commercial_Invoice, ct.Booking_BK
 ) c ON d.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+   AND d.Booking_BK = c.Booking_BK
 WHERE d.status IN (2,3)
 
 ORDER BY creation_date DESC;
+
 ";
+
 
 
 $result = $conexion->query($query);

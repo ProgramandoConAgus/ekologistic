@@ -54,18 +54,18 @@ try {
     $stmtItemInc->execute();
     $idItemsIncoterms = $conexion->insert_id;
 
-        // 3) Insert en incotermdespacho (vincula item-incoterm con despacho)
-        $stmtInc = $conexion->prepare(
-          "INSERT INTO incotermsdespacho
-           (IdItemsLiquidacionDespachoIncoterm, IdDespacho)
-           VALUES (?, ?)"
-        );
-        if (!$stmtID) {
-            throw new Exception("Error preparando INSERT en incotermsdespacho: " . $conexion->error);
-        }
-        $stmtID->bind_param("ii", $idIncotermItem, $idDespacho);
-        $stmtID->execute();
-        $stmtID->close();
+    $stmtInc = $conexion->prepare(
+    "INSERT INTO incotermsdespacho
+    (IdItemsLiquidacionDespachoIncoterm, IdDespacho)
+    VALUES (?, ?)"
+    );
+    if (!$stmtInc) {
+        throw new Exception("Error preparando INSERT en incotermsdespacho: " . $conexion->error);
+    }
+    $stmtInc->bind_param("ii", $idItemsIncoterms, $idDespacho);
+    $stmtInc->execute();
+    $stmtInc->close();
+
     }
 
     echo json_encode(['success' => true]);
