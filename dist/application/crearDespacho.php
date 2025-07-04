@@ -566,19 +566,50 @@ document.getElementById('addNewDeliveryBtn').addEventListener('click', () => {
   const addButtonRow = tbody.querySelector('tr:last-child');
   tbody.insertBefore(tr, addButtonRow);
 });
-document.getElementById('addStorageBtn').addEventListener('click', () => {
-  const tbody = document.querySelector('table tbody');
 
-  const original = [...tbody.querySelectorAll('tr[data-item-id]')].find(tr =>
-    tr.children[0].textContent.trim().toLowerCase() === 'storage'
-  );
-  const itemId = original ? original.dataset.itemId : '';
+document.getElementById('addNewDeliveryBtn').addEventListener('click', () => {
+  const tbody = document.querySelector('table tbody');
+  const itemId = 1; // ID real de "New delivery" si ya está creado
 
   const tr = document.createElement('tr');
   tr.setAttribute('data-item-id', itemId);
 
   tr.innerHTML = `
-    <td>Storage</td>
+    <td>New delivery</td>
+    <td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>
+    <td>
+      <div class="input-group input-group-sm">
+        <span class="input-group-text">$</span>
+        <input type="text" class="form-control valor-unitario" value="0,00">
+      </div>
+    </td>
+    <td>
+      <div class="input-group input-group-sm">
+        <span class="input-group-text">$</span>
+        <input type="text" class="form-control valor-total" value="0,00" readonly>
+      </div>
+    </td>
+    <td>
+      <input type="text" class="form-control form-control-sm notas" placeholder="Notas">
+    </td>
+    <td>
+      <button type="button" class="btn btn-danger btn-sm btn-delete-row">Eliminar</button>
+    </td>
+  `;
+
+  const addButtonRow = tbody.querySelector('tr:last-child');
+  tbody.insertBefore(tr, addButtonRow);
+});
+
+document.getElementById('addStorageBtn').addEventListener('click', () => {
+  const tbody = document.querySelector('table tbody');
+  const itemId = 2; // ID real de "Storage about 30 days off price x pallet"
+
+  const tr = document.createElement('tr');
+  tr.setAttribute('data-item-id', itemId);
+
+  tr.innerHTML = `
+    <td>Storage about 30 days off price x pallet</td>
     <td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>
     <td>
       <div class="input-group input-group-sm">
