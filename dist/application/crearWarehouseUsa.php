@@ -525,7 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
       numero_factura: form.numero_factura.value.trim(),
       numero_lote: form.numero_lote.value.trim(),
       palets: form.palets.value.trim(),
-      orden_compra: form.orden_compra.value.trim(),
+      orden_compra: (function(v){ v = v.trim(); return v.toLowerCase()==='stock' ? '0' : v; })(form.orden_compra.value),
       numero_parte: form.numero_parte.value.trim(),
       descripcion: form.descripcion.value.trim(),
       modelo: form.modelo.value.trim(),
