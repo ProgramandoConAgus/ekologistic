@@ -28,6 +28,13 @@ try {
     $anchoIn      = $data['ancho'] === '' ? null : floatval(str_replace(',', '.', $data['ancho']));
     $alturaIn     = $data['altura'] === '' ? null : floatval(str_replace(',', '.', $data['altura']));
     $pesoLb       = $data['peso'] === '' ? null : floatval(str_replace(',', '.', $data['peso']));
+    $valorUnitR   = $data['valor_unitario_restante'] === '' ? null : floatval(str_replace(',', '.', $data['valor_unitario_restante']));
+    $valorR       = $data['valor_restante'] === '' ? null : floatval(str_replace(',', '.', $data['valor_restante']));
+    $unidadR      = trim($data['unidad_restante'] ?? '');
+    $longitudR    = $data['longitud_restante'] === '' ? null : floatval(str_replace(',', '.', $data['longitud_restante']));
+    $anchoR       = $data['ancho_restante'] === '' ? null : floatval(str_replace(',', '.', $data['ancho_restante']));
+    $alturaR      = $data['altura_restante'] === '' ? null : floatval(str_replace(',', '.', $data['altura_restante']));
+    $pesoR        = $data['peso_restante'] === '' ? null : floatval(str_replace(',', '.', $data['peso_restante']));
 
     if ($numeroFactura === '' || $fechaEntrada === '') {
         echo json_encode(['success' => false, 'message' => 'Datos incompletos']);
@@ -54,14 +61,21 @@ try {
             longitud_in,
             ancho_in,
             altura_in,
-            peso_lb
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+            peso_lb,
+            valor_unitario_restante,
+            valor_restante,
+            unidad_restante,
+            longitud_in_restante,
+            ancho_in_restante,
+            altura_in_restante,
+            peso_lb_restante
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
     );
     if (!$stmt) {
         throw new Exception('Error en prepare: ' . $conexion->error);
     }
     $stmt->bind_param(
-        'ssssiisisssiddsdddd',
+        'ssssiisisssiddsddddddsdddd',
         $fechaEntrada,
         $fechaSalida,
         $recibo,
@@ -80,7 +94,14 @@ try {
         $longitudIn,
         $anchoIn,
         $alturaIn,
-        $pesoLb
+        $pesoLb,
+        $valorUnitR,
+        $valorR,
+        $unidadR,
+        $longitudR,
+        $anchoR,
+        $alturaR,
+        $pesoR
     );
     $stmt->execute();
     $stmt->close();
