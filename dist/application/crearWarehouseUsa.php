@@ -368,6 +368,10 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <label class="form-label">Cantidad Total</label>
         <input type="number" name="cantidadTotal" class="form-control">
       </div>
+      <div id="totalUpdateNote" class="col-md-4" style="display:none;">
+        <label class="form-label">Nota por cambio de total</label>
+        <input type="text" name="nota_cambio_total" class="form-control">
+      </div>
       <div class="col-md-4">
         <label class="form-label">Valor Unitario</label>
         <input type="text" name="valor_unitario" class="form-control">
@@ -492,6 +496,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 <!--Autocalcular totales-->
 <!-- 1) Cálculo dinámico de totales -->
 <script>
+var originalTotal = 0;
 document.addEventListener('DOMContentLoaded', () => {
   function formatCurrency(value) {
     let parts = value.toFixed(2).split('.');
@@ -631,6 +636,7 @@ document.getElementById('bookingSelect').addEventListener('change', function() {
       descSelect.dataset.booking = booking;
       descSelect.disabled = false;
       document.querySelector('input[name="cantidadTotal"]').value = resp.cantidad_total;
+      originalTotal = parseInt(resp.cantidad_total) || 0;
       // guardo el booking para el siguiente fetch
       descSelect.dataset.booking = booking;
     })
@@ -683,17 +689,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const totalInput  = document.querySelector('input[name="cantidadTotal"]');
   const extraBlock  = document.getElementById('extraBlock');
   const remainingSpan = document.getElementById('remainingBoxes');
+  const noteBlock = document.getElementById('totalUpdateNote');
+
+  originalTotal = parseInt(totalInput.value) || 0;
 
   function updateRemaining() {
     const palets = parseInt(paletsInput.value) || 0;
     const cajas  = parseInt(cajasInput.value) || 0;
-    let total  = parseInt(totalInput.value) || 0;
-    let diff   = total - palets * cajas;
+    const product = palets * cajas;
+    let diff;
 
-    if (diff < 0) {
-      total = palets * cajas;
-      totalInput.value = total;
+    if (product > originalTotal) {
+      totalInput.value = product;
+      noteBlock.style.display = 'block';
+      noteBlock.querySelector('input').value = 'Total ajustado automáticamente';
       diff = 0;
+    } else {
+      totalInput.value = originalTotal;
+      noteBlock.style.display = 'none';
+      noteBlock.querySelector('input').value = '';
+      diff = originalTotal - product;
     }
 
     remainingSpan.textContent = diff;
