@@ -5,42 +5,35 @@ require '../vendor/autoload.php';
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
-// Verificar autenticación y método POST
+// 1) Verificar autenticación y POST
 if (!isset($_SESSION['IdUsuario']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
     die('Acceso denegado');
 }
 $IdUsuario = $_SESSION['IdUsuario'];
 
-// Validar existencia del archivo subido
+// 2) Validar archivo subido
 if (!isset($_FILES['excel']) || $_FILES['excel']['error'] !== UPLOAD_ERR_OK) {
     $_SESSION['error'] = "Error en la subida del archivo (Código: " . $_FILES['excel']['error'] . ")";
     header("Location: importarpk.php");
     exit();
 }
-
-// Validar tipo de archivo
-$allowedTypes = [
+$allowed = [
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-excel'
+    'application/vnd.ms-excel',
 ];
-$finfo = finfo_open(FILEINFO_MIME_TYPE);
+$finfo    = finfo_open(FILEINFO_MIME_TYPE);
 $mimeType = finfo_file($finfo, $_FILES['excel']['tmp_name']);
 finfo_close($finfo);
-
-if (!in_array($mimeType, $allowedTypes)) {
+if (!in_array($mimeType, $allowed)) {
     $_SESSION['error'] = "Solo se permiten archivos Excel (.xlsx)";
     header("Location: importarpk.php");
     exit();
 }
 
-// Configurar directorio de subida
-$uploadDir = '../uploads/packinglists/';
-if (!is_dir($uploadDir)) {
-    mkdir($uploadDir, 0755, true);
-}
-
-// Mover archivo
-$fileName = uniqid() . '_' . basename($_FILES['excel']['name']);
+// 3) Guardar el archivo
+$uploadDir  = '../uploads/packinglists/';
+if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+$fileName   = uniqid() . '_' . basename($_FILES['excel']['name']);
 $targetPath = $uploadDir . $fileName;
 if (!move_uploaded_file($_FILES['excel']['tmp_name'], $targetPath)) {
     $_SESSION['error'] = "Error al guardar el archivo";
@@ -49,92 +42,54 @@ if (!move_uploaded_file($_FILES['excel']['tmp_name'], $targetPath)) {
 }
 
 try {
-    // Procesar Excel
+    // 4) Iniciar transacción
+    $conexion->begin_transaction();
+
+    // 5) Leer Excel como array
     $spreadsheet = IOFactory::load($targetPath);
+    $sheet       = $spreadsheet->getActiveSheet();
+    if (!$sheet) throw new Exception("No se encontró hoja activa");
+    $rows = $sheet->toArray();
+    if (count($rows) < 2) throw new Exception("El archivo no contiene datos");
 
-    $worksheet = $spreadsheet->getActiveSheet();
-    if (!$worksheet) {
-        throw new Exception("No se encontró ninguna hoja activa en el archivo Excel");
-    }
-
-
-    // Convertir la hoja en un array 
-    $rows = $worksheet->toArray();
     // --------------------------------------------------
-    // 2) Extraer datos del CONTENEDOR de la PRIMERA FILA DE DATOS (fila 1 en $rows)
+    // 6) INSERT en packing_list
     // --------------------------------------------------
-    // Recuerda que rows[0] es la fila de encabezados, rows[1] es la primera fila "real"
-    $primerRegistro = $rows[1];
-    // Validar que haya al menos 2 filas (encabezado + 1 fila de datos)
-    $numero_packing_list_pl = $primerRegistro[0] ?? '';
+    $first = $rows[1];
+    $numPL = $first[0];  // columna 0
 
-    // Insertar registro en Packing_List
-    $fechaSubida = date('Y-m-d H:i:s');
-    $status = 'pendiente';  
     $stmtPL = $conexion->prepare("
-        INSERT INTO packing_list (IdPackingList,IdUsuario, Date_Created, path_file, status)
+        INSERT INTO packing_list
+            (IdPackingList, IdUsuario, Date_Created, path_file, status)
         VALUES (?, ?, ?, ?, ?)
     ");
-    $stmtPL->bind_param("iisss",$numero_packing_list_pl, $IdUsuario, $fechaSubida, $targetPath, $status);
+    if (!$stmtPL) throw new Exception($conexion->error);
+    $now    = date('Y-m-d H:i:s');
+    $status = 'pendiente';
+    $stmtPL->bind_param("iisss", $numPL, $IdUsuario, $now, $targetPath, $status);
     $stmtPL->execute();
-    $idPackingList = $conexion->insert_id;
     $stmtPL->close();
 
-   
+    // --------------------------------------------------
+    // 7) INSERT en container (ahora con Num OP en columna 1)
+    // --------------------------------------------------
+    $num_op           = trim((string)$first[1]);        // **columna 1** = Num OP
+    $num_dae          = trim((string)$first[2]);        // columna 2
+    $destiny_pod      = trim((string)$first[3]);        // columna 3
+    $forwarder        = trim((string)$first[4]);        // columna 4
+    $shipping_line    = trim((string)$first[5]);        // columna 5
+    $incoterm         = trim((string)$first[6]);        // columna 6
+    $dispatchDateVal  = convertirFecha($first[7]);      // columna 7
+    $rawDeparture     = trim((string)$first[8]);        // columna 8
+    $dObj             = DateTime::createFromFormat('d/m/Y', $rawDeparture);
+    $departureDateVal = ($dObj && $dObj->format('d/m/Y') === $rawDeparture)
+                          ? $dObj->format('Y-m-d')
+                          : $dispatchDateVal;
+    $booking_bl       = trim((string)$first[9]);        // columna 9
+    $number_container = trim((string)$first[10]);       // columna 10
+    $etaDateVal       = convertirFecha($first[22]);     // columna 22 (antes 21)
 
-    // Según el orden que mostraste en la imagen, los índices son:
-    //  0 => numero_packing_list_pl
-    //  1 => Num OP
-    //  2 => Num DAE
-    //  3 => Destiny POD
-    //  4 => Forwarder
-    //  5 => Shipping Line
-    //  6 => Incoterm
-    //  7 => Dispatch Date Warenhouse EC
-    //  8 => Departure Port Origin EC
-    //  9 => Booking BL
-    //  10 => Number Container
-    //  11 => Number Commercial Invoice
-    //  12 => Code Product EC
-    //  13 => Number LOT
-    //  14 => Customer
-    //  15 => Number PO
-    //  16 => Description
-    //  17 => Packing Unit
-    //  18 => Qty Box
-    //  19 => Weight Neto Per box kg
-    //  20 => Weight Bruto Per box kg
-    //  21 => Total Weight kg
-    //  22 => ETA Date
-    //  23 => Price BOX EC
-    //  24 => Total Price EC
-    //  25 => Price BOX USA
-    //  26 => Total Price BOX USA
-
-    // Extraemos para la tabla Container (tú eliges cuáles quieres guardar):
-    $num_op                 = $primerRegistro[1] ?? '';
-    $num_dae                = $primerRegistro[2] ?? '';
-    $destiny_pod           = $primerRegistro[3] ?? '';
-    $forwarder             = $primerRegistro[4] ?? '';
-    $shipping_line         = $primerRegistro[5] ?? '';
-    $incoterm              = $primerRegistro[6] ?? '';
-
-    // Convertir fechas (Dispatch, Departure, ETA) desde columnas 7, 8 y 22 (según tu criterio real)
-    // OJO: la columna 7 y 8 en tu tabla dice "Dispatch Date" y "Departure Port" (texto).
-    //      A veces en un Excel guardan la fecha, a veces un texto. Adáptalo a lo que llegue.
-    $dispatchDateVal = convertirFecha($primerRegistro[7]);
-    // La 8 sería "Departure Port Origin EC", que puede ser más un texto que una fecha.
-    $departurePortOriginEC = convertirFecha($primerRegistro[8]);
-    // La 22 es ETA Date
-    $etaDateVal = convertirFecha($primerRegistro[22]);
-
-    // booking BL y container:
-    $booking_bl             = $primerRegistro[9]  ?? '';
-    $number_container       = $primerRegistro[10] ?? '';
-    $number_commercial_invoice = $primerRegistro[11] ?? '';
-
-    // Insertar en Container
-    $stmtContainer = $conexion->prepare("
+    $stmtC = $conexion->prepare("
         INSERT INTO container (
             idPackingList,
             num_op,
@@ -147,52 +102,36 @@ try {
             Departure_Date_Port_Origin_EC,
             Booking_BK,
             Number_Container,
-            Number_Commercial_Invoice,
             ETA_Date
-        ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
-    if (!$stmtContainer) {
-        throw new Exception("Error al preparar statement Container: " . $conexion->error);
-    }
-
-    // Ajusta la cadena de tipos de bind_param a tus campos. Aquí asumo:
-    // - IdPackingList => int
-    // - Los demás => string, salvo fechas que igual enviamos como string
-    $stmtContainer->bind_param(
-        "issssssssssss",
-        $numero_packing_list_pl,    
-        $num_op,                     // string (o int si en tu BD es int)
-        $num_dae,                    // string
-        $destiny_pod,                // string
-        $forwarder,                  // string
-        $shipping_line,              // string
-        $incoterm,                   // string
-        $dispatchDateVal,            // string (YYYY-mm-dd)
-        $departurePortOriginEC,      // string
-        $booking_bl,                 // string
-        $number_container,           // string
-        $number_commercial_invoice,  // string
-        $etaDateVal                  // string (YYYY-mm-dd)
+    if (!$stmtC) throw new Exception($conexion->error);
+    $stmtC->bind_param(
+        "isssssssssss",
+        $numPL,
+        $num_op,
+        $num_dae,
+        $destiny_pod,
+        $forwarder,
+        $shipping_line,
+        $incoterm,
+        $dispatchDateVal,
+        $departureDateVal,
+        $booking_bl,
+        $number_container,
+        $etaDateVal
     );
-    $stmtContainer->execute();
+    $stmtC->execute();
     $idContainer = $conexion->insert_id;
-    $stmtContainer->close();
+    $stmtC->close();
 
     // --------------------------------------------------
-    // 3) Insertar ÍTEMS (por cada línea desde la fila 2 en adelante)
+    // 8) INSERT en items (columnas también desplazadas +1)
     // --------------------------------------------------
-    // Observa que el código original usaba un foreach(array_slice($rows, 1)) 
-    // para procesar TODAS las filas (incluida la primera, la cual ya tomamos para “Container”).
-    // Si cada fila corresponde a 1 ítem distinto con el mismo contenedor, hacemos:
-    //   - Omitimos la fila de encabezado (índice 0).
-    //   - Recorremos desde la fila 1 en adelante.
-    //   - Pero, si la fila 1 la usaste para Container, ¿quieres también insertarla como ítem?
-    //     Si la respuesta es SÍ, dejamos el slice desde (1). Si la respuesta es NO, empezamos en (2).
-    // En este ejemplo, **supondré** que la fila 1 también contiene un ítem y la insertamos:
-
-    $stmtItems = $conexion->prepare("
+    $stmtI = $conexion->prepare("
         INSERT INTO items (
             idContainer,
+            Number_Commercial_Invoice,
             Code_Product_EC,
             Number_Lot,
             Customer,
@@ -205,59 +144,46 @@ try {
             Total_Weight_kg,
             Price_Box_EC,
             Total_Price_EC,
-            Price_Box_USA,
+            Price_BOX_USA,
             Total_Price_USA
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
-    if (!$stmtItems) {
-        throw new Exception("Error al preparar statement Items: " . $conexion->error);
-    }
+    if (!$stmtI) throw new Exception($conexion->error);
+    // 1 entero + 7 strings + 1 entero + 7 doubles = 16 parámetros
+    $types = "i" . str_repeat("s", 7) . "i" . str_repeat("d", 7);
 
-    // Cadena de tipos: 
-    //  i = integer, s = string, d = double/float
-    // Ajusta según tus columnas en Items
-    $itemsParamTypes = "issssssiidddddd";
+    foreach (array_slice($rows, 1) as $r) {
+        // Saltar filas vacías
+        $empty = true;
+        foreach ($r as $c) {
+            if (trim((string)$c) !== '' && trim((string)$c) !== '.') {
+                $empty = false;
+                break;
+            }
+        }
+        if ($empty) continue;
 
-    // Comenzamos a partir de la fila 1 (que ya usamos para container).
-    // Ojo: aquí se inserta también lo que ya fue “container”.
-    // Si no quieres insertar la primera fila como item, usa array_slice($rows, 2)
-    foreach (array_slice($rows, 1) as $rowIndex => $rowData) {
-        // 1) Revisar si la fila está “vacía” (típico en Excels con huecos)
-       $estaVacia = true;
-foreach ($rowData as $cell) {
-    $valor = trim((string)$cell);
-    // Si la celda no es vacía y su contenido no es solo un punto...
-    if ($valor !== "" && $valor !== ".") {
-        $estaVacia = false;
-        break;
-    }
-}
-if ($estaVacia) {
-    continue;
-}
+        // Mapear columnas *desplazadas +1*
+        $itemInvoice             = trim((string)($r[11] ?? ''));  // col 11
+        $code_product_ec         = trim((string)($r[12] ?? ''));  // col 12
+        $number_lot              = trim((string)($r[13] ?? ''));  // col 13
+        $customer                = trim((string)($r[14] ?? ''));  // col 14
+        $number_po               = trim((string)($r[15] ?? ''));  // col 15
+        $description             = trim((string)($r[16] ?? ''));  // col 16
+        $packing_unit            = trim((string)($r[17] ?? ''));  // col 17
+        $qty_box                 = (int)  ($r[18] ?? 0);         // col 18
+        $weight_neto_per_box_kg  = (float)($r[19] ?? 0);         // col 19
+        $weight_bruto_per_box_kg = (float)($r[20] ?? 0);         // col 20
+        $total_weight_kg         = (float)($r[21] ?? 0);         // col 21
+        $priceBoxEC              = (float)($r[23] ?? 0);         // col 23
+        $totalPriceEC            = (float)($r[24] ?? 0);         // col 24
+        $priceBoxUSA             = (float)($r[25] ?? 0);         // col 25
+        $totalPriceUSA           = (float)($r[26] ?? 0);         // col 26
 
-
-        // 2) Extraer columnas de item, desde la 12 en adelante
-        //    (las 12 primeras posiciones son del contenedor/encabezado).
-        $code_product_ec         = $rowData[12] ?? '';
-        $number_lot              = $rowData[13] ?? '';
-        $customer                = $rowData[14] ?? '';
-        $number_po               = $rowData[15] ?? '';
-        $description             = $rowData[16] ?? '';
-        $packing_unit            = $rowData[17] ?? '';
-        $qty_box                 = (int)($rowData[18] ?? 0);
-        $weight_neto_per_box_kg  = (float)($rowData[19] ?? 0);
-        $weight_bruto_per_box_kg = (float)($rowData[20] ?? 0);
-        $total_weight_kg         = (float)($rowData[21] ?? 0);
-        $priceBoxEC              = (float)($rowData[23] ?? 0);
-        $totalPriceEC            = (float)($rowData[24] ?? 0);
-        $priceBoxUSA             = (float)($rowData[25] ?? 0);
-        $totalPriceUSA           = (float)($rowData[26] ?? 0);
-
-        // 3) Insertar el item
-        $stmtItems->bind_param(
-            $itemsParamTypes,
+        $stmtI->bind_param(
+            $types,
             $idContainer,
+            $itemInvoice,
             $code_product_ec,
             $number_lot,
             $customer,
@@ -273,34 +199,37 @@ if ($estaVacia) {
             $priceBoxUSA,
             $totalPriceUSA
         );
-        $stmtItems->execute();
-    }
-    $stmtItems->close();
-
-    $_SESSION['mensaje'] = "Archivo procesado correctamente";
-    header("Location: importarpk.php");
-    exit();
-
-} catch (Exception $e) {
-    // En caso de error, podrías eliminar el archivo subido si lo deseas
-    @unlink($targetPath);
-    echo "Error al procesar: " . $e->getMessage();
-    exit();
-}
-
-// --------------------------------------------------
-// Función de ayuda para convertir fecha Excel -> yyyy-mm-dd
-// --------------------------------------------------
-function convertirFecha($valorCelda)
-{
-    // Si tu Excel viene con formato dd/mm/yyyy, puedes hacer:
-    if (!empty($valorCelda)) {
-        $dateObj = DateTime::createFromFormat('d/m/Y', $valorCelda);
-        if ($dateObj) {
-            return $dateObj->format('Y-m-d');
+        $stmtI->execute();
+        if ($stmtI->errno) {
+            throw new Exception("Error ítem: " . $stmtI->error);
         }
     }
-    // Si no se pudo parsear, regresamos vacío o nulo
-    return null;
+    $stmtI->close();
+
+    // 9) Commit y éxito
+    $conexion->commit();
+    $_SESSION['mensaje'] = "Archivo procesado correctamente";
+    header("Location: importarpk.php");
+    exit;
+
+} catch (Exception $e) {
+    // Rollback y limpiar
+    $conexion->rollback();
+    @unlink($targetPath);
+    echo "Error al procesar: " . $e->getMessage();
+    exit;
 }
-?>
+
+/**
+ * Convierte 'd/m/Y' a 'Y-m-d'. Si falla, devuelve cadena vacía.
+ */
+function convertirFecha($val) {
+    if (!empty($val)) {
+        $d = DateTime::createFromFormat('d/m/Y', $val);
+        if ($d && $d->format('d/m/Y') === $val) {
+            return $d->format('Y-m-d');
+        }
+    }
+    return '';
+}
+    

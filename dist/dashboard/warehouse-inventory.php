@@ -13,35 +13,37 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 $sql = "
     SELECT
-        d.id,
-        i.idItem AS idItem,                      -- <-- lo agregamos
-        c.num_op                             AS NUM_OP,
-        c.Number_Container                   AS Number_Container,
-        c.Booking_BK,
-        d.numero_lote                        AS Lot_Number,
-        d.fecha_entrada                      AS Entry_Date,
-        c.Number_Commercial_Invoice          AS Number_Commercial_Invoice,
-        d.numero_parte                       AS Code_Product_EC,
-        d.descripcion                        AS Description,
-        d.cantidad                           AS Qty,
-        d.valor_unitario                     AS Unit_Value,
-        d.valor                              AS Value,
-        d.unidad                             AS Unit,
-        d.longitud_in                        AS Length_in,
-        d.ancho_in                           AS Broad_in,
-        d.altura_in                          AS Height_in,
-        d.peso_lb                            AS Weight_lb,
-        d.estado                             AS Status,
-        d.recibo_almacen,
-        i.Number_PO                          AS Number_PO
-    FROM container c
-    INNER JOIN dispatch d
-        ON c.Number_Commercial_Invoice = d.numero_factura
-       AND c.Number_Container         = d.notas
-    INNER JOIN items i
+    d.id,
+    i.idItem                      AS idItem,
+    c.num_op                      AS NUM_OP,
+    c.Number_Container            AS Number_Container,
+    c.Booking_BK,
+    d.numero_lote                 AS Lot_Number,
+    d.fecha_entrada               AS Entry_Date,
+    i.Number_Commercial_Invoice   AS Number_Commercial_Invoice,
+    d.numero_parte                AS Code_Product_EC,
+    d.descripcion                 AS Description,
+    d.cantidad                    AS Qty,
+    d.valor_unitario              AS Unit_Value,
+    d.valor                       AS Value,
+    d.unidad                      AS Unit,
+    d.longitud_in                 AS Length_in,
+    d.ancho_in                    AS Broad_in,
+    d.altura_in                   AS Height_in,
+    d.peso_lb                     AS Weight_lb,
+    d.estado                      AS Status,
+    d.recibo_almacen              AS Receive,
+    i.Number_PO                   AS Number_PO
+FROM container c
+INNER JOIN items i
     ON i.idContainer = c.idContainer
-    WHERE d.estado = 'En Almacén'
-    ORDER BY c.num_op, d.numero_parte
+INNER JOIN dispatch d
+    ON d.numero_factura = i.Number_Commercial_Invoice
+   AND d.notas          = c.Number_Container
+   AND d.numero_parte   = i.Code_Product_EC
+WHERE d.estado = 'En Almacén'
+ORDER BY c.num_op, d.numero_parte;
+
 ";
 $result = $conexion->query($sql);
 
@@ -521,7 +523,7 @@ try {
                 <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
                 <td><?= htmlspecialchars($row['Number_Container']) ?></td>
                 <td><?= htmlspecialchars($row['Entry_Date']) ?></td>
-                <td><?= htmlspecialchars($row['recibo_almacen']) ?></td>
+                <td><?= htmlspecialchars($row['Receive']) ?></td>
 
                 <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
                 <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
@@ -736,15 +738,22 @@ $(document).ready(function(){
 
       // refresca la DataTable sin reinit
       table.clear();
+
       rows.forEach(r => {
         table.row.add([
           r.NUM_OP,
           r.Number_Container,
           r.Entry_Date,
-          r.recibo_almacen,
+          r.Receive,  // antes r.recibo_almacen
           r.Lot_Number,
           r.Booking_BK,
-          `<input type="text" class="form-control form-control-sm po-input" data-id="${c.idItem}" value="${c.Number_PO||''}">`,
+          // input de PO usa r.idItem y r.Number_PO
+          `<input 
+            type="text" 
+            class="form-control form-control-sm po-input" 
+            data-id="${r.idItem}" 
+            value="${r.Number_PO || ''}"
+          >`,
           r.Number_Commercial_Invoice,
           r.Code_Product_EC,
           r.Description,
@@ -756,17 +765,26 @@ $(document).ready(function(){
           r.Broad_in,
           r.Height_in,
           r.Weight_lb,
-          `<select class="form-select form-select-sm status-select"
-                   data-container="${r.Number_Container}"
-                   data-invoice="${r.Number_Commercial_Invoice}">
-             <option value="Cargado"${r.Status==='Cargado'?' selected':''}>Cargado</option>
-             <option value="En Almacén"${r.Status==='En Almacén'?' selected':''}>En Almacén</option>
-           </select>`
+          // select de status usa r.id
+          `<select 
+            class="form-select form-select-sm status-select" 
+            data-id="${r.id}" 
+            data-container="${r.Number_Container}" 
+            data-invoice="${r.Number_Commercial_Invoice}"
+          >
+            <option value="Cargado"${r.Status === 'Cargado' ? ' selected' : ''}>
+              Cargado
+            </option>
+            <option value="En Almacén"${r.Status === 'En Almacén' ? ' selected' : ''}>
+              En Almacén
+            </option>
+          </select>`
         ]);
       });
+
       table.draw();
 
-      // cierra modal y re-ata handlers
+      // cierra modal y re-atacha listeners
       bootstrap.Modal.getInstance($('#filterModal')[0])?.hide();
       initStatusListeners();
 

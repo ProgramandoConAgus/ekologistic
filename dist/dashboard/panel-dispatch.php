@@ -17,37 +17,36 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 $sql = "
   SELECT
     d.id,
-    i.idItem AS idItem,                      -- <-- lo agregamos
-    c.num_op                             AS NUM_OP,
-    c.Number_Container                   AS Number_Container,
+    i.idItem                            AS idItem,
+    c.num_op                            AS NUM_OP,
+    c.Number_Container                  AS Number_Container,
     c.Booking_BK,
-    d.numero_lote                        AS Lot_Number,
-    d.fecha_entrada                      AS Entry_Date,
-    d.fecha_salida                       AS Out_Date,
-    c.Number_Commercial_Invoice          AS Number_Commercial_Invoice,
-    d.numero_parte                       AS Code_Product_EC,
-    i.Number_PO                          AS Number_PO,
-    d.descripcion                        AS Description,
-    d.cantidad                           AS Qty,
-    d.valor_unitario                     AS Unit_Value,
-    d.valor                              AS Value,
-    d.unidad                             AS Unit,
-    d.longitud_in                        AS Length_in,
-    d.ancho_in                           AS Broad_in,
-    d.altura_in                          AS Height_in,
-    d.peso_lb                            AS Weight_lb,
-    d.estado                             AS Status,
-    d.recibo_almacen                     AS Receive
+    d.numero_lote                       AS Lot_Number,
+    d.fecha_entrada                     AS Entry_Date,
+    d.fecha_salida                      AS Out_Date,
+    i.Number_Commercial_Invoice         AS Number_Commercial_Invoice,
+    d.numero_parte                      AS Code_Product_EC,
+    i.Number_PO                         AS Number_PO,
+    d.descripcion                       AS Description,
+    d.cantidad                          AS Qty,
+    d.valor_unitario                    AS Unit_Value,
+    d.valor                             AS Value,
+    d.unidad                            AS Unit,
+    d.longitud_in                       AS Length_in,
+    d.ancho_in                          AS Broad_in,
+    d.altura_in                         AS Height_in,
+    d.peso_lb                           AS Weight_lb,
+    d.estado                            AS Status,
+    d.recibo_almacen                    AS Receive
 FROM container c
-INNER JOIN dispatch d
-    ON c.Number_Commercial_Invoice = d.numero_factura
-   AND c.Number_Container         = d.notas
 INNER JOIN items i
     ON i.idContainer = c.idContainer
+INNER JOIN dispatch d
+    ON d.numero_factura = i.Number_Commercial_Invoice
+   AND d.notas          = c.Number_Container
+   AND d.numero_parte   = i.Code_Product_EC
 WHERE d.estado = 'Cargado'
 ORDER BY c.num_op, d.numero_parte;
-
-
     
 ";
 $result = $conexion->query($sql);
@@ -184,6 +183,8 @@ try {
       border-color: #0d6efd;
       color: #fff;
     }
+   
+
   </style>
 
   <link rel="stylesheet" href="./tipografia.css">
@@ -457,7 +458,7 @@ try {
 
                 <!-- Filtro por ETA Date -->
                 <div class="mb-3">
-                  <label for="rangoFechas" class="form-label">ETA Date</label><br>
+                  <label for="rangoFechas" class="form-label">Entry Date</label><br>
                   <input
                     type="text"
                     id="rangoFechas"
@@ -628,10 +629,11 @@ window.addEventListener('resize', function() {
 
 
   // Solo UNA inicialización de DataTable
- $(document).ready(function(){
-  // 1) Inicializa DataTable UNA sola vez
-  table = $('#pc-dt-simple').DataTable({
-    scrollX:      true,
+$(document).ready(function(){
+  $('#pc-dt-simple').DataTable({
+    autoWidth:    true,
+    scrollX:      false,     
+    scrollCollapse: false,   
     paging:       true,
     pageLength:   10,
     lengthChange: false,
@@ -639,7 +641,11 @@ window.addEventListener('resize', function() {
     info:         false,
     ordering:     false,
     language:     { paginate:{ previous:'«', next:'»' } },
-    dom:          't<"pagination-wrapper"p>'
+    dom:          't<"pagination-wrapper"p>',
+    columnDefs: [
+      
+      { targets: 9, width: '250px' },   
+    ]
   });
   // mueve el paginador dentro del wrapper
   $('.pagination-wrapper')
@@ -650,7 +656,7 @@ window.addEventListener('resize', function() {
 
   // 3) Botones de filtro
   $('#btnApplyFilters').on('click', aplicarFiltrosAvanzados);
-  $('#btnClearFilters').on('click', limpiarFiltrosAvanzados);
+  $('#btnClearFilters' ).on('click', limpiarFiltrosAvanzados);
 
   $('#pc-dt-simple tbody')
     .off('change', '.status-select')    // elimina viejos (por si acaso)
@@ -706,6 +712,10 @@ window.addEventListener('resize', function() {
 
   // Función de aplicar filtros (igual que tenías)
   async function aplicarFiltrosAvanzados() {
+    // 0) Asegurarnos de tener la instancia de DataTable
+    const table = $('#pc-dt-simple').DataTable();
+
+    // 1) Leer filtros
     const op    = $('#OpFilter').val().trim();
     const lot   = $('#LotFilter').val().trim();
     const rango = $('#rangoFechas').val().trim();
@@ -719,43 +729,66 @@ window.addEventListener('resize', function() {
     }
 
     try {
-      const res   = await fetch(`../api/filters/fetchDispatch.php?${params}`);
+      // 2) Llamada AJAX
+      const query = params.toString();
+      const res   = await fetch(`../api/filters/fetchDispatch.php?${query}`);
       if (!res.ok) throw new Error(res.statusText);
       const items = await res.json();
+
+      // 3) Limpiar y repoblar la tabla
       table.clear();
-      items.forEach(c => {
+      items.forEach(item => {
         table.row.add([
-          c.NUM_OP,
-          c.Number_Container,
-          c.Booking_BK,
-          `<input type="text" class="form-control form-control-sm po-input" data-id="${c.idItem}" value="${c.Number_PO||''}">`,
-          c.Lot_Number,
-          c.Receive,
-          c.Entry_Date || '<span class="text-muted">no cargado</span>',
-          c.Out_Date   || '<span class="text-muted">no cargado</span>',
-          c.Code_Product_EC,
-          c.Description,
-          c.Qty,
-          c.Unit_Value,
-          c.Value,
-          c.Unit,
-          c.Length_in,
-          c.Broad_in,
-          c.Height_in,
-          c.Weight_lb,
-          `<select class="form-select form-select-sm status-select" data-id="${c.id}">
-            <option value="Cargado"${c.Status==='Cargado'?' selected':''}>Cargado</option>
-            <option value="En Almacén"${c.Status==='En Almacén'?' selected':''}>En Almacén</option>
+          item.NUM_OP,
+          item.Number_Container,
+          item.Booking_BK,
+          `<input
+            type="text"
+            class="form-control form-control-sm po-input"
+            data-id="${item.idItem}"
+            value="${item.Number_PO||''}"
+          >`,
+          item.Lot_Number,
+          item.Receive,
+          item.Entry_Date ? item.Entry_Date : '<span class="text-muted">no cargado</span>',
+          item.Out_Date   ? item.Out_Date   : '<span class="text-muted">no cargado</span>',
+          item.Code_Product_EC,
+          item.Description,
+          item.Qty,
+          item.Unit_Value,
+          item.Value,
+          item.Unit,
+          item.Length_in,
+          item.Broad_in,
+          item.Height_in,
+          item.Weight_lb,
+          `<select
+            class="form-select form-select-sm status-select"
+            data-id="${item.id}"
+            data-container="${item.Number_Container}"
+            data-invoice="${item.Number_Commercial_Invoice}"
+          >
+            <option value="Cargado"${item.Status==='Cargado'?' selected':''}>Cargado</option>
+            <option value="En Almacén"${item.Status==='En Almacén'?' selected':''}>En Almacén</option>
           </select>`
         ]);
       });
       table.draw();
-      bootstrap.Modal.getInstance($('#filterModal')[0]).hide();
-      // vuelves a enganchar handlers sobre los nuevos inputs
+
+      // 4) Cerrar modal
+      bootstrap.Modal.getInstance($('#filterModal')[0])?.hide();
+
+      // 5) Volver a enganchar los handlers
+      $('#pc-dt-simple tbody')
+        .off('change', '.status-select').on('change', '.status-select', handleStatusChange)
+        .off('change', '.po-input')    .on('change', '.po-input',    handlePoChange);
+
     } catch (err) {
       console.error('Error al aplicar filtros:', err);
+      Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
     }
   }
+
 
   // Limpia filtros y llama a la función anterior
   async function limpiarFiltrosAvanzados() {

@@ -4,13 +4,12 @@ include('../../con_db.php');
 
 try {
     // 1) Recuperar filtros
-    $container = $_GET['container']  ?? '';
-    $op        = $_GET['op']         ?? '';
-    $lot       = $_GET['lot']        ?? '';
-    $from      = $_GET['dateFrom']   ?? '';
-    $to        = $_GET['dateTo']     ?? '';
+    $op      = $_GET['op']       ?? '';
+    $lot     = $_GET['lot']      ?? '';
+    $from    = $_GET['dateFrom'] ?? '';
+    $to      = $_GET['dateTo']   ?? '';
 
-    // 2) Consulta base con el JOIN exacto
+    // 2) Consulta base con JOIN en el orden correcto
     $sql = "
       SELECT
         d.id,
@@ -20,6 +19,8 @@ try {
         c.Booking_BK                  AS Booking_BK,
         d.numero_lote                 AS Lot_Number,
         d.fecha_entrada               AS Entry_Date,
+        d.fecha_salida                AS Out_Date,
+        i.Number_PO                   AS Number_PO,
         i.Number_Commercial_Invoice   AS Number_Commercial_Invoice,
         d.numero_parte                AS Code_Product_EC,
         d.descripcion                 AS Description,
@@ -32,55 +33,49 @@ try {
         d.altura_in                   AS Height_in,
         d.peso_lb                     AS Weight_lb,
         d.estado                      AS Status,
-        d.recibo_almacen              AS Receive,
-        i.Number_PO                   AS Number_PO
+        d.recibo_almacen              AS Receive
       FROM container c
       INNER JOIN items i
         ON i.idContainer = c.idContainer
       INNER JOIN dispatch d
-        ON d.numero_factura   = i.Number_Commercial_Invoice
-       AND d.notas            = c.Number_Container
-       AND d.numero_parte     = i.Code_Product_EC
-      WHERE d.estado = 'En Almacén'
+        ON d.numero_factura = i.Number_Commercial_Invoice
+       AND d.notas          = c.Number_Container
+       AND d.numero_parte   = i.Code_Product_EC
+      WHERE d.estado = 'Cargado'
     ";
 
-    // 3) Condiciones dinámicas
+    // 3) Construir filtros dinámicos
     $conds  = [];
     $params = [];
     $types  = '';
 
-    if ($container !== '') {
-        $conds[]  = "c.Number_Container LIKE ?";
-        $params[] = "%{$container}%";
-        $types   .= 's';
-    }
     if ($op !== '') {
         $conds[]  = "c.num_op LIKE ?";
-        $params[] = "%{$op}%";
+        $params[] = "%{$op}%"; 
         $types   .= 's';
     }
     if ($lot !== '') {
         $conds[]  = "d.numero_lote LIKE ?";
-        $params[] = "%{$lot}%";
+        $params[] = "%{$lot}%"; 
         $types   .= 's';
     }
     if ($from !== '' && $to !== '') {
-        $conds[]  = "d.fecha_entrada BETWEEN ? AND ?";
-        $params[] = $from . ' 00:00:00';
-        $params[] = $to   . ' 23:59:59';
+        // Comparar sólo fecha sin hora
+        $conds[]  = "DATE(d.fecha_entrada) BETWEEN ? AND ?";
+        $params[] = $from;   // 'YYYY-MM-DD'
+        $params[] = $to;     // 'YYYY-MM-DD'
         $types   .= 'ss';
     } elseif ($from !== '') {
-        $conds[]  = "d.fecha_entrada >= ?";
-        $params[] = $from . ' 00:00:00';
+        $conds[]  = "DATE(d.fecha_entrada) >= ?";
+        $params[] = $from;
         $types   .= 's';
     } elseif ($to !== '') {
-        $conds[]  = "d.fecha_entrada <= ?";
-        $params[] = $to   . ' 23:59:59';
+        $conds[]  = "DATE(d.fecha_entrada) <= ?";
+        $params[] = $to;
         $types   .= 's';
     }
 
     if (count($conds) > 0) {
-        // añadimos cada condición con AND
         $sql .= ' AND ' . implode(' AND ', $conds);
     }
 
@@ -93,7 +88,7 @@ try {
     }
     $stmt->execute();
 
-    // 5) Devolver resultado
+    // 5) Devolver JSON
     $data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     echo json_encode($data);
 
