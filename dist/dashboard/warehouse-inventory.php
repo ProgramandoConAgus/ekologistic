@@ -531,7 +531,7 @@ try {
                     <input
                       type="text"
                       class="form-control form-control-sm po-input"
-                      data-id="<?= $row['idItem'] ?>"
+                      data-id="<?= $row['id'] ?>"
                       value="<?= htmlspecialchars($row['Number_PO']) ?>">
                 </td>                
                 <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
@@ -574,23 +574,26 @@ document.addEventListener('DOMContentLoaded', function () {
   // Atacha listener a TODOS los selects
   document.querySelectorAll('.status-select').forEach(sel => {
     sel.addEventListener('change', function () {
-      const container = this.dataset.container;
-      const invoice   = this.dataset.invoice;
-      const value     = this.value;
-      actualizarStatus(container, invoice, value);
+      const id    = this.dataset.id;
+      const value = this.value;
+      actualizarStatus(id, value);
     });
+  });
+  // inputs de PO
+  document.querySelectorAll('.po-input').forEach(inp => {
+    inp.addEventListener('change', handlePoChange);
   });
 });
 
 
-async function actualizarStatus(container, invoice, value) {
+async function actualizarStatus(id, value) {
   try {
     Swal.fire({ title:'Cargando', allowOutsideClick:false, didOpen:()=>Swal.showLoading() });
 
-    const res = await fetch('../api/dispatch_status.php', {
+    const res = await fetch('../api/actualizar_status_dispatch.php', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ container, invoice, value })
+      body: JSON.stringify({ id, value })
     });
     const json = await res.json();
     Swal.close();
@@ -614,6 +617,26 @@ async function actualizarStatus(container, invoice, value) {
     Swal.close();
     Swal.fire({ icon:'error', title:'Error de conexión', toast:true, position:'top-end', timer:2000 });
     console.error(err);
+  }
+}
+
+async function handlePoChange() {
+  const id = this.dataset.id;
+  const po = this.value.trim();
+  try {
+    const res = await fetch('../api/update_dispatch_po.php', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ id, po })
+    });
+    const json = await res.json();
+    Swal.fire(
+      json.success ? 'Éxito' : 'Error',
+      json.success ? (json.message || 'Actualizado') : json.error,
+      json.success ? 'success' : 'error'
+    );
+  } catch {
+    Swal.fire('Error de red','','error');
   }
 }
 </script>
@@ -747,11 +770,11 @@ $(document).ready(function(){
           r.Receive,  // antes r.recibo_almacen
           r.Lot_Number,
           r.Booking_BK,
-          // input de PO usa r.idItem y r.Number_PO
-          `<input 
-            type="text" 
-            class="form-control form-control-sm po-input" 
-            data-id="${r.idItem}" 
+          // input de PO usa r.id y r.Number_PO
+          `<input
+            type="text"
+            class="form-control form-control-sm po-input"
+            data-id="${r.id}"
             value="${r.Number_PO || ''}"
           >`,
           r.Number_Commercial_Invoice,
@@ -787,6 +810,7 @@ $(document).ready(function(){
       // cierra modal y re-atacha listeners
       bootstrap.Modal.getInstance($('#filterModal')[0])?.hide();
       initStatusListeners();
+      initPoListeners();
 
     } catch (err) {
       console.error(err);
@@ -808,14 +832,10 @@ $(document).ready(function(){
       sel.onchange = async function() {
         try {
           Swal.fire({ title:'Actualizando...', didOpen: ()=> Swal.showLoading(), allowOutsideClick:false });
-          const resp = await fetch('../api/dispatch_status.php', {
+          const resp = await fetch('../api/actualizar_status_dispatch.php', {
             method: 'POST',
             headers:{ 'Content-Type':'application/json' },
-            body: JSON.stringify({
-              container: this.dataset.container,
-              invoice:   this.dataset.invoice,
-              value:     this.value
-            })
+            body: JSON.stringify({ id: this.dataset.id, value: this.value })
           });
           const json = await resp.json();
           Swal.close();
@@ -832,8 +852,15 @@ $(document).ready(function(){
     });
   }
 
+  function initPoListeners() {
+    document.querySelectorAll('.po-input').forEach(inp => {
+      inp.onchange = handlePoChange;
+    });
+  }
+
   // 8) Arranca el listener la primera vez
   initStatusListeners();
+  initPoListeners();
 });
 </script>
 

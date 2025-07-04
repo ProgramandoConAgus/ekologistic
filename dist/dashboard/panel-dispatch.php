@@ -509,10 +509,10 @@ try {
                   <td><?= htmlspecialchars($row['Number_Container']) ?></td>
                   <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
                   <td>
-                    <input
+                      <input
                       type="text"
                       class="form-control form-control-sm po-input"
-                      data-id="<?= $row['idItem'] ?>"
+                      data-id="<?= $row['id'] ?>"
                       value="<?= htmlspecialchars($row['Number_PO']) ?>">
                   </td>
                   <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
@@ -745,7 +745,7 @@ $(document).ready(function(){
           `<input
             type="text"
             class="form-control form-control-sm po-input"
-            data-id="${item.idItem}"
+            data-id="${item.id}"
             value="${item.Number_PO||''}"
           >`,
           item.Lot_Number,
