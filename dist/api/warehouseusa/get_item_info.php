@@ -20,7 +20,6 @@ SELECT
     i.Number_Commercial_Invoice     AS numero_factura,
     i.Number_Lot                    AS numero_lote,
     i.Number_PO                     AS numero_po,
-    c.num_op                        AS numero_operacion,
     d.numero_orden_compra           AS numero_orden_compra,
     i.Code_Product_EC               AS numero_parte,
 

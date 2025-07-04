@@ -33,8 +33,7 @@ SELECT
     GROUP_CONCAT(DISTINCT i.Number_Commercial_Invoice) AS numero_factura,
     GROUP_CONCAT(DISTINCT i.Number_Lot SEPARATOR ', ') AS numero_lote,
     GROUP_CONCAT(DISTINCT d.numero_orden_compra SEPARATOR ', ') AS numero_orden_compra,
-    GROUP_CONCAT(DISTINCT i.Code_Product_EC SEPARATOR ', ') AS numero_parte,
-    GROUP_CONCAT(DISTINCT c.num_op SEPARATOR ', ') AS numero_operacion
+    GROUP_CONCAT(DISTINCT i.Code_Product_EC SEPARATOR ', ') AS numero_parte
 FROM items i
 JOIN container c ON i.idContainer = c.IdContainer
 LEFT JOIN dispatch d
@@ -53,7 +52,6 @@ $numeroFactura      = $res2['numero_factura'];
 $numeroLote         = $res2['numero_lote'];
 $numeroOrdenCompra  = $res2['numero_orden_compra'];
 $numeroParte        = $res2['numero_parte'];
-$numeroOperacion    = $res2['numero_operacion'];
 
 // 3) Devolver JSON con descripciones y datos adicionales
 echo json_encode([
@@ -64,5 +62,4 @@ echo json_encode([
     'numero_lote'        => $numeroLote,
     'numero_orden_compra'=> $numeroOrdenCompra,
     'numero_parte'       => $numeroParte,
-    'numero_operacion'   => $numeroOperacion
 ]);
