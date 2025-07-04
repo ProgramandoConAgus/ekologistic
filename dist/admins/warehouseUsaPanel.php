@@ -11,7 +11,7 @@ $usuario = new Usuario($conexion);
 $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 // Carga manual de Warehouse USA guardada en dispatch
-$queryManual = "SELECT id, cantidad AS cajas, palets, numero_lote AS lote_produccion, numero_orden_compra AS po, descripcion, numero_factura AS invoice, fecha_entrada AS fecha_ingreso, recibo_almacen AS warehouse_receive FROM dispatch ORDER BY fecha_entrada DESC";
+$queryManual = "SELECT id, cantidad AS cajas, palets, notas AS numero_contenedor, numero_lote AS lote_produccion, numero_orden_compra AS po, descripcion, numero_factura AS invoice, fecha_entrada AS fecha_ingreso, recibo_almacen AS warehouse_receive FROM dispatch ORDER BY fecha_entrada DESC";
 $manualRes = $conexion->query($queryManual);
 
 ?>
@@ -362,6 +362,7 @@ $manualRes = $conexion->query($queryManual);
                     <tr>
                       <th>Cajas</th>
                       <th>Palets</th>
+                      <th>Num Contenedor</th>
                       <th>Lote</th>
                       <th>Num Orden de Compra</th>
                       <th>Descripción</th>
@@ -377,6 +378,7 @@ $manualRes = $conexion->query($queryManual);
                         <tr>
                           <td><?= htmlspecialchars($m['cajas']) ?></td>
                           <td><?= htmlspecialchars($m['palets']) ?></td>
+                          <td><?= htmlspecialchars($m['numero_contenedor']) ?></td>
                           <td><?= htmlspecialchars($m['lote_produccion']) ?></td>
                           <td><?= htmlspecialchars($m['po']) ?></td>
                           <td><?= htmlspecialchars($m['descripcion']) ?></td>

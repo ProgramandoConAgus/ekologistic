@@ -300,6 +300,10 @@ $warehouse = $stmt->get_result()->fetch_assoc();
             <input type="date" name="fecha_salida" class="form-control" value="<?= htmlspecialchars($warehouse['fecha_salida']) ?>">
           </div>
           <div class="col-md-4">
+            <label class="form-label">Número de Contenedor</label>
+            <input type="text" class="form-control" value="<?= htmlspecialchars($warehouse['notas']) ?>" readonly>
+          </div>
+          <div class="col-md-4">
             <label class="form-label">Recibo de Almacén</label>
             <input type="text" name="recibo_almacen" class="form-control" value="<?= htmlspecialchars($warehouse['recibo_almacen']) ?>">
           </div>

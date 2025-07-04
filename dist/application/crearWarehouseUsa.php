@@ -317,6 +317,10 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <input type="date" name="fecha_salida" class="form-control">
       </div>
       <div class="col-md-4">
+        <label class="form-label">Número de Contenedor</label>
+        <input type="text" id="numeroContenedorDisplay" class="form-control" readonly>
+      </div>
+      <div class="col-md-4">
         <label class="form-label">Recibo de Almacén</label>
         <input type="text" name="recibo_almacen" class="form-control">
       </div>
@@ -713,6 +717,7 @@ document.getElementById('bookingSelect').addEventListener('change', function() {
       document.querySelector('input[name="altura_restante"]').value             = i.altura_in || '';
       document.querySelector('input[name="peso_restante"]').value               = i.peso;
       document.getElementById("numeroContenedor").value = i.numero_contenedor || "";
+      document.getElementById("numeroContenedorDisplay").value = i.numero_contenedor || "";
       
       // 2) Rellenar los <select> y habilitarlos
         const facturaSel = document.getElementById('facturaSelect');

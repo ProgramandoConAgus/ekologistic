@@ -302,6 +302,10 @@ $warehouse = $stmt->get_result()->fetch_assoc();
           <div class="form-control bg-light"><?= htmlspecialchars($warehouse['recibo_almacen']) ?></div>
         </div>
         <div class="col-md-4">
+          <label class="form-label">Número de Contenedor</label>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['notas']) ?></div>
+        </div>
+        <div class="col-md-4">
           <label class="form-label">Estado</label>
           <div class="form-control bg-light"><?= htmlspecialchars($warehouse['estado']) ?></div>
         </div>
