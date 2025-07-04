@@ -314,10 +314,6 @@ $warehouse = $stmt->get_result()->fetch_assoc();
             <label class="form-label">Número de Lote</label>
             <input type="text" name="numero_lote" class="form-control" value="<?= htmlspecialchars($warehouse['numero_lote']) ?>">
           </div>
-          <div class="col-12">
-            <label class="form-label">Notas</label>
-            <input type="text" name="notas" class="form-control" value="<?= htmlspecialchars($warehouse['notas']) ?>">
-          </div>
           <div class="col-md-4">
             <label class="form-label">Número de Orden de Compra</label>
             <input type="text" name="orden_compra" class="form-control" value="<?= htmlspecialchars($warehouse['numero_orden_compra']) ?>">
@@ -333,6 +329,10 @@ $warehouse = $stmt->get_result()->fetch_assoc();
           <div class="col-md-4">
             <label class="form-label">Modelo</label>
             <input type="text" name="modelo" class="form-control" value="<?= htmlspecialchars($warehouse['modelo']) ?>">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Palets</label>
+            <input type="text" name="palets" class="form-control" value="<?= htmlspecialchars($warehouse['notas']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Cantidad</label>
@@ -493,7 +493,7 @@ document.getElementById('editForm').addEventListener('submit', e => {
     estado: form.estado.value.trim(),
     numero_factura: form.numero_factura.value.trim(),
     numero_lote: form.numero_lote.value.trim(),
-    palets: form.notas.value.trim(),
+    palets: form.palets.value.trim(),
     orden_compra: form.orden_compra.value.trim(),
     numero_parte: form.numero_parte.value.trim(),
     descripcion: form.descripcion.value.trim(),
