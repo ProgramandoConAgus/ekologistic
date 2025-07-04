@@ -16,6 +16,12 @@ SELECT
     i.Total_Price_EC                AS valor,
     i.Packing_Unit                  AS unidad,
     ROUND(i.Total_Weight_kg*2.20462,2) AS peso,
+    c.Number_Container              AS numero_contenedor,
+
+    d.modelo                        AS modelo,
+    d.longitud_in                   AS longitud_in,
+    d.ancho_in                      AS ancho_in,
+    d.altura_in                     AS altura_in,
 
     i.Number_Commercial_Invoice     AS numero_factura,
     i.Number_Lot                    AS numero_lote,

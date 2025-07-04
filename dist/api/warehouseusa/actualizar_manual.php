@@ -16,8 +16,9 @@ try {
     $estado         = trim($data['estado'] ?? '');
     $numeroFactura  = trim($data['numero_factura'] ?? '');
     $numeroLote     = trim($data['numero_lote'] ?? '');
-    $palets         = trim($data['palets'] ?? '');
+    $numeroCont     = trim($data['numero_contenedor'] ?? '');
     $ordenCompra    = trim($data['orden_compra'] ?? '');
+    $palets         = trim($data['palets'] ?? '');
     $numeroParte    = trim($data['numero_parte'] ?? '');
     $descripcion    = trim($data['descripcion'] ?? '');
     $modelo         = trim($data['modelo'] ?? '');
@@ -29,6 +30,13 @@ try {
     $anchoIn        = $data['ancho'] === '' ? null : floatval(str_replace(',', '.', $data['ancho']));
     $alturaIn       = $data['altura'] === '' ? null : floatval(str_replace(',', '.', $data['altura']));
     $pesoLb         = $data['peso'] === '' ? null : floatval(str_replace(',', '.', $data['peso']));
+    $valorUnitR      = $data['valor_unitario_restante'] === '' ? null : floatval(str_replace(',', '.', $data['valor_unitario_restante']));
+    $valorR          = $data['valor_restante'] === '' ? null : floatval(str_replace(',', '.', $data['valor_restante']));
+    $unidadR         = trim($data['unidad_restante'] ?? '');
+    $longitudR       = $data['longitud_restante'] === '' ? null : floatval(str_replace(',', '.', $data['longitud_restante']));
+    $anchoR          = $data['ancho_restante'] === '' ? null : floatval(str_replace(',', '.', $data['ancho_restante']));
+    $alturaR         = $data['altura_restante'] === '' ? null : floatval(str_replace(',', '.', $data['altura_restante']));
+    $pesoR           = $data['peso_restante'] === '' ? null : floatval(str_replace(',', '.', $data['peso_restante']));
 
     if (!$id) {
         echo json_encode(['success' => false, 'message' => 'ID inválido']);
@@ -47,6 +55,7 @@ try {
                 numero_parte=?,
                 descripcion=?,
                 modelo=?,
+                palets=?,
                 cantidad=?,
                 valor_unitario=?,
                 valor=?,
@@ -54,25 +63,33 @@ try {
                 longitud_in=?,
                 ancho_in=?,
                 altura_in=?,
-                peso_lb=?
+                peso_lb=?,
+                valor_unitario_restante=?,
+                valor_restante=?,
+                unidad_restante=?,
+                longitud_in_restante=?,
+                ancho_in_restante=?,
+                altura_in_restante=?,
+                peso_lb_restante=?
             WHERE id=?";
     $stmt = $conexion->prepare($sql);
     if (!$stmt) {
         throw new Exception('Error en prepare: ' . $conexion->error);
     }
     $stmt->bind_param(
-        'ssssiisisssiddsddddi',
+        'ssssiisisssiiddsddddddsddddi',
         $fechaEntrada,
         $fechaSalida,
         $recibo,
         $estado,
         $numeroFactura,
         $numeroLote,
-        $palets,
+        $numeroCont,
         $ordenCompra,
         $numeroParte,
         $descripcion,
         $modelo,
+        $palets,
         $cantidad,
         $valorUnit,
         $valor,
@@ -81,6 +98,13 @@ try {
         $anchoIn,
         $alturaIn,
         $pesoLb,
+        $valorUnitR,
+        $valorR,
+        $unidadR,
+        $longitudR,
+        $anchoR,
+        $alturaR,
+        $pesoR,
         $id
     );
     $stmt->execute();

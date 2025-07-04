@@ -26,7 +26,6 @@ while ($row = $res1->fetch_assoc()) {
     $descriptions[] = $row['Description'];
 }
 
-// 2) Obtener totales y datos (cajas, facturas, lotes, órdenes, partes)
 $sql2 = "
 SELECT
     SUM(i.Qty_Box) AS cantidad_total,

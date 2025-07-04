@@ -288,6 +288,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 <div class="container mt-5">
   <div class="card shadow-sm mx-auto" style="max-width: 900px;">
     <form method="POST" action="#">
+      <input type="hidden" name="numero_contenedor" id="numeroContenedor">
   <div class="card-body">
     <div class="row g-3">
       <div class="col-md-4">
@@ -314,6 +315,10 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
       <div class="col-md-4">
         <label class="form-label">Fecha de Salida</label>
         <input type="date" name="fecha_salida" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Número de Contenedor</label>
+        <input type="text" id="numeroContenedorDisplay" class="form-control" readonly>
       </div>
       <div class="col-md-4">
         <label class="form-label">Recibo de Almacén</label>
@@ -418,6 +423,34 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         <div class="col-md-4">
           <label class="form-label">Cantidad de Cajas</label>
           <input type="number" name="cantidad_extra" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Valor Unitario</label>
+          <input type="text" name="valor_unitario_restante" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Valor</label>
+          <input type="text" name="valor_restante" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Unidad</label>
+          <input type="text" name="unidad_restante" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Longitud (in)</label>
+          <input type="number" name="longitud_restante" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Ancho (in)</label>
+          <input type="number" name="ancho_restante" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Altura (in)</label>
+          <input type="number" name="altura_restante" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Peso (lb)</label>
+          <input type="number" name="peso_restante" step="0.01" class="form-control">
         </div>
       </div>
     </div>
@@ -549,6 +582,7 @@ document.addEventListener('DOMContentLoaded', () => {
       estado: form.estado.value.trim(),
       numero_factura: form.numero_factura.value.trim(),
       numero_lote: form.numero_lote.value.trim(),
+      numero_contenedor: form.numero_contenedor.value,
       palets: form.palets.value.trim(),
       orden_compra: (function(v){ v = v.trim(); return v.toLowerCase()==='stock' ? '0' : v; })(form.orden_compra.value),
       numero_parte: form.numero_parte.value.trim(),
@@ -562,6 +596,13 @@ document.addEventListener('DOMContentLoaded', () => {
       ancho: form.ancho.value,
       altura: form.altura.value,
       peso: form.peso.value
+      ,valor_unitario_restante: form.valor_unitario_restante.value.trim()
+      ,valor_restante: form.valor_restante.value.trim()
+      ,unidad_restante: form.unidad_restante.value.trim()
+      ,longitud_restante: form.longitud_restante.value
+      ,ancho_restante: form.ancho_restante.value
+      ,altura_restante: form.altura_restante.value
+      ,peso_restante: form.peso_restante.value
     };
 
     fetch('../api/warehouseusa/guardar_manual.php', {
@@ -662,7 +703,21 @@ document.getElementById('bookingSelect').addEventListener('change', function() {
       document.querySelector('input[name="valor"]').value          = i.valor;
       document.querySelector('input[name="unidad"]').value         = i.unidad;
       document.querySelector('input[name="peso"]').value           = i.peso;
-      // …y cualquier otro campo que necesites
+      document.querySelector('input[name="modelo"]').value         = i.modelo || '';
+      document.querySelector('input[name="longitud"]').value       = i.longitud_in || '';
+      document.querySelector('input[name="ancho"]').value          = i.ancho_in || '';
+      document.querySelector('input[name="altura"]').value         = i.altura_in || '';
+      // Autocompletar campos adicionales
+      document.querySelector('input[name="modelo_extra"]').value                = i.modelo || '';
+      document.querySelector('input[name="valor_unitario_restante"]').value     = i.valor_unitario;
+      document.querySelector('input[name="valor_restante"]').value              = i.valor;
+      document.querySelector('input[name="unidad_restante"]').value             = i.unidad;
+      document.querySelector('input[name="longitud_restante"]').value           = i.longitud_in || '';
+      document.querySelector('input[name="ancho_restante"]').value              = i.ancho_in || '';
+      document.querySelector('input[name="altura_restante"]').value             = i.altura_in || '';
+      document.querySelector('input[name="peso_restante"]').value               = i.peso;
+      document.getElementById("numeroContenedor").value = i.numero_contenedor || "";
+      document.getElementById("numeroContenedorDisplay").value = i.numero_contenedor || "";
       
       // 2) Rellenar los <select> y habilitarlos
         const facturaSel = document.getElementById('facturaSelect');
@@ -713,6 +768,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     remainingSpan.textContent = diff;
     extraBlock.style.display = diff > 0 ? 'block' : 'none';
+    if (diff > 0) {
+      document.querySelector('input[name="valor_unitario_restante"]').value = document.querySelector('input[name="valor_unitario"]').value;
+      document.querySelector('input[name="valor_restante"]').value = document.querySelector('input[name="valor"]').value;
+      document.querySelector('input[name="unidad_restante"]').value = document.querySelector('input[name="unidad"]').value;
+      document.querySelector('input[name="longitud_restante"]').value = document.querySelector('input[name="longitud"]').value;
+      document.querySelector('input[name="ancho_restante"]').value = document.querySelector('input[name="ancho"]').value;
+      document.querySelector('input[name="altura_restante"]').value = document.querySelector('input[name="altura"]').value;
+      document.querySelector('input[name="peso_restante"]').value = document.querySelector('input[name="peso"]').value;
+    }
   }
 
   [paletsInput, cajasInput, totalInput].forEach(el =>
