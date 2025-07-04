@@ -362,10 +362,66 @@ $warehouse = $stmt->get_result()->fetch_assoc();
           <div class="form-control bg-light"><?= htmlspecialchars($warehouse['altura_in']) ?></div>
         </div>
         <div class="col-md-4">
-          <label class="form-label">Peso (lb)</label>Detalle Warehouse USA
+          <label class="form-label">Peso (lb)</label>
           <div class="form-control bg-light"><?= htmlspecialchars($warehouse['peso_lb']) ?></div>
         </div>
       </div>
+
+<?php
+  $hasRest = !empty($warehouse['valor_unitario_restante']) ||
+             !empty($warehouse['valor_restante']) ||
+             !empty($warehouse['unidad_restante']) ||
+             !empty($warehouse['longitud_in_restante']) ||
+             !empty($warehouse['ancho_in_restante']) ||
+             !empty($warehouse['altura_in_restante']) ||
+             !empty($warehouse['peso_lb_restante']);
+  if ($hasRest): ?>
+      <h5 class="mt-4">Datos Restantes</h5>
+      <div class="row g-3">
+        <?php if (!empty($warehouse['valor_unitario_restante'])): ?>
+        <div class="col-md-4">
+          <label class="form-label">Valor Unitario Restante</label>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['valor_unitario_restante']) ?></div>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($warehouse['valor_restante'])): ?>
+        <div class="col-md-4">
+          <label class="form-label">Valor Restante</label>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['valor_restante']) ?></div>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($warehouse['unidad_restante'])): ?>
+        <div class="col-md-4">
+          <label class="form-label">Unidad Restante</label>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['unidad_restante']) ?></div>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($warehouse['longitud_in_restante'])): ?>
+        <div class="col-md-4">
+          <label class="form-label">Longitud (in) Restante</label>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['longitud_in_restante']) ?></div>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($warehouse['ancho_in_restante'])): ?>
+        <div class="col-md-4">
+          <label class="form-label">Ancho (in) Restante</label>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['ancho_in_restante']) ?></div>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($warehouse['altura_in_restante'])): ?>
+        <div class="col-md-4">
+          <label class="form-label">Altura (in) Restante</label>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['altura_in_restante']) ?></div>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($warehouse['peso_lb_restante'])): ?>
+        <div class="col-md-4">
+          <label class="form-label">Peso (lb) Restante</label>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['peso_lb_restante']) ?></div>
+        </div>
+        <?php endif; ?>
+      </div>
+<?php endif; ?>
 
       <!-- Botón único de volver -->
       <div class="mt-4 d-flex justify-content-start">
