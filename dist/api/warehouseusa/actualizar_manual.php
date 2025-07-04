@@ -16,8 +16,9 @@ try {
     $estado         = trim($data['estado'] ?? '');
     $numeroFactura  = trim($data['numero_factura'] ?? '');
     $numeroLote     = trim($data['numero_lote'] ?? '');
-    $palets         = trim($data['palets'] ?? '');
+    $numeroCont     = trim($data['numero_contenedor'] ?? '');
     $ordenCompra    = trim($data['orden_compra'] ?? '');
+    $palets         = trim($data['palets'] ?? '');
     $numeroParte    = trim($data['numero_parte'] ?? '');
     $descripcion    = trim($data['descripcion'] ?? '');
     $modelo         = trim($data['modelo'] ?? '');
@@ -54,6 +55,7 @@ try {
                 numero_parte=?,
                 descripcion=?,
                 modelo=?,
+                palets=?,
                 cantidad=?,
                 valor_unitario=?,
                 valor=?,
@@ -75,18 +77,19 @@ try {
         throw new Exception('Error en prepare: ' . $conexion->error);
     }
     $stmt->bind_param(
-        'ssssiisisssiddsddddddsddddi',
+        'ssssiisisssiiddsddddddsddddi',
         $fechaEntrada,
         $fechaSalida,
         $recibo,
         $estado,
         $numeroFactura,
         $numeroLote,
-        $palets,
+        $numeroCont,
         $ordenCompra,
         $numeroParte,
         $descripcion,
         $modelo,
+        $palets,
         $cantidad,
         $valorUnit,
         $valor,

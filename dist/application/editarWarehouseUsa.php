@@ -287,6 +287,7 @@ $warehouse = $stmt->get_result()->fetch_assoc();
   <div class="card shadow-sm mx-auto" style="max-width: 900px;">
     <form method="POST" action="#" id="editForm">
       <input type="hidden" name="id" value="<?= $id ?>">
+      <input type="hidden" name="numero_contenedor" value="<?= htmlspecialchars($warehouse['notas']) ?>">
       <div class="card-body">
 
         <div class="row g-3">
@@ -332,7 +333,7 @@ $warehouse = $stmt->get_result()->fetch_assoc();
           </div>
           <div class="col-12">
             <label class="form-label">Palets</label>
-            <input type="text" name="palets" class="form-control" value="<?= htmlspecialchars($warehouse['notas']) ?>">
+            <input type="text" name="palets" class="form-control" value="<?= htmlspecialchars($warehouse['palets']) ?>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Cantidad</label>
@@ -549,6 +550,7 @@ document.getElementById('editForm').addEventListener('submit', e => {
     estado: form.estado.value.trim(),
     numero_factura: form.numero_factura.value.trim(),
     numero_lote: form.numero_lote.value.trim(),
+    numero_contenedor: form.numero_contenedor.value,
     palets: form.palets.value.trim(),
     orden_compra: (function(v){ v = v.trim(); return v.toLowerCase()==='stock' ? '0' : v; })(form.orden_compra.value),
     numero_parte: form.numero_parte.value.trim(),

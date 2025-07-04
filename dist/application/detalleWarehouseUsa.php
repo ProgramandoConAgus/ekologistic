@@ -331,7 +331,7 @@ $warehouse = $stmt->get_result()->fetch_assoc();
         </div>
         <div class="col-12">
           <label class="form-label">Palets</label>
-          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['notas']) ?></div>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['palets']) ?></div>
         </div>
         <div class="col-md-4">
           <label class="form-label">Cantidad</label>

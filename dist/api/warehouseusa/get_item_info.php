@@ -16,6 +16,7 @@ SELECT
     i.Total_Price_EC                AS valor,
     i.Packing_Unit                  AS unidad,
     ROUND(i.Total_Weight_kg*2.20462,2) AS peso,
+    c.Number_Container              AS numero_contenedor,
 
     d.modelo                        AS modelo,
     d.longitud_in                   AS longitud_in,

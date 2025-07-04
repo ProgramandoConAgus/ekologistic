@@ -288,6 +288,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 <div class="container mt-5">
   <div class="card shadow-sm mx-auto" style="max-width: 900px;">
     <form method="POST" action="#">
+      <input type="hidden" name="numero_contenedor" id="numeroContenedor">
   <div class="card-body">
     <div class="row g-3">
       <div class="col-md-4">
@@ -577,6 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
       estado: form.estado.value.trim(),
       numero_factura: form.numero_factura.value.trim(),
       numero_lote: form.numero_lote.value.trim(),
+      numero_contenedor: form.numero_contenedor.value,
       palets: form.palets.value.trim(),
       orden_compra: (function(v){ v = v.trim(); return v.toLowerCase()==='stock' ? '0' : v; })(form.orden_compra.value),
       numero_parte: form.numero_parte.value.trim(),
@@ -710,6 +712,7 @@ document.getElementById('bookingSelect').addEventListener('change', function() {
       document.querySelector('input[name="ancho_restante"]').value              = i.ancho_in || '';
       document.querySelector('input[name="altura_restante"]').value             = i.altura_in || '';
       document.querySelector('input[name="peso_restante"]').value               = i.peso;
+      document.getElementById("numeroContenedor").value = i.numero_contenedor || "";
       
       // 2) Rellenar los <select> y habilitarlos
         const facturaSel = document.getElementById('facturaSelect');
