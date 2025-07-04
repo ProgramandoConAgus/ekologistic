@@ -11,7 +11,24 @@ $usuario = new Usuario($conexion);
 $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 // Carga manual de Warehouse USA guardada en dispatch
-$queryManual = "SELECT id, cantidad AS cajas, palets, notas AS numero_contenedor, numero_lote AS lote_produccion, numero_orden_compra AS po, descripcion, numero_factura AS invoice, fecha_entrada AS fecha_ingreso, recibo_almacen AS warehouse_receive FROM dispatch ORDER BY fecha_entrada DESC";
+$queryManual = "SELECT d.id,
+                       d.cantidad       AS cajas,
+                       d.palets,
+                       d.notas          AS numero_contenedor,
+                       d.numero_lote    AS lote_produccion,
+                       d.numero_orden_compra AS po,
+                       i.Description    AS descripcion,
+                       d.numero_factura AS invoice,
+                       d.fecha_entrada  AS fecha_ingreso,
+                       d.recibo_almacen AS warehouse_receive
+                FROM dispatch d
+                LEFT JOIN container c
+                  ON c.Number_Container = d.notas
+                LEFT JOIN items i
+                  ON i.Number_Commercial_Invoice = d.numero_factura
+                 AND i.Code_Product_EC          = d.numero_parte
+                 AND i.idContainer              = c.IdContainer
+                ORDER BY d.fecha_entrada DESC";
 $manualRes = $conexion->query($queryManual);
 
 ?>

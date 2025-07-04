@@ -7,7 +7,17 @@ $IdUsuario = $_SESSION["IdUsuario"];
 $usuario = new Usuario($conexion);
 $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 $id = $_GET["id"] ?? 0;
-$stmt = $conexion->prepare("SELECT * FROM dispatch WHERE id = ?");
+$stmt = $conexion->prepare(
+    "SELECT d.*, i.Description AS descripcion_item
+       FROM dispatch d
+       LEFT JOIN container c
+         ON c.Number_Container = d.notas
+       LEFT JOIN items i
+         ON i.Number_Commercial_Invoice = d.numero_factura
+        AND i.Code_Product_EC          = d.numero_parte
+        AND i.idContainer              = c.IdContainer
+      WHERE d.id = ?"
+);
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $warehouse = $stmt->get_result()->fetch_assoc();
@@ -328,8 +338,8 @@ $warehouse = $stmt->get_result()->fetch_assoc();
             <input type="text" name="numero_parte" class="form-control" value="<?= htmlspecialchars($warehouse['numero_parte']) ?>">
           </div>
           <div class="col-12">
-            <label class="form-label">Descripción</label>
-            <textarea name="descripcion" class="form-control" rows="2"><?= htmlspecialchars($warehouse['descripcion']) ?></textarea>
+          <label class="form-label">Descripción</label>
+            <textarea name="descripcion" class="form-control" rows="2"><?= htmlspecialchars($warehouse['descripcion_item'] ?? $warehouse['descripcion']) ?></textarea>
           </div>
           <div class="col-md-4">
             <label class="form-label">Modelo</label>

@@ -9,7 +9,17 @@ $IdUsuario = $_SESSION["IdUsuario"];
 $usuario = new Usuario($conexion);
 $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 $id = $_GET["id"] ?? 0;
-$stmt = $conexion->prepare("SELECT * FROM dispatch WHERE id = ?");
+$stmt = $conexion->prepare(
+    "SELECT d.*, i.Description AS descripcion_item
+       FROM dispatch d
+       LEFT JOIN container c
+         ON c.Number_Container = d.notas
+       LEFT JOIN items i
+         ON i.Number_Commercial_Invoice = d.numero_factura
+        AND i.Code_Product_EC          = d.numero_parte
+        AND i.idContainer              = c.IdContainer
+      WHERE d.id = ?"
+);
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $warehouse = $stmt->get_result()->fetch_assoc();
@@ -327,7 +337,7 @@ $warehouse = $stmt->get_result()->fetch_assoc();
         </div>
         <div class="col-12">
           <label class="form-label">Descripción</label>
-          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['descripcion']) ?></div>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['descripcion_item'] ?? $warehouse['descripcion']) ?></div>
         </div>
         <div class="col-md-4">
           <label class="form-label">Modelo</label>
