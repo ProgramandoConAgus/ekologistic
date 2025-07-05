@@ -464,7 +464,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
     </div>
 
     <div class="mt-4 d-flex justify-content-between">
-      <a href="../admins/despachosPanel.php" class="btn btn-secondary">Cancelar</a>
+      <a href="../admins/warehouseUsaPanel.php" class="btn btn-secondary">Cancelar</a>
       <button type="submit" class="btn btn-success">Guardar Warehouse</button>
     </div>
   </div>
@@ -831,57 +831,6 @@ document.addEventListener('DOMContentLoaded', () => {
   updateRemaining();
 });
 </script>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const paletsInput = document.querySelector('input[name="palets"]');
-  const cajasInput  = document.querySelector('input[name="cantidad"]');
-  const totalInput  = document.querySelector('input[name="cantidadTotal"]');
-  const extraBlock  = document.getElementById('extraBlock');
-  const remainingSpan = document.getElementById('remainingBoxes');
-  const noteBlock = document.getElementById('totalUpdateNote');
-
-  originalTotal = parseInt(totalInput.value) || 0;
-
-  function updateRemaining() {
-    const palets = parseInt(paletsInput.value) || 0;
-    const cajas  = parseInt(cajasInput.value) || 0;
-    const product = palets * cajas;
-    let diff;
-
-    if (product > originalTotal) {
-      totalInput.value = product;
-      noteBlock.style.display = 'block';
-      noteBlock.querySelector('input').value = 'Total ajustado automáticamente';
-      diff = 0;
-    } else {
-      totalInput.value = originalTotal;
-      noteBlock.style.display = 'none';
-      noteBlock.querySelector('input').value = '';
-      diff = originalTotal - product;
-    }
-
-    remainingSpan.textContent = diff;
-    extraBlock.style.display = diff > 0 ? 'block' : 'none';
-    if (diff > 0) {
-      document.querySelector('input[name="valor_unitario_restante"]').value = document.querySelector('input[name="valor_unitario"]').value;
-      document.querySelector('input[name="valor_restante"]').value = document.querySelector('input[name="valor"]').value;
-      document.querySelector('input[name="unidad_restante"]').value = document.querySelector('input[name="unidad"]').value;
-      document.querySelector('input[name="longitud_restante"]').value = document.querySelector('input[name="longitud"]').value;
-      document.querySelector('input[name="ancho_restante"]').value = document.querySelector('input[name="ancho"]').value;
-      document.querySelector('input[name="altura_restante"]').value = document.querySelector('input[name="altura"]').value;
-      document.querySelector('input[name="peso_restante"]').value = document.querySelector('input[name="peso"]').value;
-    }
-  }
-
-  [paletsInput, cajasInput, totalInput].forEach(el =>
-    el.addEventListener('input', updateRemaining)
-  );
-
-  updateRemaining();
-});
-</script>
-
 
 
 

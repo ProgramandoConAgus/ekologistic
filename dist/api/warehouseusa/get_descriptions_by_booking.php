@@ -14,7 +14,10 @@ $sql1 = "
 SELECT DISTINCT i.Description
 FROM items i
 JOIN container c ON i.idContainer = c.IdContainer
+LEFT JOIN dispatch d
+  ON d.descripcion = i.Description
 WHERE c.Booking_BK = ?
+  AND d.id IS NULL
 ORDER BY i.Description
 ";
 $stmt1 = $conexion->prepare($sql1);
