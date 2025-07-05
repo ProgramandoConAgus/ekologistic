@@ -41,7 +41,7 @@ try {
         echo json_encode(['success' => false, 'message' => 'Datos incompletos']);
         exit;
     }
-
+    $guardadoPor="manual";
     $stmt = $conexion->prepare(
         "INSERT INTO dispatch (
             fecha_entrada,
@@ -70,14 +70,15 @@ try {
             longitud_in_restante,
             ancho_in_restante,
             altura_in_restante,
-            peso_lb_restante
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+            peso_lb_restante,
+            guardado_por
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
     );
     if (!$stmt) {
         throw new Exception('Error en prepare: ' . $conexion->error);
     }
     $stmt->bind_param(
-        'ssssiisisssiiddsddddddsdddd',
+        'ssssiisisssiiddsddddddsdddds',
         $fechaEntrada,
         $fechaSalida,
         $recibo,
@@ -104,7 +105,8 @@ try {
         $longitudR,
         $anchoR,
         $alturaR,
-        $pesoR
+        $pesoR,
+        $guardadoPor
     );
     $stmt->execute();
     $stmt->close();

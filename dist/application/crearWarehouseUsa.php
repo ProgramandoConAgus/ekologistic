@@ -760,6 +760,8 @@ document.addEventListener('DOMContentLoaded', () => {
         form.ancho.value          = i.ancho_in || '';
         form.altura.value         = i.altura_in || '';
         form.cantidadTotal.value         = i.cantidad || '';
+        originalTotal = parseInt(i.cantidad) || 0;
+        updateRemaining();
 
         // extras
         form.modelo_extra.value              = i.modelo  || '';

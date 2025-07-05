@@ -28,7 +28,9 @@ $queryManual = "SELECT d.id,
                   ON i.Number_Commercial_Invoice = d.numero_factura
                  AND i.Code_Product_EC          = d.numero_parte
                  AND i.idContainer              = c.IdContainer
+                WHERE d.guardado_por = 'manual'
                 ORDER BY d.fecha_entrada DESC";
+
 $manualRes = $conexion->query($queryManual);
 
 ?>
