@@ -19,10 +19,12 @@ try {
     $numeroCont     = trim($data['numero_contenedor'] ?? '');
     $ordenCompra    = trim($data['orden_compra'] ?? '');
     $palets         = trim($data['palets'] ?? '');
+    $paletsR        = trim($data['palets_restante'] ?? '');
     $numeroParte    = trim($data['numero_parte'] ?? '');
     $descripcion    = trim($data['descripcion'] ?? '');
     $modelo         = trim($data['modelo'] ?? '');
     $cantidad       = intval($data['cantidad'] ?? 0);
+    $cantidadR      = intval($data['cantidad_restante'] ?? 0);
     $valorUnit      = $data['valor_unitario'] === '' ? null : floatval(str_replace(',', '.', $data['valor_unitario']));
     $valor          = $data['valor'] === '' ? null : floatval(str_replace(',', '.', $data['valor']));
     $unidad         = trim($data['unidad'] ?? '');
@@ -64,6 +66,8 @@ try {
                 ancho_in=?,
                 altura_in=?,
                 peso_lb=?,
+                palets_restante=?,
+                cantidad_restante=?,
                 valor_unitario_restante=?,
                 valor_restante=?,
                 unidad_restante=?,
@@ -77,7 +81,7 @@ try {
         throw new Exception('Error en prepare: ' . $conexion->error);
     }
     $stmt->bind_param(
-        'ssssiisisssiiddsddddddsddddi',
+        'ssssiisisssiiddsddddiiddsddddi',
         $fechaEntrada,
         $fechaSalida,
         $recibo,
@@ -98,6 +102,8 @@ try {
         $anchoIn,
         $alturaIn,
         $pesoLb,
+        $paletsR,
+        $cantidadR,
         $valorUnitR,
         $valorR,
         $unidadR,

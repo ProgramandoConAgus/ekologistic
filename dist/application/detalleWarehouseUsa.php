@@ -382,7 +382,9 @@ $warehouse = $stmt->get_result()->fetch_assoc();
       </div>
 
 <?php
-  $hasRest = !empty($warehouse['valor_unitario_restante']) ||
+  $hasRest = !empty($warehouse['palets_restante']) ||
+             !empty($warehouse['cantidad_restante']) ||
+             !empty($warehouse['valor_unitario_restante']) ||
              !empty($warehouse['valor_restante']) ||
              !empty($warehouse['unidad_restante']) ||
              !empty($warehouse['longitud_in_restante']) ||
@@ -392,6 +394,18 @@ $warehouse = $stmt->get_result()->fetch_assoc();
   if ($hasRest): ?>
       <h5 class="mt-4">Datos Restantes</h5>
       <div class="row g-3">
+        <?php if (!empty($warehouse['palets_restante'])): ?>
+        <div class="col-md-4">
+          <label class="form-label">Palets Restante</label>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['palets_restante']) ?></div>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($warehouse['cantidad_restante'])): ?>
+        <div class="col-md-4">
+          <label class="form-label">Cajas Restantes</label>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['cantidad_restante']) ?></div>
+        </div>
+        <?php endif; ?>
         <?php if (!empty($warehouse['valor_unitario_restante'])): ?>
         <div class="col-md-4">
           <label class="form-label">Valor Unitario Restante</label>
