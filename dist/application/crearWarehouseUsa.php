@@ -487,48 +487,57 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 <script src="../assets/js/fonts/custom-font.js"></script>
 <script src="../assets/js/pcoded.js"></script>
 <script src="../assets/js/plugins/feather.min.js"></script>
-<!--Completador de select-->
+<!-- Completador de select -->
 <script>
-  document.getElementById('bookingSelect').addEventListener('change', function () {
+document.addEventListener('DOMContentLoaded', () => {
+  const bookingSelect = document.getElementById('bookingSelect');
+  const facturaSelect = document.getElementById('facturaSelect');
+
+  if (!bookingSelect || !facturaSelect) {
+    console.error('No se encontraron los elementos bookingSelect o facturaSelect');
+    return;
+  }
+
+  bookingSelect.addEventListener('change', function () {
     const booking = this.value;
-    const invoiceSelect = document.getElementById('invoiceSelect');
 
     // Limpiar y desactivar el segundo select
-    invoiceSelect.innerHTML = '<option selected>Seleccionar...</option>';
-    invoiceSelect.disabled = true;
+    facturaSelect.innerHTML = '<option value="">-- Selecciona --</option>';
+    facturaSelect.disabled = true;
 
-    if (booking && booking !== 'Seleccionar...') {
-      fetch(`../api/exports/get_invoices.php?booking=${encodeURIComponent(booking)}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.length > 0) {
-            data.forEach(invoice => {
-              const option = document.createElement('option');
-              option.value = invoice;
-              option.textContent = invoice;
-              option.selected=true;
-              invoiceSelect.appendChild(option);
-            });
-            invoiceSelect.disabled = false;
-          } else {
-            const opt = document.createElement('option');
-            opt.text = 'Sin facturas disponibles';
-            opt.disabled = true;
-            invoiceSelect.appendChild(opt);
-          }
-        })
-        .catch(error => {
-          console.error('Error al cargar facturas:', error);
-        });
-    }
+    if (!booking) return;
+
+    fetch(`../api/exports/get_invoices.php?booking=${encodeURIComponent(booking)}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.length > 0) {
+          data.forEach(invoice => {
+            const option = document.createElement('option');
+            option.value = invoice;
+            option.textContent = invoice;
+            facturaSelect.appendChild(option);
+          });
+          facturaSelect.disabled = false;
+        } else {
+          const opt = document.createElement('option');
+          opt.text = 'Sin facturas disponibles';
+          opt.disabled = true;
+          facturaSelect.appendChild(opt);
+        }
+      })
+      .catch(error => {
+        console.error('Error al cargar facturas:', error);
+      });
   });
+});
 </script>
+
 
 
 
 <!--Autocalcular totales-->
 <!-- 1) Cálculo dinámico de totales -->
-<script>
+<!-- <script>
 var originalTotal = 0;
 document.addEventListener('DOMContentLoaded', () => {
   function formatCurrency(value) {
@@ -569,7 +578,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   recalculate();
 });
-</script>
+</script> -->
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.querySelector('form[action="#"]');
@@ -626,116 +636,127 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+  const facturaSel = document.getElementById('facturaSelect');
+  const loteSel    = document.getElementById('loteSelect');
+  const ordenSel   = document.getElementById('ordenSelect');
+  const parteSel   = document.getElementById('parteSelect');
 
-const facturaSel = document.getElementById('facturaSelect');
-const loteSel    = document.getElementById('loteSelect');
-const ordenSel   = document.getElementById('ordenSelect');
-const parteSel   = document.getElementById('parteSelect');
-
-function fillSelect(selectEl, csv) {
-  selectEl.innerHTML = '<option value="">-- Selecciona --</option>';
-  csv.split(',').forEach(val => {
-    const v = val.trim();
-    if (v) {
+  function fillSelect(selectEl, csv) {
+    selectEl.innerHTML = '<option value="">-- Selecciona --</option>';
+    // si no viene nada, salimos
+    if (!csv) {
+      console.warn(`fillSelect: csv para ${selectEl.id} está vacío`);
+      return;
+    }
+    // si viene un array lo usamos, si viene string lo partimos
+    const items = Array.isArray(csv) ? csv : csv.split(',');
+    items.forEach(val => {
+      const v = val.trim();
+      if (!v) return;
       const o = document.createElement('option');
       o.value = v;
       o.textContent = v;
       selectEl.appendChild(o);
-    }
+    });
+    selectEl.disabled = false;
+  }
+
+  // Al cambiar booking
+  document.getElementById('bookingSelect').addEventListener('change', function() {
+    const booking = this.value;
+    const descSelect = document.getElementById('descripcionSelect');
+
+    // reseteo
+    descSelect.innerHTML = '<option value="">-- Selecciona --</option>';
+    descSelect.disabled = true;
+
+    if (!booking) return;
+
+    fetch(`../api/warehouseusa/get_descriptions_by_booking.php?booking=${encodeURIComponent(booking)}`)
+      .then(r => r.json())
+      .then(resp => {
+        if (!resp.success) {
+          return Swal.fire('Error', resp.msg, 'error');
+        }
+        resp.descriptions.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d;
+          opt.textContent = d;
+          descSelect.appendChild(opt);
+        });
+
+        fillSelect(facturaSel, resp.numero_factura);
+        fillSelect(loteSel,    resp.numero_lote);
+        fillSelect(ordenSel,   resp.numero_orden_compra);
+        fillSelect(parteSel,   resp.numero_parte);
+        descSelect.dataset.booking = booking;
+        descSelect.disabled = false;
+        document.querySelector('input[name="cantidadTotal"]').value = resp.cantidad_total;
+        originalTotal = parseInt(resp.cantidad_total) || 0;
+        // guardo el booking para el siguiente fetch
+        descSelect.dataset.booking = booking;
+      })
+      .catch(error => {
+      console.error('Error al cargar descripciones:', error);
+      Swal.fire('Error', 'No se pudo cargar descripciones', 'error');
+    });
   });
-  selectEl.disabled = false;
-}
-// Al cambiar booking
-document.getElementById('bookingSelect').addEventListener('change', function() {
-  const booking = this.value;
-  const descSelect = document.getElementById('descripcionSelect');
 
-  // reseteo
-  descSelect.innerHTML = '<option value="">-- Selecciona --</option>';
-  descSelect.disabled = true;
+  // Al cambiar descripción
+    document.getElementById('descripcionSelect').addEventListener('change', function() {
+    const description = this.value;
+    const booking     = this.dataset.booking;
+    if (!description) return;
 
-  if (!booking) return;
+    fetch(`../api/warehouseusa/get_item_info.php?booking=${encodeURIComponent(booking)}&description=${encodeURIComponent(description)}`)
+      .then(r => r.json())
+      .then(resp => {
+        if (!resp.success) {
+          return Swal.fire('Error', resp.msg, 'error');
+        }
+        const i = resp.data;
+        // Mapea aquí los campos de tu form:
+        document.querySelector('input[name="cantidad"]').value       = i.cantidad;
+        document.querySelector('input[name="valor_unitario"]').value = i.valor_unitario;
+        document.querySelector('input[name="valor"]').value          = i.valor;
+        document.querySelector('input[name="unidad"]').value         = i.unidad;
+        document.querySelector('input[name="peso"]').value           = i.peso;
+        document.querySelector('input[name="modelo"]').value         = i.modelo || '';
+        document.querySelector('input[name="longitud"]').value       = i.longitud_in || '';
+        document.querySelector('input[name="ancho"]').value          = i.ancho_in || '';
+        document.querySelector('input[name="altura"]').value         = i.altura_in || '';
+        // Autocompletar campos adicionales
+        document.querySelector('input[name="modelo_extra"]').value                = i.modelo || '';
+        document.querySelector('input[name="valor_unitario_restante"]').value     = i.valor_unitario;
+        document.querySelector('input[name="valor_restante"]').value              = i.valor;
+        document.querySelector('input[name="unidad_restante"]').value             = i.unidad;
+        document.querySelector('input[name="longitud_restante"]').value           = i.longitud_in || '';
+        document.querySelector('input[name="ancho_restante"]').value              = i.ancho_in || '';
+        document.querySelector('input[name="altura_restante"]').value             = i.altura_in || '';
+        document.querySelector('input[name="peso_restante"]').value               = i.peso;
+        document.getElementById("numeroContenedor").value = i.numero_contenedor || "";
+        document.getElementById("numeroContenedorDisplay").value = i.numero_contenedor || "";
+        
+        // 2) Rellenar los <select> y habilitarlos
+          const facturaSel = document.getElementById('facturaSelect');
+          const loteSel    = document.getElementById('loteSelect');
+          const ordenSel   = document.getElementById('ordenSelect');
+          const parteSel   = document.getElementById('parteSelect');
 
-  fetch(`../api/warehouseusa/get_descriptions_by_booking.php?booking=${encodeURIComponent(booking)}`)
-    .then(r => r.json())
-    .then(resp => {
-      if (!resp.success) {
-        return Swal.fire('Error', resp.msg, 'error');
-      }
-      resp.descriptions.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d;
-        opt.textContent = d;
-        descSelect.appendChild(opt);
-      });
+          facturaSel.value = i.numero_factura;        facturaSel.disabled = false;
+          loteSel.value    = i.numero_lote;           loteSel.disabled    = false;
+          ordenSel.value   = i.numero_orden_compra;   ordenSel.disabled   = false;
+          parteSel.value   = i.numero_parte;          parteSel.disabled   = false;
 
-      fillSelect(facturaSel, resp.numero_factura);
-      fillSelect(loteSel,    resp.numero_lote);
-      fillSelect(ordenSel,   resp.numero_orden_compra);
-      fillSelect(parteSel,   resp.numero_parte);
-      descSelect.dataset.booking = booking;
-      descSelect.disabled = false;
-      document.querySelector('input[name="cantidadTotal"]').value = resp.cantidad_total;
-      originalTotal = parseInt(resp.cantidad_total) || 0;
-      // guardo el booking para el siguiente fetch
-      descSelect.dataset.booking = booking;
-    })
-    .catch(() => Swal.fire('Error', 'No se pudo cargar descripciones', 'error'));
+        // 3) Recibo de almacén
+          document.querySelector('input[name="recibo_almacen"]').value = i.recibo_almacen || '';
+      })
+    .catch(() => Swal.fire('Error', 'No se pudo cargar el detalle', 'error'));
+  });
 });
-
-// Al cambiar descripción
-  document.getElementById('descripcionSelect').addEventListener('change', function() {
-  const description = this.value;
-  const booking     = this.dataset.booking;
-  if (!description) return;
-
-  fetch(`../api/warehouseusa/get_item_info.php?booking=${encodeURIComponent(booking)}&description=${encodeURIComponent(description)}`)
-    .then(r => r.json())
-    .then(resp => {
-      if (!resp.success) {
-        return Swal.fire('Error', resp.msg, 'error');
-      }
-      const i = resp.data;
-      // Mapea aquí los campos de tu form:
-      document.querySelector('input[name="cantidad"]').value       = i.cantidad;
-      document.querySelector('input[name="valor_unitario"]').value = i.valor_unitario;
-      document.querySelector('input[name="valor"]').value          = i.valor;
-      document.querySelector('input[name="unidad"]').value         = i.unidad;
-      document.querySelector('input[name="peso"]').value           = i.peso;
-      document.querySelector('input[name="modelo"]').value         = i.modelo || '';
-      document.querySelector('input[name="longitud"]').value       = i.longitud_in || '';
-      document.querySelector('input[name="ancho"]').value          = i.ancho_in || '';
-      document.querySelector('input[name="altura"]').value         = i.altura_in || '';
-      // Autocompletar campos adicionales
-      document.querySelector('input[name="modelo_extra"]').value                = i.modelo || '';
-      document.querySelector('input[name="valor_unitario_restante"]').value     = i.valor_unitario;
-      document.querySelector('input[name="valor_restante"]').value              = i.valor;
-      document.querySelector('input[name="unidad_restante"]').value             = i.unidad;
-      document.querySelector('input[name="longitud_restante"]').value           = i.longitud_in || '';
-      document.querySelector('input[name="ancho_restante"]').value              = i.ancho_in || '';
-      document.querySelector('input[name="altura_restante"]').value             = i.altura_in || '';
-      document.querySelector('input[name="peso_restante"]').value               = i.peso;
-      document.getElementById("numeroContenedor").value = i.numero_contenedor || "";
-      document.getElementById("numeroContenedorDisplay").value = i.numero_contenedor || "";
-      
-      // 2) Rellenar los <select> y habilitarlos
-        const facturaSel = document.getElementById('facturaSelect');
-        const loteSel    = document.getElementById('loteSelect');
-        const ordenSel   = document.getElementById('ordenSelect');
-        const parteSel   = document.getElementById('parteSelect');
-
-        facturaSel.value = i.numero_factura;        facturaSel.disabled = false;
-        loteSel.value    = i.numero_lote;           loteSel.disabled    = false;
-        ordenSel.value   = i.numero_orden_compra;   ordenSel.disabled   = false;
-        parteSel.value   = i.numero_parte;          parteSel.disabled   = false;
-
-      // 3) Recibo de almacén
-        document.querySelector('input[name="recibo_almacen"]').value = i.recibo_almacen || '';
-    })
-  .catch(() => Swal.fire('Error', 'No se pudo cargar el detalle', 'error'));
-});
-
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
