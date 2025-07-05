@@ -725,6 +725,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // total original
         document.querySelector('input[name="cantidadTotal"]').value = resp.cantidad_total;
         originalTotal = parseInt(resp.cantidad_total) || 0;
+        
+        updateRemaining();
 
         // guardo booking para descripción después
         descSelect.dataset.booking = booking;
@@ -757,6 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
         form.longitud.value       = i.longitud_in || '';
         form.ancho.value          = i.ancho_in || '';
         form.altura.value         = i.altura_in || '';
+        form.cantidadTotal.value         = i.cantidad || '';
 
         // extras
         form.modelo_extra.value              = i.modelo  || '';
