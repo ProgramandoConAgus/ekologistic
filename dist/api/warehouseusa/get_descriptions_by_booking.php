@@ -28,7 +28,7 @@ while ($row = $res1->fetch_assoc()) {
 
 $sql2 = "
 SELECT
-    SUM(i.Qty_Box) AS cantidad_total,
+    i.Qty_Box AS cantidad_total,
     GROUP_CONCAT(DISTINCT i.Number_Commercial_Invoice) AS numero_factura,
     GROUP_CONCAT(DISTINCT i.Number_Lot SEPARATOR ', ') AS numero_lote,
     GROUP_CONCAT(DISTINCT d.numero_orden_compra SEPARATOR ', ') AS numero_orden_compra,

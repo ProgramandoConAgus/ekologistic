@@ -408,7 +408,7 @@ $manualRes = $conexion->query($queryManual);
                           </td>
                         </tr>
                       <?php endwhile; else: ?>
-                        <tr><td colspan="9" class="text-center">Sin registros</td></tr>
+                        
                     <?php endif; ?>
                   </tbody>
                 </table>
@@ -617,29 +617,35 @@ $manualRes = $conexion->query($queryManual);
     preset_change("preset-1");
   </script>
 
-  <script>
-    var dt;
-    const dtConfig = {
-      paging: true,
-      pageLength: 10,
-      pagingType: 'simple_numbers',
-      language: { paginate: { previous: '«', next: '»' } },
-      lengthChange: false,
-      searching: false,
-      info: false,
-      ordering: false,
-      dom: 't<"pagination-wrapper"p>'
-    };
-
-    function initDataTable() {
-      dt = $('#pc-dt-simple').DataTable(dtConfig);
-      $('.pagination-wrapper').appendTo($('#pc-dt-simple').closest('.table-responsive'));
+<script>
+  var dt;
+  const dtConfig = {
+    paging: true,
+    pageLength: 10,
+    pagingType: 'simple_numbers',
+    lengthChange: false,
+    searching: false,
+    info: false,
+    ordering: false,
+    dom: 't<"pagination-wrapper"p>',
+    language: {
+      emptyTable: "Sin registros",         // <-- mensaje cuando no hay filas
+      paginate: { previous: '«', next: '»' }
     }
+  };
 
-    $(document).ready(() => {
-      initDataTable();
-    });
-  </script>
+  function initDataTable() {
+    dt = $('#pc-dt-simple').DataTable(dtConfig);
+    // Mueve la paginación al footer de la tabla
+    $('.pagination-wrapper')
+      .appendTo($('#pc-dt-simple').closest('.table-responsive'));
+  }
+
+  $(document).ready(() => {
+    initDataTable();
+  });
+</script>
+
   <div class="offcanvas border-0 pct-offcanvas offcanvas-end" tabindex="-1" id="offcanvas_pc_layout">
     <div class="offcanvas-header justify-content-between">
       <h5 class="offcanvas-title">Settings</h5>

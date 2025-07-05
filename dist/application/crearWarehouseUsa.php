@@ -346,11 +346,19 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         </select>
       </div>
       <div class="col-md-4">
-        <label class="form-label" for="ordenSelect">Número de Orden de Compra</label>
-        <select id="ordenSelect" name="orden_compra" class="form-control" disabled>
-          <option value="">-- Selecciona --</option>
-        </select>
+        <label class="form-label" for="ordenInput">Número de Orden de Compra</label>
+        <!-- campo mixto: autocompleta o texto libre -->
+        <input
+          type="text"
+          id="ordenInput"
+          name="orden_compra"
+          class="form-control"
+          list="ordenList"
+          disabled
+        >
+        <datalist id="ordenList"></datalist>
       </div>
+
       <div class="col-md-4">
         <label class="form-label" for="parteSelect">Número de Parte</label>
         <select id="parteSelect" name="numero_parte" class="form-control" disabled>
@@ -582,37 +590,68 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const form = document.querySelector('form[action="#"]');
+  // Formulario
+  const form       = document.querySelector('form[action="#"]');
+  // Selects / Inputs
+  const facturaSel = document.getElementById('facturaSelect');
+  const loteSel    = document.getElementById('loteSelect');
+  const parteSel   = document.getElementById('parteSelect');
+  const ordenInput = document.getElementById('ordenInput');
+  const ordenList  = document.getElementById('ordenList');
+
+  let originalTotal = 0;
+
+  // Helper para llenar selects
+  function fillSelect(selectEl, csv) {
+    selectEl.innerHTML = '<option value="">-- Selecciona --</option>';
+    if (!csv) return;
+    const items = Array.isArray(csv) ? csv : csv.split(',');
+    items.forEach(val => {
+      const v = val.trim();
+      if (!v) return;
+      const o = document.createElement('option');
+      o.value = v;
+      o.textContent = v;
+      selectEl.appendChild(o);
+    });
+    selectEl.disabled = false;
+  }
+
+  // --- SUBMIT MANUAL ---
   form.addEventListener('submit', e => {
     e.preventDefault();
     const data = {
       fecha_entrada: form.fecha_entrada.value,
-      fecha_salida: form.fecha_salida.value,
+      fecha_salida:  form.fecha_salida.value,
       recibo_almacen: form.recibo_almacen.value.trim(),
-      estado: form.estado.value.trim(),
+      estado:         form.estado.value.trim(),
       numero_factura: form.numero_factura.value.trim(),
-      numero_lote: form.numero_lote.value.trim(),
+      numero_lote:    form.numero_lote.value.trim(),
       numero_contenedor: form.numero_contenedor.value,
-      palets: form.palets.value.trim(),
-      orden_compra: (function(v){ v = v.trim(); return v.toLowerCase()==='stock' ? '0' : v; })(form.orden_compra.value),
-      numero_parte: form.numero_parte.value.trim(),
-      descripcion: form.descripcion.value.trim(),
-      modelo: form.modelo.value.trim(),
-      cantidad: parseInt(form.cantidad.value) || 0,
+      palets:         form.palets.value.trim(),
+      // aquí tomamos el valor libre o seleccionado
+      orden_compra:   (function(v){
+                         v = v.trim();
+                         return v.toLowerCase() === 'stock' ? '0' : v;
+                       })(ordenInput.value),
+      numero_parte:   form.numero_parte.value.trim(),
+      descripcion:    form.descripcion.value.trim(),
+      modelo:         form.modelo.value.trim(),
+      cantidad:       parseInt(form.cantidad.value) || 0,
       valor_unitario: form.valor_unitario.value.trim(),
-      valor: form.valor.value.trim(),
-      unidad: form.unidad.value.trim(),
-      longitud: form.longitud.value,
-      ancho: form.ancho.value,
-      altura: form.altura.value,
-      peso: form.peso.value
-      ,valor_unitario_restante: form.valor_unitario_restante.value.trim()
-      ,valor_restante: form.valor_restante.value.trim()
-      ,unidad_restante: form.unidad_restante.value.trim()
-      ,longitud_restante: form.longitud_restante.value
-      ,ancho_restante: form.ancho_restante.value
-      ,altura_restante: form.altura_restante.value
-      ,peso_restante: form.peso_restante.value
+      valor:          form.valor.value.trim(),
+      unidad:         form.unidad.value.trim(),
+      longitud:       form.longitud.value,
+      ancho:          form.ancho.value,
+      altura:         form.altura.value,
+      peso:           form.peso.value,
+      valor_unitario_restante: form.valor_unitario_restante.value.trim(),
+      valor_restante:          form.valor_restante.value.trim(),
+      unidad_restante:         form.unidad_restante.value.trim(),
+      longitud_restante:       form.longitud_restante.value,
+      ancho_restante:          form.ancho_restante.value,
+      altura_restante:         form.altura_restante.value,
+      peso_restante:           form.peso_restante.value
     };
 
     fetch('../api/warehouseusa/guardar_manual.php', {
@@ -633,45 +672,23 @@ document.addEventListener('DOMContentLoaded', () => {
       Swal.fire({ icon: 'error', title: 'Error', text: 'Error de servidor' });
     });
   });
-});
 
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const facturaSel = document.getElementById('facturaSelect');
-  const loteSel    = document.getElementById('loteSelect');
-  const ordenSel   = document.getElementById('ordenSelect');
-  const parteSel   = document.getElementById('parteSelect');
-
-  function fillSelect(selectEl, csv) {
-    selectEl.innerHTML = '<option value="">-- Selecciona --</option>';
-    // si no viene nada, salimos
-    if (!csv) {
-      console.warn(`fillSelect: csv para ${selectEl.id} está vacío`);
-      return;
-    }
-    // si viene un array lo usamos, si viene string lo partimos
-    const items = Array.isArray(csv) ? csv : csv.split(',');
-    items.forEach(val => {
-      const v = val.trim();
-      if (!v) return;
-      const o = document.createElement('option');
-      o.value = v;
-      o.textContent = v;
-      selectEl.appendChild(o);
-    });
-    selectEl.disabled = false;
-  }
-
-  // Al cambiar booking
+  // --- AL CAMBIAR BOOKING ---
   document.getElementById('bookingSelect').addEventListener('change', function() {
-    const booking = this.value;
+    const booking   = this.value;
     const descSelect = document.getElementById('descripcionSelect');
 
-    // reseteo
+    // reset
     descSelect.innerHTML = '<option value="">-- Selecciona --</option>';
     descSelect.disabled = true;
+    facturaSel.innerHTML = '<option value="">-- Selecciona --</option>'; facturaSel.disabled = true;
+    loteSel.innerHTML    = '<option value="">-- Selecciona --</option>'; loteSel.disabled    = true;
+    ordenList.innerHTML  = '';
+    ordenInput.value     = '';
+    ordenInput.disabled  = true;
+    parteSel.innerHTML   = '<option value="">-- Selecciona --</option>'; parteSel.disabled   = true;
+    document.querySelector('input[name="cantidadTotal"]').value = '';
+    originalTotal = 0;
 
     if (!booking) return;
 
@@ -681,32 +698,45 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!resp.success) {
           return Swal.fire('Error', resp.msg, 'error');
         }
+        // descripciones
         resp.descriptions.forEach(d => {
-          const opt = document.createElement('option');
-          opt.value = d;
-          opt.textContent = d;
-          descSelect.appendChild(opt);
+          const o = document.createElement('option');
+          o.value = d;
+          o.textContent = d;
+          descSelect.appendChild(o);
         });
+        descSelect.disabled = false;
 
+        // facturas y lotes (selects normales)
         fillSelect(facturaSel, resp.numero_factura);
         fillSelect(loteSel,    resp.numero_lote);
-        fillSelect(ordenSel,   resp.numero_orden_compra);
         fillSelect(parteSel,   resp.numero_parte);
-        descSelect.dataset.booking = booking;
-        descSelect.disabled = false;
+
+        // ordenes de compra (datalist)
+        if (Array.isArray(resp.numero_orden_compra)) {
+          resp.numero_orden_compra.forEach(o => {
+            const opt = document.createElement('option');
+            opt.value = o;
+            ordenList.appendChild(opt);
+          });
+        }
+        ordenInput.disabled = false;
+        console.log(resp)
+        // total original
         document.querySelector('input[name="cantidadTotal"]').value = resp.cantidad_total;
         originalTotal = parseInt(resp.cantidad_total) || 0;
-        // guardo el booking para el siguiente fetch
+
+        // guardo booking para descripción después
         descSelect.dataset.booking = booking;
       })
-      .catch(error => {
-      console.error('Error al cargar descripciones:', error);
-      Swal.fire('Error', 'No se pudo cargar descripciones', 'error');
-    });
+      .catch(err => {
+        console.error(err);
+        Swal.fire('Error', 'No se pudo cargar descripciones', 'error');
+      });
   });
 
-  // Al cambiar descripción
-    document.getElementById('descripcionSelect').addEventListener('change', function() {
+  // --- AL CAMBIAR DESCRIPCIÓN ---
+  document.getElementById('descripcionSelect').addEventListener('change', function() {
     const description = this.value;
     const booking     = this.dataset.booking;
     if (!description) return;
@@ -718,46 +748,90 @@ document.addEventListener('DOMContentLoaded', () => {
           return Swal.fire('Error', resp.msg, 'error');
         }
         const i = resp.data;
-        // Mapea aquí los campos de tu form:
-        document.querySelector('input[name="cantidad"]').value       = i.cantidad;
-        document.querySelector('input[name="valor_unitario"]').value = i.valor_unitario;
-        document.querySelector('input[name="valor"]').value          = i.valor;
-        document.querySelector('input[name="unidad"]').value         = i.unidad;
-        document.querySelector('input[name="peso"]').value           = i.peso;
-        document.querySelector('input[name="modelo"]').value         = i.modelo || '';
-        document.querySelector('input[name="longitud"]').value       = i.longitud_in || '';
-        document.querySelector('input[name="ancho"]').value          = i.ancho_in || '';
-        document.querySelector('input[name="altura"]').value         = i.altura_in || '';
-        // Autocompletar campos adicionales
-        document.querySelector('input[name="modelo_extra"]').value                = i.modelo || '';
-        document.querySelector('input[name="valor_unitario_restante"]').value     = i.valor_unitario;
-        document.querySelector('input[name="valor_restante"]').value              = i.valor;
-        document.querySelector('input[name="unidad_restante"]').value             = i.unidad;
-        document.querySelector('input[name="longitud_restante"]').value           = i.longitud_in || '';
-        document.querySelector('input[name="ancho_restante"]').value              = i.ancho_in || '';
-        document.querySelector('input[name="altura_restante"]').value             = i.altura_in || '';
-        document.querySelector('input[name="peso_restante"]').value               = i.peso;
-        document.getElementById("numeroContenedor").value = i.numero_contenedor || "";
+        // mapeo campos
+        form.valor_unitario.value = i.valor_unitario;
+        form.valor.value          = i.valor;
+        form.unidad.value         = i.unidad;
+        form.peso.value           = i.peso;
+        form.modelo.value         = i.modelo || '';
+        form.longitud.value       = i.longitud_in || '';
+        form.ancho.value          = i.ancho_in || '';
+        form.altura.value         = i.altura_in || '';
+
+        // extras
+        form.modelo_extra.value              = i.modelo  || '';
+        form.valor_unitario_restante.value   = i.valor_unitario;
+        form.valor_restante.value            = i.valor;
+        form.unidad_restante.value           = i.unidad;
+        form.longitud_restante.value         = i.longitud_in || '';
+        form.ancho_restante.value            = i.ancho_in   || '';
+        form.altura_restante.value           = i.altura_in  || '';
+        form.peso_restante.value             = i.peso;
+
+        // contenedor
+        document.getElementById("numeroContenedor").value        = i.numero_contenedor || "";
         document.getElementById("numeroContenedorDisplay").value = i.numero_contenedor || "";
-        
-        // 2) Rellenar los <select> y habilitarlos
-          const facturaSel = document.getElementById('facturaSelect');
-          const loteSel    = document.getElementById('loteSelect');
-          const ordenSel   = document.getElementById('ordenSelect');
-          const parteSel   = document.getElementById('parteSelect');
 
-          facturaSel.value = i.numero_factura;        facturaSel.disabled = false;
-          loteSel.value    = i.numero_lote;           loteSel.disabled    = false;
-          ordenSel.value   = i.numero_orden_compra;   ordenSel.disabled   = false;
-          parteSel.value   = i.numero_parte;          parteSel.disabled   = false;
+        // facturas, lotes y partes (selects)
+        facturaSel.value = i.numero_factura; facturaSel.disabled = false;
+        loteSel.value    = i.numero_lote;    loteSel.disabled    = false;
+        parteSel.value   = i.numero_parte;   parteSel.disabled   = false;
 
-        // 3) Recibo de almacén
-          document.querySelector('input[name="recibo_almacen"]').value = i.recibo_almacen || '';
+        // orden de compra (input + datalist)
+        ordenInput.value = i.numero_orden_compra || '';
+        ordenInput.disabled = false;
+
+        // recibo de almacén
+        form.recibo_almacen.value = i.recibo_almacen || '';
       })
-    .catch(() => Swal.fire('Error', 'No se pudo cargar el detalle', 'error'));
+      .catch(() => Swal.fire('Error', 'No se pudo cargar el detalle', 'error'));
   });
+
+  // --- CÁLCULO DE CAJAS RESTANTES ---
+  const paletsInput    = form.palets;
+  const cajasInput     = form.cantidad;
+  const totalInput     = form.cantidadTotal;
+  const extraBlock     = document.getElementById('extraBlock');
+  const remainingSpan  = document.getElementById('remainingBoxes');
+  const noteBlock      = document.getElementById('totalUpdateNote');
+
+  function updateRemaining() {
+    const palets = parseInt(paletsInput.value) || 0;
+    const cajas  = parseInt(cajasInput.value) || 0;
+    const product = palets * cajas;
+    let diff;
+
+    if (product > originalTotal) {
+      totalInput.value = product;
+      noteBlock.style.display = 'block';
+      noteBlock.querySelector('input').value = 'Total ajustado automáticamente';
+      diff = 0;
+    } else {
+      totalInput.value = originalTotal;
+      noteBlock.style.display = 'none';
+      noteBlock.querySelector('input').value = '';
+      diff = originalTotal - product;
+    }
+
+    remainingSpan.textContent = diff;
+    extraBlock.style.display = diff > 0 ? 'block' : 'none';
+    if (diff > 0) {
+      // copia datos a los campos "_restante"
+      ['valor_unitario','valor','unidad','longitud','ancho','altura','peso']
+        .forEach(name => {
+          form[`${name}_restante`].value = form[name].value;
+        });
+    }
+  }
+
+  [paletsInput, cajasInput].forEach(el =>
+    el.addEventListener('input', updateRemaining)
+  );
+  // inicializo
+  updateRemaining();
 });
 </script>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const paletsInput = document.querySelector('input[name="palets"]');
