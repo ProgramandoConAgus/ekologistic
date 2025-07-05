@@ -426,11 +426,11 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         </div>
         <div class="col-md-4">
           <label class="form-label">Palets</label>
-          <input type="number" name="palets_extra" class="form-control">
+          <input type="number" name="palets_restante" class="form-control">
         </div>
         <div class="col-md-4">
           <label class="form-label">Cantidad de Cajas</label>
-          <input type="number" name="cantidad_extra" class="form-control">
+          <input type="number" name="cantidad_restante" class="form-control">
         </div>
         <div class="col-md-4">
           <label class="form-label">Valor Unitario</label>
@@ -645,6 +645,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ancho:          form.ancho.value,
       altura:         form.altura.value,
       peso:           form.peso.value,
+      palets_restante:    form.palets_restante.value.trim(),
+      cantidad_restante: parseInt(form.cantidad_restante.value) || 0,
       valor_unitario_restante: form.valor_unitario_restante.value.trim(),
       valor_restante:          form.valor_restante.value.trim(),
       unidad_restante:         form.unidad_restante.value.trim(),
@@ -820,7 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
     extraBlock.style.display = diff > 0 ? 'block' : 'none';
     if (diff > 0) {
       // copia datos a los campos "_restante"
-      ['valor_unitario','valor','unidad','longitud','ancho','altura','peso']
+      ['palets','cantidad','valor_unitario','valor','unidad','longitud','ancho','altura','peso']
         .forEach(name => {
           form[`${name}_restante`].value = form[name].value;
         });

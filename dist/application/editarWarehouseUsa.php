@@ -301,6 +301,18 @@ $warehouse = $stmt->get_result()->fetch_assoc();
       <div class="card-body">
 
         <div class="row g-3">
+          <?php if (!empty($warehouse['palets_restante'])): ?>
+          <div class="col-md-4">
+            <label class="form-label">Palets Restante</label>
+            <input type="number" name="palets_restante" class="form-control" value="<?= htmlspecialchars($warehouse['palets_restante']) ?>">
+          </div>
+          <?php endif; ?>
+          <?php if (!empty($warehouse['cantidad_restante'])): ?>
+          <div class="col-md-4">
+            <label class="form-label">Cajas Restantes</label>
+            <input type="number" name="cantidad_restante" class="form-control" value="<?= htmlspecialchars($warehouse['cantidad_restante']) ?>">
+          </div>
+          <?php endif; ?>
           <div class="col-md-4">
             <label class="form-label">Fecha Entrada</label>
             <input type="date" name="fecha_entrada" class="form-control" value="<?= htmlspecialchars($warehouse['fecha_entrada']) ?>">
@@ -384,7 +396,9 @@ $warehouse = $stmt->get_result()->fetch_assoc();
         </div>
 
 <?php
-  $hasRest = !empty($warehouse['valor_unitario_restante']) ||
+  $hasRest = !empty($warehouse['palets_restante']) ||
+             !empty($warehouse['cantidad_restante']) ||
+             !empty($warehouse['valor_unitario_restante']) ||
              !empty($warehouse['valor_restante']) ||
              !empty($warehouse['unidad_restante']) ||
              !empty($warehouse['longitud_in_restante']) ||
@@ -578,6 +592,8 @@ document.getElementById('editForm').addEventListener('submit', e => {
     ancho: form.ancho.value,
     altura: form.altura.value,
     peso: form.peso.value,
+    palets_restante: form.palets_restante?.value.trim() || '',
+    cantidad_restante: parseInt(form.cantidad_restante?.value) || 0,
     valor_unitario_restante: form.valor_unitario_restante?.value.trim() || '',
     valor_restante: form.valor_restante?.value.trim() || '',
     unidad_restante: form.unidad_restante?.value.trim() || '',
