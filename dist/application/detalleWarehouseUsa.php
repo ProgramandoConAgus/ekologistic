@@ -388,7 +388,9 @@ $warehouse = $stmt->get_result()->fetch_assoc();
              !empty($warehouse['longitud_in_restante']) ||
              !empty($warehouse['ancho_in_restante']) ||
              !empty($warehouse['altura_in_restante']) ||
-             !empty($warehouse['peso_lb_restante']);
+             !empty($warehouse['peso_lb_restante']) ||
+             !empty($warehouse['palets_restante']) ||
+             !empty($warehouse['cantidad_restante']);
   if ($hasRest): ?>
       <h5 class="mt-4">Datos Restantes</h5>
       <div class="row g-3">
@@ -432,6 +434,18 @@ $warehouse = $stmt->get_result()->fetch_assoc();
         <div class="col-md-4">
           <label class="form-label">Peso (lb) Restante</label>
           <div class="form-control bg-light"><?= htmlspecialchars($warehouse['peso_lb_restante']) ?></div>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($warehouse['palets_restante'])): ?>
+        <div class="col-md-4">
+          <label class="form-label">Palets Restantes</label>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['palets_restante']) ?></div>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($warehouse['cantidad_restante'])): ?>
+        <div class="col-md-4">
+          <label class="form-label">Cantidad de Cajas Restantes</label>
+          <div class="form-control bg-light"><?= htmlspecialchars($warehouse['cantidad_restante']) ?></div>
         </div>
         <?php endif; ?>
       </div>

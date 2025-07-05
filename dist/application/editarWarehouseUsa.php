@@ -390,7 +390,9 @@ $warehouse = $stmt->get_result()->fetch_assoc();
              !empty($warehouse['longitud_in_restante']) ||
              !empty($warehouse['ancho_in_restante']) ||
              !empty($warehouse['altura_in_restante']) ||
-             !empty($warehouse['peso_lb_restante']);
+             !empty($warehouse['peso_lb_restante']) ||
+             !empty($warehouse['palets_restante']) ||
+             !empty($warehouse['cantidad_restante']);
   if ($hasRest): ?>
         <h5 class="mt-4">Datos Restantes</h5>
         <div class="row g-3">
@@ -434,6 +436,18 @@ $warehouse = $stmt->get_result()->fetch_assoc();
           <div class="col-md-4">
             <label class="form-label">Peso (lb) Restante</label>
             <input type="number" name="peso_restante" step="0.01" class="form-control" value="<?= htmlspecialchars($warehouse['peso_lb_restante']) ?>">
+          </div>
+          <?php endif; ?>
+          <?php if (!empty($warehouse['palets_restante'])): ?>
+          <div class="col-md-4">
+            <label class="form-label">Palets Restantes</label>
+            <input type="number" name="palets_restante" class="form-control" value="<?= htmlspecialchars($warehouse['palets_restante']) ?>">
+          </div>
+          <?php endif; ?>
+          <?php if (!empty($warehouse['cantidad_restante'])): ?>
+          <div class="col-md-4">
+            <label class="form-label">Cantidad de Cajas Restantes</label>
+            <input type="number" name="cantidad_restante" class="form-control" value="<?= htmlspecialchars($warehouse['cantidad_restante']) ?>">
           </div>
           <?php endif; ?>
         </div>
@@ -578,6 +592,8 @@ document.getElementById('editForm').addEventListener('submit', e => {
     ancho: form.ancho.value,
     altura: form.altura.value,
     peso: form.peso.value,
+    palets_restante: form.palets_restante?.value || '',
+    cantidad_restante: parseInt(form.cantidad_restante?.value) || 0,
     valor_unitario_restante: form.valor_unitario_restante?.value.trim() || '',
     valor_restante: form.valor_restante?.value.trim() || '',
     unidad_restante: form.unidad_restante?.value.trim() || '',

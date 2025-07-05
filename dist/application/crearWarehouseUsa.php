@@ -425,12 +425,12 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
           <input type="text" name="modelo_extra" class="form-control">
         </div>
         <div class="col-md-4">
-          <label class="form-label">Palets</label>
-          <input type="number" name="palets_extra" class="form-control">
+          <label class="form-label">Palets Restantes</label>
+          <input type="number" name="palets_restante" class="form-control">
         </div>
         <div class="col-md-4">
-          <label class="form-label">Cantidad de Cajas</label>
-          <input type="number" name="cantidad_extra" class="form-control">
+          <label class="form-label">Cantidad de Cajas Restantes</label>
+          <input type="number" name="cantidad_restante" class="form-control">
         </div>
         <div class="col-md-4">
           <label class="form-label">Valor Unitario</label>
@@ -645,6 +645,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ancho:          form.ancho.value,
       altura:         form.altura.value,
       peso:           form.peso.value,
+      palets_restante:   form.palets_restante.value,
+      cantidad_restante: parseInt(form.cantidad_restante.value) || 0,
       valor_unitario_restante: form.valor_unitario_restante.value.trim(),
       valor_restante:          form.valor_restante.value.trim(),
       unidad_restante:         form.unidad_restante.value.trim(),
@@ -822,10 +824,12 @@ document.addEventListener('DOMContentLoaded', () => {
     extraBlock.style.display = diff > 0 ? 'block' : 'none';
     if (diff > 0) {
       // copia datos a los campos "_restante"
-      ['valor_unitario','valor','unidad','longitud','ancho','altura','peso']
+      ['valor_unitario','valor','unidad','longitud','ancho','altura','peso','palets','cantidad']
         .forEach(name => {
-          form[`${name}_restante`].value = form[name].value;
+          const target = form[`${name}_restante`];
+          if (target) target.value = form[name].value;
         });
+      form.cantidad_restante.value = diff;
     }
   }
 

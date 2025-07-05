@@ -36,6 +36,8 @@ try {
     $anchoR       = $data['ancho_restante'] === '' ? null : floatval(str_replace(',', '.', $data['ancho_restante']));
     $alturaR      = $data['altura_restante'] === '' ? null : floatval(str_replace(',', '.', $data['altura_restante']));
     $pesoR        = $data['peso_restante'] === '' ? null : floatval(str_replace(',', '.', $data['peso_restante']));
+    $paletsR      = trim($data['palets_restante'] ?? '');
+    $cantidadR    = intval($data['cantidad_restante'] ?? 0);
 
     if ($numeroFactura === '' || $fechaEntrada === '') {
         echo json_encode(['success' => false, 'message' => 'Datos incompletos']);
@@ -71,14 +73,16 @@ try {
             ancho_in_restante,
             altura_in_restante,
             peso_lb_restante,
+            palets_restante,
+            cantidad_restante,
             guardado_por
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
     );
     if (!$stmt) {
         throw new Exception('Error en prepare: ' . $conexion->error);
     }
     $stmt->bind_param(
-        'ssssiisisssiiddsddddddsdddds',
+        'ssssssssssssiddsddddddsddddsis',
         $fechaEntrada,
         $fechaSalida,
         $recibo,
@@ -106,6 +110,8 @@ try {
         $anchoR,
         $alturaR,
         $pesoR,
+        $paletsR,
+        $cantidadR,
         $guardadoPor
     );
     $stmt->execute();

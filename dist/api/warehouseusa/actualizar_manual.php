@@ -37,6 +37,8 @@ try {
     $anchoR          = $data['ancho_restante'] === '' ? null : floatval(str_replace(',', '.', $data['ancho_restante']));
     $alturaR         = $data['altura_restante'] === '' ? null : floatval(str_replace(',', '.', $data['altura_restante']));
     $pesoR           = $data['peso_restante'] === '' ? null : floatval(str_replace(',', '.', $data['peso_restante']));
+    $paletsR         = trim($data['palets_restante'] ?? '');
+    $cantidadR       = intval($data['cantidad_restante'] ?? 0);
 
     if (!$id) {
         echo json_encode(['success' => false, 'message' => 'ID inválido']);
@@ -70,14 +72,16 @@ try {
                 longitud_in_restante=?,
                 ancho_in_restante=?,
                 altura_in_restante=?,
-                peso_lb_restante=?
+                peso_lb_restante=?,
+                palets_restante=?,
+                cantidad_restante=?
             WHERE id=?";
     $stmt = $conexion->prepare($sql);
     if (!$stmt) {
         throw new Exception('Error en prepare: ' . $conexion->error);
     }
     $stmt->bind_param(
-        'ssssiisisssiiddsddddddsddddi',
+        'ssssssssssssiddsddddddsddddisi',
         $fechaEntrada,
         $fechaSalida,
         $recibo,
@@ -105,6 +109,8 @@ try {
         $anchoR,
         $alturaR,
         $pesoR,
+        $paletsR,
+        $cantidadR,
         $id
     );
     $stmt->execute();
