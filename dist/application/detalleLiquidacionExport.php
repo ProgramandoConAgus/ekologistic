@@ -360,6 +360,9 @@ while ($row = $result->fetch_assoc()) {
   ?>
     <div class="incoterm-item mb-4" data-incoterm="<?= htmlspecialchars($nombreIncoterm) ?>">
       <h5 class="mt-3"><?= htmlspecialchars($nombreIncoterm) ?></h5>
+      <div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
       <table class="table table-hover table-borderless mb-2">
         <thead>
           <tr>
@@ -378,18 +381,22 @@ while ($row = $result->fetch_assoc()) {
           <?php foreach ($items as $item): ?>
           <tr>
             <td><?= htmlspecialchars($item['NombreItems']) ?></td>
-            <td><?= intval($item['Cantidad']) ?></td>
-            <td>$<?= number_format(floatval($item['ValorUnitario']), 2, ',', '.') ?></td>
-            <td>$<?= number_format(floatval($item['ValorTotal']),   2, ',', '.') ?></td>
+            <td style="text-align: right; min-width: 60px;"><?= intval($item['Cantidad']) ?></td>
+            <td style="text-align: right; min-width: 90px;">$<?= number_format(floatval($item['ValorUnitario']), 2, ',', '.') ?></td>
+            <td style="text-align: right; min-width: 90px;">$<?= number_format(floatval($item['ValorTotal']), 2, ',', '.') ?></td>
             <?php if ($tipo === 3): ?>
-              <td><?= number_format(floatval($item['Impuesto']), 2, ',', '.') ?>%</td>
-              <td>$<?= number_format(floatval($item['ValorImpuesto']), 2, ',', '.') ?></td>
-              <td><?= htmlspecialchars($item['Notas']) ?></td>
+              <td style="text-align: right; min-width: 70px;"><?= number_format(floatval($item['Impuesto']), 2, ',', '.') ?>%</td>
+              <td style="text-align: right; min-width: 90px;">$<?= number_format(floatval($item['ValorImpuesto']), 2, ',', '.') ?></td>
+              <td style="min-width: 140px;"><?= htmlspecialchars($item['Notas']) ?></td>
             <?php endif; ?>
           </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
+    </div>
+  </div>
+</div>
+
     
     </div>
   <?php endforeach; ?>

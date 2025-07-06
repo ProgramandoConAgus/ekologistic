@@ -353,82 +353,87 @@ while ($inc = $res->fetch_assoc()) {
         <?php foreach ($incoterms as $inc): ?>
           <div class="incoterm-item" data-incoterm="<?= $inc['IdTipoIncoterm'] ?>" style="display: none;">
             <h5 class="mt-3"><?= htmlspecialchars($inc['NombreTipoIncoterm']) ?></h5>
-            <table class="table table-hover table-borderless mb-0">
-              <thead>
-                <tr>
-                  <th>Descripción</th>
-                  <th>Cantidad</th>
-                  <th>Valor U.</th>
-                  <th>Valor T.</th>
-                  <th>Notas</th>
-                  <?php
-                   if($inc['IdTipoIncoterm']==3){
-                    ?>
-                  <th>% Impuesto</th>
-                  <th>Valor Impuesto</th>
-                  <?php
-                   }
-                   ?>
-                </tr>
-              </thead>
-              <tbody>
-    <?php
-    $items = $conexion->query(
-      "SELECT IdItemsLiquidacionDespacho, NombreItems 
-       FROM itemsliquidaciondespacho
-       WHERE IdTipoIncoterm = {$inc['IdTipoIncoterm']}"
-    );
-    while ($row = $items->fetch_assoc()):
-    ?>
-      <tr data-item-id="<?= $row['IdItemsLiquidacionDespacho'] ?>">
-        <td><?= htmlspecialchars($row['NombreItems']) ?></td>
-        <td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>
-        <td>
-          <div class="input-group input-group-sm">
-            <span class="input-group-text">$</span>
-            <input type="text" class="form-control valor-unitario" value="0,00">
-          </div>
-        </td>
-        <td>
-          <div class="input-group input-group-sm">
-            <span class="input-group-text">$</span>
-            <input type="text" class="form-control valor-total" value="0,00" readonly>
-          </div>
-        </td>
-        <td>
-            <input type="text" class="form-control form-control-sm notas" value="" placeholder="Notas">
-        </td>
-        <?php if($inc['IdTipoIncoterm'] == 3): ?>
-          <td>
-            <div class="input-group input-group-sm">
-              <input type="number" class="form-control impuesto" value="0" min="0" max="100">
-              <span class="input-group-text">%</span>
-            </div>
-          </td>
-          <td>
-            <div class="input-group input-group-sm">
-              <span class="input-group-text">$</span>
-              <input type="text" class="form-control valor-impuesto" value="0,00" readonly>
-            </div>
-          </td>
+        <div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover table-borderless mb-0">
+        <thead>
+          <tr>
+            <th>Descripción</th>
+            <th>Cantidad</th>
+            <th>Valor U.</th>
+            <th>Valor T.</th>
+            <th>Notas</th>
+            <?php if($inc['IdTipoIncoterm'] == 3): ?>
+              <th>% Impuesto</th>
+              <th>Valor Impuesto</th>
+            <?php endif; ?>
+          </tr>
+        </thead>
+        <tbody>
+          <?php
+          $items = $conexion->query(
+            "SELECT IdItemsLiquidacionDespacho, NombreItems 
+             FROM itemsliquidaciondespacho
+             WHERE IdTipoIncoterm = {$inc['IdTipoIncoterm']}"
+          );
+          while ($row = $items->fetch_assoc()):
+          ?>
+            <tr data-item-id="<?= $row['IdItemsLiquidacionDespacho'] ?>">
+              <td><?= htmlspecialchars($row['NombreItems']) ?></td>
+              <td>
+                <input type="number" class="form-control form-control-sm cantidad" value="0" min="0" style="width: 80px; text-align: right;">
+              </td>
+              <td>
+                <div class="input-group input-group-sm" style="min-width: 110px;">
+                  <span class="input-group-text">$</span>
+                  <input type="text" class="form-control valor-unitario" value="0,00" style="min-width: 70px; text-align: right;">
+                </div>
+              </td>
+              <td>
+                <div class="input-group input-group-sm" style="min-width: 110px;">
+                  <span class="input-group-text">$</span>
+                  <input type="text" class="form-control valor-total" value="0,00" readonly style="min-width: 70px; text-align: right;">
+                </div>
+              </td>
+              <td>
+                <input type="text" class="form-control form-control-sm notas" value="" placeholder="Notas" style="min-width: 120px;">
+              </td>
+              <?php if($inc['IdTipoIncoterm'] == 3): ?>
+                <td>
+                  <div class="input-group input-group-sm" style="min-width: 90px;">
+                    <input type="number" class="form-control impuesto" value="0" min="0" max="100" style="text-align: right;">
+                    <span class="input-group-text">%</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="input-group input-group-sm" style="min-width: 110px;">
+                    <span class="input-group-text">$</span>
+                    <input type="text" class="form-control valor-impuesto" value="0,00" readonly style="min-width: 70px; text-align: right;">
+                  </div>
+                </td>
+              <?php endif; ?>
+            </tr>
+          <?php endwhile; ?>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="<?= ($inc['IdTipoIncoterm'] == 3) ? 7 : 5 ?>" class="text-center">
+              <button id="addNewDeliveryBtn" type="button" class="btn btn-primary me-2">
+                Agregar New Delivery
+              </button>
+              <button id="addStorageBtn" type="button" class="btn btn-primary">
+                Agregar Storage
+              </button>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
 
-        <?php endif; ?>
-      </tr>
-    <?php endwhile; ?>
-  </tbody>
-  <tfoot>
-    <tr>
-      <td colspan="<?= ($inc['IdTipoIncoterm'] == 3) ? 7 : 4 ?>" class="text-center">
-        <button id="addNewDeliveryBtn" type="button" class="btn btn-primary me-2">
-          Agregar New Delivery
-        </button>
-        <button id="addStorageBtn" type="button" class="btn btn-primary">
-          Agregar Storage
-        </button>
-      </td>
-    </tr>
-  </tfoot>
-            </table>
+
 
            
           </div>

@@ -346,72 +346,79 @@ while ($row = $result->fetch_assoc()) {
            aria-labelledby="heading<?= $idx ?>"
            data-bs-parent="#incotermAccordion">
         <div class="accordion-body">
-        <table class="table table-hover table-borderless mb-0">
-  <thead>
-    <tr>
-      <th>Descripción</th>
-      <th>Cantidad</th>
-      <th>Valor U.</th>
-      <th>Valor T.</th>
-      <?php if ($currentTipo === 3): ?>
-        <th>% Impuesto</th>
-        <th>Valor Impuesto</th>
-        <th>Notas</th>
-      <?php endif; ?>
-    </tr>
-  </thead>
-  <tbody>
-    <?php
-      // inicializamos subtotales
-      $subtotalSin = 0;
-      $subtotalCi  = 0;
-      foreach ($items as $item):
-        $cant = intval($item['Cantidad']);
-        $vu   = floatval($item['ValorUnitario']);
-        $vt   = $cant * $vu;
-        $imp  = floatval($item['Impuesto']);
-        $vi   = $vt * ($imp/100);
-        $subtotalSin += $vt;
-        $subtotalCi  += $vt + $vi;
-    ?>
-    <tr data-item-id="<?= intval($item['IdIncoterms']) ?>">
-      <td><?= htmlspecialchars($item['NombreItems']) ?></td>
-      <td>
-        <input type="number" class="form-control form-control-sm cantidad" value="<?= $cant ?>" min="0">
-      </td>
-      <td>
-        <div class="input-group input-group-sm">
-          <span class="input-group-text">$</span>
-          <input type="text" class="form-control valor-unitario" value="<?= number_format($vu,2,',','.') ?>">
-        </div>
-      </td>
-      <td>
-        <div class="input-group input-group-sm">
-          <span class="input-group-text">$</span>
-          <input type="text" class="form-control valor-total" readonly value="<?= number_format($vt,2,',','.') ?>">
-        </div>
-      </td>
-      <?php if ($currentTipo === 3): ?>
-      <td>
-        <div class="input-group input-group-sm">
-          <input type="number" class="form-control impuesto" value="<?= $imp ?>" min="0" max="100">
-          <span class="input-group-text">%</span>
-        </div>
-      </td>
-      <td>
-        <div class="input-group input-group-sm">
-          <span class="input-group-text">$</span>
-          <input type="text" class="form-control valor-impuesto" readonly value="<?= number_format($vi,2,',','.') ?>">
-        </div>
-      </td>
-      <td>
-        <input type="text" class="form-control form-control-sm notas" value="<?= htmlspecialchars($item['Notas']) ?>">
-      </td>
-      <?php endif; ?>
-    </tr>
-    <?php endforeach; ?>
-  </tbody>
-</table>
+       <div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover table-borderless mb-0">
+        <thead>
+          <tr>
+            <th>Descripción</th>
+            <th>Cantidad</th>
+            <th>Valor U.</th>
+            <th>Valor T.</th>
+            <?php if ($currentTipo === 3): ?>
+              <th>% Impuesto</th>
+              <th>Valor Impuesto</th>
+              <th>Notas</th>
+            <?php endif; ?>
+          </tr>
+        </thead>
+        <tbody>
+          <?php
+            // inicializamos subtotales
+            $subtotalSin = 0;
+            $subtotalCi  = 0;
+            foreach ($items as $item):
+              $cant = intval($item['Cantidad']);
+              $vu   = floatval($item['ValorUnitario']);
+              $vt   = $cant * $vu;
+              $imp  = floatval($item['Impuesto']);
+              $vi   = $vt * ($imp / 100);
+              $subtotalSin += $vt;
+              $subtotalCi  += $vt + $vi;
+          ?>
+          <tr data-item-id="<?= intval($item['IdIncoterms']) ?>">
+            <td><?= htmlspecialchars($item['NombreItems']) ?></td>
+            <td>
+              <input type="number" class="form-control form-control-sm cantidad" value="<?= $cant ?>" min="0" style="width: 80px; text-align: right;">
+            </td>
+            <td>
+              <div class="input-group input-group-sm" style="min-width: 110px;">
+                <span class="input-group-text">$</span>
+                <input type="text" class="form-control valor-unitario" value="<?= number_format($vu, 2, ',', '.') ?>" style="min-width: 70px; text-align: right;">
+              </div>
+            </td>
+            <td>
+              <div class="input-group input-group-sm" style="min-width: 110px;">
+                <span class="input-group-text">$</span>
+                <input type="text" class="form-control valor-total" readonly value="<?= number_format($vt, 2, ',', '.') ?>" style="min-width: 70px; text-align: right;">
+              </div>
+            </td>
+            <?php if ($currentTipo === 3): ?>
+              <td>
+                <div class="input-group input-group-sm" style="min-width: 90px;">
+                  <input type="number" class="form-control impuesto" value="<?= $imp ?>" min="0" max="100" style="text-align: right;">
+                  <span class="input-group-text">%</span>
+                </div>
+              </td>
+              <td>
+                <div class="input-group input-group-sm" style="min-width: 110px;">
+                  <span class="input-group-text">$</span>
+                  <input type="text" class="form-control valor-impuesto" readonly value="<?= number_format($vi, 2, ',', '.') ?>" style="min-width: 70px; text-align: right;">
+                </div>
+              </td>
+              <td>
+                <input type="text" class="form-control form-control-sm notas" value="<?= htmlspecialchars($item['Notas']) ?>" style="min-width: 140px;">
+              </td>
+            <?php endif; ?>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 
 <div class="mt-3 text-end">
   <?php if ($currentTipo === 3): ?>
