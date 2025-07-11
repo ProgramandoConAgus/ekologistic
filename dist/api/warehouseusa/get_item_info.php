@@ -14,6 +14,8 @@ SELECT
     i.Qty_Box                       AS cantidad,
     i.Price_Box_EC                  AS valor_unitario,
     i.Total_Price_EC                AS valor,
+           i.Price_Box_USA                  AS valor_unitario_usa,
+    i.Total_Price_USA                AS valor_usa,
     i.Packing_Unit                  AS unidad,
     ROUND(i.Total_Weight_kg*2.20462,2) AS peso,
     c.Number_Container              AS numero_contenedor,

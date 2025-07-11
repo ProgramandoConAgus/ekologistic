@@ -12,37 +12,62 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 
 $sql = "
-    SELECT
-    d.id,
-    i.idItem                      AS idItem,
-    c.num_op                      AS NUM_OP,
-    c.Number_Container            AS Number_Container,
-    c.Booking_BK,
-    d.numero_lote                 AS Lot_Number,
-    d.fecha_entrada               AS Entry_Date,
-    i.Number_Commercial_Invoice   AS Number_Commercial_Invoice,
-    d.numero_parte                AS Code_Product_EC,
-    d.descripcion                 AS Description,
-    d.cantidad                    AS Qty,
-    d.valor_unitario              AS Unit_Value,
-    d.valor                       AS Value,
-    d.unidad                      AS Unit,
-    d.longitud_in                 AS Length_in,
-    d.ancho_in                    AS Broad_in,
-    d.altura_in                   AS Height_in,
-    d.peso_lb                     AS Weight_lb,
-    d.estado                      AS Status,
-    d.recibo_almacen              AS Receive,
-    i.Number_PO                   AS Number_PO
-FROM container c
-INNER JOIN items i
-    ON i.idContainer = c.idContainer
-INNER JOIN dispatch d
-    ON d.numero_factura = i.Number_Commercial_Invoice
-   AND d.notas          = c.Number_Container
-   AND d.numero_parte   = i.Code_Product_EC
+SELECT
+  d.id,
+  c.num_op AS NUM_OP,
+  c.Number_Container,
+  c.Booking_BK,
+  d.fecha_entrada AS Entry_Date,
+  d.recibo_almacen AS Receive,
+  d.numero_lote AS Lot_Number,
+  d.numero_factura AS Number_Commercial_Invoice,
+  d.numero_parte AS Code_Product_EC,
+  d.descripcion AS Description_Dispatch,
+  d.modelo AS Modelo_Dispatch,
+
+  -- Datos desde items (packing list)
+  i.Description AS Description_Item,
+  i.Number_PO AS Number_PO,
+  i.Qty_Box AS Qty_Item_Packing,
+
+  -- Despacho
+  d.palets AS palets,
+  d.cantidad AS cantidad,
+  (d.palets * d.cantidad) AS Total_Despachado,
+
+  d.valor_unitario AS Unit_Value,
+  (d.valor_unitario * d.cantidad) AS Value,
+
+  d.unidad AS Unit,
+  d.longitud_in AS Length_in,
+  d.ancho_in AS Broad_in,
+  d.altura_in AS Height_in,
+  d.peso_lb AS Weight_lb,
+
+  d.valor_unitario_restante,
+  d.valor_restante,
+  d.unidad_restante,
+  d.longitud_in_restante,
+  d.ancho_in_restante,
+  d.altura_in_restante,
+  d.peso_lb_restante,
+
+  d.estado AS Status
+
+FROM dispatch d
+LEFT JOIN container c
+  ON c.Number_Container = d.notas
+LEFT JOIN items i
+  ON i.Number_Commercial_Invoice = d.numero_factura
+  AND i.Code_Product_EC = d.numero_parte
+
 WHERE d.estado = 'En Almacén'
-ORDER BY c.num_op, d.numero_parte;
+
+ORDER BY c.num_op, d.descripcion, d.modelo;
+
+
+
+
 
 ";
 $result = $conexion->query($sql);
@@ -488,77 +513,104 @@ try {
       </div>
         <div class="card-body">
     <div class="table-responsive">
-        <table class="table table-hover" id="pc-dt-simple">
-           <!-- Encabezados de la tabla -->
-          <thead>
-            
-               <tr>
-                <th>NUM OP</th>
-                <th>Number_Container</th>
-                <th>Entry Date</th>
-                <th>Warehouse Receipt</th>
-                <th>Lot_Number</th>
-                <th>Booking_BK</th>
-                <th>Number_PO</th>
-                <th>Number_Commercial_Invoice</th>
-                <th>Code Product EC</th>
-                <th>Description</th>
-                <th>Qty</th>
-                <th>Unit Value</th>
-                <th>Value</th>
-                <th>Unit</th>
-                <th>Length (in)</th>
-                <th>Broad (in)</th>
-                <th>Height (in)</th>
-                <th>Weight (lb)</th>
-                
-                <th>Status‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎</th>
-            </tr>
-          </thead>
+<?php
+$palletsPorGrupo = [];
+$result->data_seek(0);
+while($rowTemp = $result->fetch_assoc()) {
+  $key = $rowTemp['Description_Item'] . '|' . $rowTemp['Modelo_Dispatch'];
+  if (!isset($palletsPorGrupo[$key])) $palletsPorGrupo[$key] = 0;
+  if ($rowTemp['total_palets'] > 0) {
+    $palletsPorGrupo[$key]++;
+  }
+}
+$result->data_seek(0);
+?>
 
-          <!-- Cuerpo de la tabla -->
-          <tbody>
-            <?php while($row = $result->fetch_assoc()) { ?>
-              <tr>
-                <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
-                <td><?= htmlspecialchars($row['Number_Container']) ?></td>
-                <td><?= htmlspecialchars($row['Entry_Date']) ?></td>
-                <td><?= htmlspecialchars($row['Receive']) ?></td>
+<table class="table table-hover" id="pc-dt-simple">
+  <thead>
+    <tr>
+      <th>NUM OP</th>
+      <th>Number_Container</th>
+      <th>Entry Date</th>
+      <th>Warehouse Receipt</th>
+      <th>Lot_Number</th>
+      <th>Booking_BK</th>
+      <th>Number_PO</th>
+      <th>Number_Commercial_Invoice</th>
+      <th>Code Product EC</th>
+      <th>Description</th>
+      <th>Palets</th>
+      <th>Qty por Palet</th>
+      <th>Total</th>
+      <th>Qty Item</th>
+    
+      <th>Unit Value</th>
+      <th>Value</th>
+      <th>Unit</th>
+      <th>Length (in)</th>
+      <th>Broad (in)</th>
+      <th>Height (in)</th>
+      <th>Weight (lb)</th>
+      <th>Palets de carga</th>
+      <th>Cantidad a Cargar</th>
+      <th>Status‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ </th>
+    </tr>
+  </thead>
+  <tbody>
+<?php while($row = $result->fetch_assoc()) { ?>
+  <tr>
+    <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
+    <td><?= htmlspecialchars($row['Number_Container']) ?></td>
+    <td><?= htmlspecialchars($row['Entry_Date']) ?></td>
+    <td><?= htmlspecialchars($row['Receive']) ?></td>
+    <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
+    <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
+    <td><input type="text" class="form-control form-control-sm po-input" data-id="<?= htmlspecialchars($row['idItem']) ?>" value="<?= htmlspecialchars($row['Number_PO']) ?>"></td>
+    <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
+    <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
+    <td><?= htmlspecialchars($row['Description_Item']) ?></td>
+    <td><?= htmlspecialchars($row['palets']) ?></td>
+    <td><?= htmlspecialchars($row['cantidad']) ?></td>
+    <td><?= htmlspecialchars($row['Total_Despachado']) ?></td>
+    <td><?= htmlspecialchars($row['Qty_Item_Packing']) ?></td>
+    <td><?= htmlspecialchars($row['Unit_Value']) ?></td>
+    <td><?= htmlspecialchars($row['Value']) ?></td>
+    <td><?= htmlspecialchars($row['Unit']) ?></td>
+    <td><?= htmlspecialchars($row['Length_in']) ?></td>
+    <td><?= htmlspecialchars($row['Broad_in']) ?></td>
+    <td><?= htmlspecialchars($row['Height_in']) ?></td>
+    <td><?= htmlspecialchars($row['Weight_lb']) ?></td>
+    
+    <!-- Input para Palets de carga -->
+   <td>
+  <input type="number" min="0" class="form-control form-control-sm palets-carga-input"
+    data-id="<?= htmlspecialchars($row['id']) ?>" placeholder="0">
+</td>
 
-                <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
-                <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-                <td>
-                    <input
-                      type="text"
-                      class="form-control form-control-sm po-input"
-                      data-id="<?= $row['idItem'] ?>"
-                      value="<?= htmlspecialchars($row['Number_PO']) ?>">
-                </td>                
-                <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
-                <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
-                <td><?= htmlspecialchars($row['Description']) ?></td>
-                <td><?= htmlspecialchars($row['Qty']) ?></td>
-                <td><?= htmlspecialchars($row['Unit_Value']) ?></td>
-                <td><?= htmlspecialchars($row['Value']) ?></td>
-                <td><?= htmlspecialchars($row['Unit']) ?></td>
-                <td><?= htmlspecialchars($row['Length_in']) ?></td>
-                <td><?= htmlspecialchars($row['Broad_in']) ?></td>
-                <td><?= htmlspecialchars($row['Height_in']) ?></td>
-                <td><?= htmlspecialchars($row['Weight_lb']) ?></td>
-                <td>
-                  <select
-                    class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
-                    data-container="<?= htmlspecialchars($row['Number_Container']) ?>"
-                    data-invoice="<?= htmlspecialchars($row['Number_Commercial_Invoice']) ?>"
-                    data-id="<?= $row['id'] ?>">
-                    <option value="Cargado"   <?= $row['Status']=='Cargado'   ? 'selected':'' ?>>Cargado</option>
-                    <option value="En Almacén"<?= $row['Status']=='En Almacén'? 'selected':'' ?>>En Almacén</option>
-                  </select>
-                </td>
-              </tr>
-            <?php } ?>
-          </tbody>
-        </table>
+<td>
+  <input type="number" min="0" class="form-control form-control-sm cantidad-carga-input"
+    data-id="<?= htmlspecialchars($row['id']) ?>" placeholder="0">
+</td>
+
+
+    <td>
+      <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
+        data-container="<?= htmlspecialchars($row['Number_Container']) ?>"
+        data-invoice="<?= htmlspecialchars($row['Number_Commercial_Invoice']) ?>"
+        data-id="<?= htmlspecialchars($row['id']) ?>">
+        <option value="Cargado" <?= $row['Status'] == 'Cargado' ? 'selected' : '' ?>>Cargado</option>
+        <option value="En Almacén" <?= $row['Status'] == 'En Almacén' ? 'selected' : '' ?>>En Almacén</option>
+      </select>
+    </td>
+  </tr>
+<?php } ?>
+</tbody>
+
+</table>
+
+
+
+
     </div>
 </div>
 
@@ -585,40 +637,100 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 
-
 async function actualizarStatus(id, value) {
   try {
-    Swal.fire({ title:'Cargando', allowOutsideClick:false, didOpen:()=>Swal.showLoading() });
+    // Obtener la fila y los inputs
+    const row = document.querySelector(`.status-select[data-id='${id}']`)?.closest('tr');
 
+    if (!row) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se encontró la fila correspondiente para validar.'
+      });
+      return;
+    }
+
+    // Leer valores de los inputs
+    const paletsInput = row.querySelector('.palets-carga-input');
+    const cantidadInput = row.querySelector('.cantidad-carga-input');
+
+    const paletsValue = parseFloat(paletsInput?.value);
+    const cantidadValue = parseFloat(cantidadInput?.value);
+
+    // Validación previa: verificar que sean números válidos y mayores a 0
+    if (value === 'Cargado') {
+      if (isNaN(paletsValue) || paletsValue <= 0) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Dato inválido',
+          text: 'Debes ingresar un valor válido mayor a 0 para Palets de carga.'
+        });
+        return;
+      }
+
+      if (isNaN(cantidadValue) || cantidadValue <= 0) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Dato inválido',
+          text: 'Debes ingresar un valor válido mayor a 0 para Cantidad a cargar.'
+        });
+        return;
+      }
+    }
+
+    // Confirmación visual
+    Swal.fire({ title: 'Cargando', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    // Enviar datos por fetch
     const res = await fetch('../api/actualizar_status_dispatch.php', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ id, value })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id,
+        value,
+        palets: paletsValue,
+        cantidad: cantidadValue
+      })
     });
+
     const json = await res.json();
     Swal.close();
 
     if (json.success) {
-      // Si vino el número de contenedor, mostramos filas afectadas
       if (json.container) {
-        Swal.fire({
+        await Swal.fire({
           icon: 'success',
           title: `Contenedor ${json.container}`,
           text: json.message,
           confirmButtonText: 'OK'
         });
       } else {
-        Swal.fire({ icon:'success', title: json.message, toast:true, position:'top-end', timer:1500 });
+        await Swal.fire({
+          icon: 'success',
+          title: json.message,
+          toast: true,
+          position: 'top-end',
+          timer: 1500
+        });
       }
+
+      // Refrescar la página luego del mensaje
+      location.reload();
+
     } else {
-      Swal.fire({ icon:'error', title: json.error||'Error', toast:true, position:'top-end', timer:2000 });
+      Swal.fire({ icon: 'error', title: json.error || 'Error', toast: true, position: 'top-end', timer: 2000 });
     }
+
   } catch (err) {
     Swal.close();
-    Swal.fire({ icon:'error', title:'Error de conexión', toast:true, position:'top-end', timer:2000 });
+    Swal.fire({ icon: 'error', title: 'Error de conexión', toast: true, position: 'top-end', timer: 2000 });
     console.error(err);
   }
 }
+
+
+
 
 async function handlePoChange() {
   const id = this.dataset.id;
@@ -739,84 +851,93 @@ $(document).ready(function(){
   });
 
 
-  // 5) Función para aplicar filtros
-  async function aplicarFiltrosAvanzados() {
-    const container = $('#containerFilter').val().trim();
-    const op        = $('#OpFilter').val().trim();
-    const rango     = $('#rangoFechas').val().trim();
-    const params    = new URLSearchParams();
+ // 5) Función para aplicar filtros
+async function aplicarFiltrosAvanzados() {
+  const container = $('#containerFilter').val().trim();
+  const op        = $('#OpFilter').val().trim();
+  const rango     = $('#rangoFechas').val().trim();
+  const params    = new URLSearchParams();
 
-    if (container) params.append('container', container);
-    if (op)        params.append('op', op);
-    if (rango) {
-      const [f,t] = rango.split(' a ').map(s=>s.trim());
-      params.append('dateFrom', toISODate(f));
-      params.append('dateTo',   toISODate(t));
-    }
-
-    try {
-      const res  = await fetch(`../api/filters/fetchWarehouse.php?${params.toString()}`);
-      if (!res.ok) throw new Error(res.statusText);
-      const rows = await res.json();
-
-      // refresca la DataTable sin reinit
-      table.clear();
-
-      rows.forEach(r => {
-        table.row.add([
-          r.NUM_OP,
-          r.Number_Container,
-          r.Entry_Date,
-          r.Receive,  // antes r.recibo_almacen
-          r.Lot_Number,
-          r.Booking_BK,
-          // input de PO usa r.id y r.Number_PO
-          `<input
-            type="text"
-            class="form-control form-control-sm po-input"
-            data-id="${r.idItem}"
-            value="${r.Number_PO || ''}"
-          >`,
-          r.Number_Commercial_Invoice,
-          r.Code_Product_EC,
-          r.Description,
-          r.Qty,
-          r.Unit_Value,
-          r.Value,
-          r.Unit,
-          r.Length_in,
-          r.Broad_in,
-          r.Height_in,
-          r.Weight_lb,
-          // select de status usa r.id
-          `<select 
-            class="form-select form-select-sm status-select" 
-            data-id="${r.id}" 
-            data-container="${r.Number_Container}" 
-            data-invoice="${r.Number_Commercial_Invoice}"
-          >
-            <option value="Cargado"${r.Status === 'Cargado' ? ' selected' : ''}>
-              Cargado
-            </option>
-            <option value="En Almacén"${r.Status === 'En Almacén' ? ' selected' : ''}>
-              En Almacén
-            </option>
-          </select>`
-        ]);
-      });
-
-      table.draw();
-
-      // cierra modal y re-atacha listeners
-      bootstrap.Modal.getInstance($('#filterModal')[0])?.hide();
-      initStatusListeners();
-      initPoListeners();
-
-    } catch (err) {
-      console.error(err);
-      Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
-    }
+  if (container) params.append('container', container);
+  if (op)        params.append('op', op);
+  if (rango) {
+    const [f,t] = rango.split(' a ').map(s => s.trim());
+    params.append('dateFrom', toISODate(f));
+    params.append('dateTo',   toISODate(t));
   }
+
+  try {
+    const res  = await fetch(`../api/filters/fetchWarehouse.php?${params.toString()}`);
+    if (!res.ok) throw new Error(res.statusText);
+    const rows = await res.json();
+
+    // refresca la DataTable sin reinit
+    table.clear();
+
+    rows.forEach(r => {
+      table.row.add([
+        r.NUM_OP,
+        r.Number_Container,
+        r.Entry_Date,
+        r.Receive,  // antes r.recibo_almacen
+        r.Lot_Number,
+        r.Booking_BK,
+        // input de PO usa r.idItem y r.Number_PO
+        `<input
+          type="text"
+          class="form-control form-control-sm po-input"
+          data-id="${r.idItem}"
+          value="${r.Number_PO || ''}"
+        >`,
+        r.Number_Commercial_Invoice,
+        r.Code_Product_EC,
+        r.Description,
+        r.palets,
+        r.cantidad,
+        r.total_despachado,
+        r.Qty_Item_Packing,  // si este es el nombre correcto para Qty Item
+        r.Unit_Value,
+        r.Value,
+        r.Unit,
+        r.Length_in,
+        r.Broad_in,
+        r.Height_in,
+        r.Weight_lb,
+
+        // Inputs para palets de carga y cantidad a cargar (nuevas columnas)
+        `<input type="number" min="0" class="form-control form-control-sm palets-carga-input" data-id="${r.id}" placeholder="0">`,
+        `<input type="number" min="0" class="form-control form-control-sm cantidad-carga-input" data-id="${r.id}" placeholder="0">`,
+
+        // select de status usa r.id
+        `<select 
+          class="form-select form-select-sm status-select" 
+          data-id="${r.id}" 
+          data-container="${r.Number_Container}" 
+          data-invoice="${r.Number_Commercial_Invoice}"
+        >
+          <option value="Cargado"${r.Status === 'Cargado' ? ' selected' : ''}>
+            Cargado
+          </option>
+          <option value="En Almacén"${r.Status === 'En Almacén' ? ' selected' : ''}>
+            En Almacén
+          </option>
+        </select>`
+      ]);
+    });
+
+    table.draw();
+
+    // cierra modal y re-atacha listeners
+    bootstrap.Modal.getInstance($('#filterModal')[0])?.hide();
+    initStatusListeners();
+    initPoListeners();
+
+  } catch (err) {
+    console.error(err);
+    Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
+  }
+}
+
 
   // 6) Función para limpiar filtros
   async function limpiarFiltrosAvanzados() {
@@ -826,41 +947,6 @@ $(document).ready(function(){
     await aplicarFiltrosAvanzados();
   }
 
-  // 7) Re-ata listener para los selects de Status
-  function initStatusListeners() {
-    document.querySelectorAll('.status-select').forEach(sel => {
-      sel.onchange = async function() {
-        try {
-          Swal.fire({ title:'Actualizando...', didOpen: ()=> Swal.showLoading(), allowOutsideClick:false });
-          const resp = await fetch('../api/actualizar_status_dispatch.php', {
-            method: 'POST',
-            headers:{ 'Content-Type':'application/json' },
-            body: JSON.stringify({ id: this.dataset.id, value: this.value })
-          });
-          const json = await resp.json();
-          Swal.close();
-          if (json.success) {
-            Swal.fire({ icon:'success', title: json.message, toast:true, position:'top-end', timer:1500 });
-          } else {
-            throw new Error(json.error || 'Error');
-          }
-        } catch (e) {
-          Swal.close();
-          Swal.fire('Error', e.message, 'error');
-        }
-      };
-    });
-  }
-
-  function initPoListeners() {
-    document.querySelectorAll('.po-input').forEach(inp => {
-      inp.onchange = handlePoChange;
-    });
-  }
-
-  // 8) Arranca el listener la primera vez
-  initStatusListeners();
-  initPoListeners();
 });
 </script>
 

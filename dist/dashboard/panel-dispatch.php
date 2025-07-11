@@ -15,38 +15,60 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 
 $sql = "
-  SELECT
-    d.id,
-    i.idItem                            AS idItem,
-    c.num_op                            AS NUM_OP,
-    c.Number_Container                  AS Number_Container,
-    c.Booking_BK,
-    d.numero_lote                       AS Lot_Number,
-    d.fecha_entrada                     AS Entry_Date,
-    d.fecha_salida                      AS Out_Date,
-    i.Number_Commercial_Invoice         AS Number_Commercial_Invoice,
-    d.numero_parte                      AS Code_Product_EC,
-    i.Number_PO                         AS Number_PO,
-    d.descripcion                       AS Description,
-    d.cantidad                          AS Qty,
-    d.valor_unitario                    AS Unit_Value,
-    d.valor                             AS Value,
-    d.unidad                            AS Unit,
-    d.longitud_in                       AS Length_in,
-    d.ancho_in                          AS Broad_in,
-    d.altura_in                         AS Height_in,
-    d.peso_lb                           AS Weight_lb,
-    d.estado                            AS Status,
-    d.recibo_almacen                    AS Receive
-FROM container c
-INNER JOIN items i
-    ON i.idContainer = c.idContainer
-INNER JOIN dispatch d
-    ON d.numero_factura = i.Number_Commercial_Invoice
-   AND d.notas          = c.Number_Container
-   AND d.numero_parte   = i.Code_Product_EC
-WHERE d.estado = 'Cargado'
-ORDER BY c.num_op, d.numero_parte;
+SELECT
+  d.id,
+  c.num_op AS NUM_OP,
+  c.Number_Container,
+  c.Booking_BK,
+  d.fecha_entrada AS Entry_Date,
+    d.fecha_salida AS departure_date,
+  d.recibo_almacen AS Receive,
+  d.numero_lote AS Lot_Number,
+  d.numero_factura AS Number_Commercial_Invoice,
+  d.numero_parte AS Code_Product_EC,
+  d.descripcion AS Description_Dispatch,
+  d.modelo AS Modelo_Dispatch,
+
+  -- Datos desde items (packing list)
+  i.Description AS Description_Item,
+  i.Number_PO AS Number_PO,
+  i.Qty_Box AS Qty_Item_Packing,
+
+  -- Despacho
+  d.palets AS palets,
+  d.cantidad AS cantidad,
+  (d.palets * d.cantidad) AS Total_Despachado,
+
+  d.valor_unitario AS Unit_Value,
+  (d.valor_unitario * d.cantidad) AS Value,
+
+  d.unidad AS Unit,
+  d.longitud_in AS Length_in,
+  d.ancho_in AS Broad_in,
+  d.altura_in AS Height_in,
+  d.peso_lb AS Weight_lb,
+
+  d.valor_unitario_restante,
+  d.valor_restante,
+  d.unidad_restante,
+  d.longitud_in_restante,
+  d.ancho_in_restante,
+  d.altura_in_restante,
+  d.peso_lb_restante,
+
+  d.estado AS Status
+
+FROM palets_cargados d
+LEFT JOIN container c
+  ON c.Number_Container = d.notas
+LEFT JOIN items i
+  ON i.Number_Commercial_Invoice = d.numero_factura
+  AND i.Code_Product_EC = d.numero_parte
+
+WHERE d.estado = 'Cargado' 
+
+ORDER BY c.num_op, d.descripcion, d.modelo;
+
     
 ";
 $result = $conexion->query($sql);
@@ -422,151 +444,161 @@ try {
        
           
         <div class="col-md-12 col-xl-12">
-    <div class="card table-card">
-        <div class="card-header d-flex align-items-center justify-content-between py-3">
-          <h5 class="mb-0">Dispatch Inventory</h5>
-          <div class="d-flex gap-2 align-items-center">
-            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
-              <i class="ti ti-filter"></i> Filtros avanzados
-            </button>
-            <button id="btnClearFilters" class="btn btn-sm btn-secondary">   
-             <i class="ti ti-x"></i> Limpiar
-            </button>
-          </div>
-      </div>    
-      <!-- Modal de filtros -->
-      <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <form id="filterForm">
-                <!-- Filtro por Num OP -->
-                <div class="mb-3">
-                  <label for="OpFilter" class="form-label">Num OP</label>
-                  <input type="text" class="form-control" id="OpFilter" placeholder="Ingrese número de OP">
-                </div>
-
-                <!-- Filtro por Destiny POD -->
-                <div class="mb-3">
-                  <label for="LotFilter" class="form-label">Lot Number</label>
-                  <input type="text" class="form-control" id="LotFilter" placeholder="Ingrese Lot Number">
-                </div>
-
-                <!-- Filtro por ETA Date -->
-                <div class="mb-3">
-                  <label for="rangoFechas" class="form-label">Entry Date</label><br>
-                  <input
-                    type="text"
-                    id="rangoFechas"
-                    class="form-control form-control-sm"
-                    placeholder="Seleccione rango"
-                    style="max-width: 220px;"
-                    readonly>
-                </div>
-              </form>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-              <button id="btnApplyFilters" class="btn btn-primary">Aplicar filtros</button>            
-            </div>
-          </div>
-        </div>
-      </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table id="pc-dt-simple" class="table table-hover">
-              <thead>
-                <tr>
-                  <th>NUM OP</th>
-                  <th>Number_Container</th>
-                  <th>Booking_BK</th>
-                  <th>PO Number</th>
-                  <th>Lot Number</th>
-                  <th>Warehouse Receive</th>
-                  <th>Entry Date</th>
-                  <th>Dispatch Date</th>
-                  <th>Code Product EC</th>
-                  <th>Description</th>
-                  <th>Qty</th>
-                  <th>Unit Value</th>
-                  <th>Value</th>
-                  <th>Unit</th>
-                  <th>Length (in)</th>
-                  <th>Broad (in)</th>
-                  <th>Height (in)</th>
-                  <th>Weight (lb)</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php while ($row = $result->fetch_assoc()): ?>
-                <tr>
-                  <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
-                  <td><?= htmlspecialchars($row['Number_Container']) ?></td>
-                  <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-                  <td>
-                      <input
-                      type="text"
-                      class="form-control form-control-sm po-input"
-                      data-id="<?= $row['idItem'] ?>"
-                      value="<?= htmlspecialchars($row['Number_PO']) ?>">
-                  </td>
-                  <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
-                  <td><?= htmlspecialchars($row['Receive']) ?></td>
-
-                  <!-- Entry Date con fallback -->
-                  <td>
-                    <?= !empty($row['Entry_Date'])
-                        ? htmlspecialchars($row['Entry_Date'])
-                        : '<span class="text-muted">no cargado</span>'
-                    ?>
-                  </td>
-
-                  <!-- Dispatch Date (Out_Date) con fallback -->
-                  <td>
-                    <?= !empty($row['Out_Date'])
-                        ? htmlspecialchars($row['Out_Date'])
-                        : '<span class="text-muted">no cargado</span>'
-                    ?>
-                  </td>
-
-                  <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
-                  <td><?= htmlspecialchars($row['Description']) ?></td>
-                  <td><?= htmlspecialchars($row['Qty']) ?></td>
-                  <td><?= htmlspecialchars($row['Unit_Value']) ?></td>
-                  <td><?= htmlspecialchars($row['Value']) ?></td>
-                  <td><?= htmlspecialchars($row['Unit']) ?></td>
-                  <td><?= htmlspecialchars($row['Length_in']) ?></td>
-                  <td><?= htmlspecialchars($row['Broad_in']) ?></td>
-                  <td><?= htmlspecialchars($row['Height_in']) ?></td>
-                  <td><?= htmlspecialchars($row['Weight_lb']) ?></td>
-                  <td>
-                    <select
-                    class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
-                      data-id="<?= $row['id'] ?>"
-                      data-container="<?= htmlspecialchars($row['Number_Container']) ?>">
-                      <option value="Cargado" <?= $row['Status'] === 'Cargado' ? 'selected' : '' ?>>
-                        Cargado
-                      </option>
-                      <option value="En Almacén" <?= $row['Status'] === 'En Almacén' ? 'selected' : '' ?>>
-                        En Almacén
-                      </option>
-                    </select>
-                  </td>
-                </tr>
-                <?php endwhile; ?>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-
-
+ <div class="card table-card">
+  <div class="card-header d-flex align-items-center justify-content-between py-3">
+    <h5 class="mb-0">Dispatch Inventory</h5>
+    <div class="d-flex gap-2 align-items-center">
+      <button id="btnDownloadExcel" class="btn btn-sm btn-success">
+        <i class="ti ti-file-export"></i> Descargar Excel
+      </button>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+        <i class="ti ti-filter"></i> Filtros avanzados
+      </button>
+      <button id="btnClearFilters" class="btn btn-sm btn-secondary">
+       <i class="ti ti-x"></i> Limpiar
+      </button>
     </div>
+  </div>
+
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover" id="pc-dt-simple">
+        <thead>
+          <tr>
+            <th>NUM OP</th>
+            <th>Number_Container</th>
+            <th>Entry Date</th>
+            <th>Departure Date</th>
+            <th>Warehouse Receipt</th>
+            <th>Lot_Number</th>
+            <th>Booking_BK</th>
+            <th>Number_PO</th>
+            <th>Number_Commercial_Invoice</th>
+            <th>Code Product EC</th>
+            <th>Description</th>
+            <th>Palets</th>
+            <th>Cantidad</th>
+            <th>Qty Item Packing</th>
+            <th>Unit Value</th>
+            <th>Value</th>
+            <th>Unit</th>
+            <th>Length (in)</th>
+            <th>Broad (in)</th>
+            <th>Height (in)</th>
+            <th>Weight (lb)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php while($row = $result->fetch_assoc()) { ?>
+           <tr>
+  <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
+  <td><?= htmlspecialchars($row['Number_Container']) ?></td>
+  <td><?= htmlspecialchars($row['Entry_Date']) ?></td>
+
+  <!-- Departure Date editable -->
+  <td>
+    <input type="date"
+      class="form-control form-control-sm editable-field"
+      data-id="<?= $row['id'] ?>"
+      data-field="departure_date"
+      value="<?= htmlspecialchars($row['departure_date']) ?>">
+  </td>
+
+  <td><?= htmlspecialchars($row['Receive']) ?></td>
+  <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
+  
+  <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
+   <td><?= htmlspecialchars($row['Number_PO']) ?></td>
+
+  <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
+  <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
+  <td><?= htmlspecialchars($row['Description_Item']) ?></td>
+  <td><?= htmlspecialchars($row['palets']) ?></td>
+  <td><?= htmlspecialchars($row['cantidad']) ?></td>
+  <td><?= htmlspecialchars($row['Qty_Item_Packing']) ?></td>
+  <td><?= htmlspecialchars($row['Unit_Value']) ?></td>
+  <td><?= htmlspecialchars($row['Value']) ?></td>
+  <td><?= htmlspecialchars($row['Unit']) ?></td>
+
+  <!-- Medidas editables -->
+  <td>
+    <input type="number"
+      step="any"
+      class="form-control form-control-sm editable-field"
+      data-id="<?= $row['id'] ?>"
+      data-field="Length_in"
+      value="<?= htmlspecialchars($row['Length_in']) ?>">
+  </td>
+  <td>
+    <input type="number"
+      step="any"
+      class="form-control form-control-sm editable-field"
+      data-id="<?= $row['id'] ?>"
+      data-field="Broad_in"
+      value="<?= htmlspecialchars($row['Broad_in']) ?>">
+  </td>
+  <td>
+    <input type="number"
+      step="any"
+      class="form-control form-control-sm editable-field"
+      data-id="<?= $row['id'] ?>"
+      data-field="Height_in"
+      value="<?= htmlspecialchars($row['Height_in']) ?>">
+  </td>
+  <td>
+    <input type="number"
+      step="any"
+      class="form-control form-control-sm editable-field"
+      data-id="<?= $row['id'] ?>"
+      data-field="Weight_lb"
+      value="<?= htmlspecialchars($row['Weight_lb']) ?>">
+  </td>
+
+  <td>
+    <select class="form-select form-select-sm status-select"
+      data-container="<?= htmlspecialchars($row['Number_Container']) ?>"
+      data-invoice="<?= htmlspecialchars($row['Number_Commercial_Invoice']) ?>"
+      data-id="<?= $row['id'] ?>">
+      <option value="Cargado" <?= $row['Status'] == 'Cargado' ? 'selected' : '' ?>>Cargado</option>
+    </select>
+  </td>
+</tr>
+
+          <?php } ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- Librería SheetJS para exportar Excel -->
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script>
+document.getElementById('btnDownloadExcel').addEventListener('click', function () {
+  const table = document.getElementById('pc-dt-simple').cloneNode(true); // Clonamos la tabla para no tocar la real
+
+  // Reemplazar inputs por sus valores
+  table.querySelectorAll('input').forEach(input => {
+    const cell = input.closest('td');
+    cell.textContent = input.value;
+  });
+
+  // Reemplazar selects por su texto seleccionado
+  table.querySelectorAll('select').forEach(select => {
+    const cell = select.closest('td');
+    cell.textContent = select.options[select.selectedIndex].text;
+  });
+
+  // Generar y descargar Excel
+  const wb = XLSX.utils.table_to_book(table, { sheet: "Despacho" });
+  XLSX.writeFile(wb, "despacho.xlsx");
+});
+
+</script>
+
 </div>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script> <!-- Soporte en español -->
@@ -612,6 +644,10 @@ window.addEventListener('resize', function() {
   min-width: 100px;    /* ó el que necesites */
 }
 </style>
+
+   
+
+
 
 
 
@@ -687,28 +723,36 @@ $(document).ready(function(){
         Swal.fire('Error de red','','error');
       }
     }
+    
+     document.querySelectorAll('input[data-field]').forEach(input => {
+  input.addEventListener('change', function () {
+    const id = this.dataset.id;
+    const field = this.dataset.field;
+    const value = this.value.trim();
+    handleFieldChange(field, value, id);
+  });
+});
 
 
 
-    async function handlePoChange() {
-      const id = this.dataset.id;
-      const po = this.value.trim();
-      try {
-        const res  = await fetch('../api/update_dispatch_po.php', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ id, po })
-        });
-        const json = await res.json();
-        Swal.fire(
-          json.success ? 'Éxito' : 'Error',
-          json.success ? json.message : json.error,
-          json.success ? 'success' : 'error'
-        );
-      } catch {
-        Swal.fire('Error de red','','error');
-      }
-    }
+   async function handleFieldChange(field, value, id) {
+  try {
+    const res = await fetch('../api/update_dispatch_field.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, field, value })
+    });
+    const json = await res.json();
+    Swal.fire(
+      json.success ? 'Éxito' : 'Error',
+      json.success ? json.message : json.error,
+      json.success ? 'success' : 'error'
+    );
+  } catch {
+    Swal.fire('Error de red', '', 'error');
+  }
+}
+
 
   // Función de aplicar filtros (igual que tenías)
   async function aplicarFiltrosAvanzados() {
@@ -779,9 +823,16 @@ $(document).ready(function(){
       bootstrap.Modal.getInstance($('#filterModal')[0])?.hide();
 
       // 5) Volver a enganchar los handlers
-      $('#pc-dt-simple tbody')
-        .off('change', '.status-select').on('change', '.status-select', handleStatusChange)
-        .off('change', '.po-input')    .on('change', '.po-input',    handlePoChange);
+     $('#pc-dt-simple tbody')
+  .off('change', '.status-select').on('change', '.status-select', handleStatusChange)
+  .off('change', '.po-input')    .on('change', '.po-input',    handlePoChange)
+  .off('change', 'input[data-field]').on('change', 'input[data-field]', function () {
+    const id = this.dataset.id;
+    const field = this.dataset.field;
+    const value = this.value.trim();
+    handleFieldChange(field, value, id);
+  });
+
 
     } catch (err) {
       console.error('Error al aplicar filtros:', err);

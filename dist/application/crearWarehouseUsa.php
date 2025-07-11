@@ -590,9 +590,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // Formulario
   const form       = document.querySelector('form[action="#"]');
-  // Selects / Inputs
   const facturaSel = document.getElementById('facturaSelect');
   const loteSel    = document.getElementById('loteSelect');
   const parteSel   = document.getElementById('parteSelect');
@@ -601,7 +599,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let originalTotal = 0;
 
-  // Helper para llenar selects
   function fillSelect(selectEl, csv) {
     selectEl.innerHTML = '<option value="">-- Selecciona --</option>';
     if (!csv) return;
@@ -617,7 +614,6 @@ document.addEventListener('DOMContentLoaded', () => {
     selectEl.disabled = false;
   }
 
-  // --- SUBMIT MANUAL ---
   form.addEventListener('submit', e => {
     e.preventDefault();
     const data = {
@@ -629,7 +625,6 @@ document.addEventListener('DOMContentLoaded', () => {
       numero_lote:    form.numero_lote.value.trim(),
       numero_contenedor: form.numero_contenedor.value,
       palets:         form.palets.value.trim(),
-      // aquí tomamos el valor libre o seleccionado
       orden_compra:   (function(v){
                          v = v.trim();
                          return v.toLowerCase() === 'stock' ? '0' : v;
@@ -656,31 +651,41 @@ document.addEventListener('DOMContentLoaded', () => {
       peso_restante:           form.peso_restante.value
     };
 
-    fetch('../api/warehouseusa/guardar_manual.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-    .then(r => r.json())
-    .then(resp => {
-      if (resp.success) {
-        Swal.fire({ icon: 'success', title: 'Guardado', text: 'Registro creado' })
-          .then(() => location.href = '../admins/warehouseUsaPanel.php');
-      } else {
-        Swal.fire({ icon: 'error', title: 'Error', text: resp.message || 'Error' });
-      }
-    })
-    .catch(() => {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Error de servidor' });
-    });
+   fetch('../api/warehouseusa/guardar_manual.php', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(data)
+})
+.then(async response => {
+  const text = await response.text(); // leo la respuesta como texto
+  console.log('Respuesta cruda del servidor:', text);
+
+  try {
+    const resp = JSON.parse(text); // intento parsear a JSON
+    console.log('Respuesta JSON:', resp);
+
+    if (response.ok && resp.success) {
+      Swal.fire({ icon: 'success', title: 'Guardado', text: 'Registro creado' })
+        .then(() => location.href = '../admins/warehouseUsaPanel.php');
+    } else {
+      Swal.fire({ icon: 'error', title: 'Error', text: resp.error || resp.message || 'Error desconocido' });
+    }
+  } catch (error) {
+    console.error('No es JSON:', error);
+    Swal.fire({ icon: 'error', title: 'Error', text: 'Respuesta no JSON del servidor. Mira la consola.' });
+  }
+})
+.catch(err => {
+  console.error('Error en fetch:', err);
+  Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Error de servidor' });
+});
+
   });
 
-  // --- AL CAMBIAR BOOKING ---
   document.getElementById('bookingSelect').addEventListener('change', function() {
     const booking   = this.value;
     const descSelect = document.getElementById('descripcionSelect');
 
-    // reset
     descSelect.innerHTML = '<option value="">-- Selecciona --</option>';
     descSelect.disabled = true;
     facturaSel.innerHTML = '<option value="">-- Selecciona --</option>'; facturaSel.disabled = true;
@@ -700,7 +705,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!resp.success) {
           return Swal.fire('Error', resp.msg, 'error');
         }
-        // descripciones
         resp.descriptions.forEach(d => {
           const o = document.createElement('option');
           o.value = d;
@@ -709,12 +713,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         descSelect.disabled = false;
 
-        // facturas y lotes (selects normales)
         fillSelect(facturaSel, resp.numero_factura);
         fillSelect(loteSel,    resp.numero_lote);
         fillSelect(parteSel,   resp.numero_parte);
 
-        // ordenes de compra (datalist)
         if (Array.isArray(resp.numero_orden_compra)) {
           resp.numero_orden_compra.forEach(o => {
             const opt = document.createElement('option');
@@ -723,14 +725,13 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         }
         ordenInput.disabled = false;
-        console.log(resp)
-        // total original
         document.querySelector('input[name="cantidadTotal"]').value = resp.cantidad_total;
         originalTotal = parseInt(resp.cantidad_total) || 0;
-        
-        updateRemaining();
 
-        // guardo booking para descripción después
+        updateRemaining();
+        updateValorTotal();
+        updateValorRestante();
+
         descSelect.dataset.booking = booking;
       })
       .catch(err => {
@@ -739,7 +740,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   });
 
-  // --- AL CAMBIAR DESCRIPCIÓN ---
   document.getElementById('descripcionSelect').addEventListener('change', function() {
     const description = this.value;
     const booking     = this.dataset.booking;
@@ -752,49 +752,46 @@ document.addEventListener('DOMContentLoaded', () => {
           return Swal.fire('Error', resp.msg, 'error');
         }
         const i = resp.data;
-        // mapeo campos
-        form.valor_unitario.value = i.valor_unitario;
-        form.valor.value          = i.valor;
+
+        form.valor_unitario.value = i.valor_unitario_usa;
+        form.valor.value          = i.valor_usa;
         form.unidad.value         = i.unidad;
         form.peso.value           = i.peso;
         form.modelo.value         = i.modelo || '';
         form.longitud.value       = i.longitud_in || '';
         form.ancho.value          = i.ancho_in || '';
         form.altura.value         = i.altura_in || '';
-        form.cantidadTotal.value         = i.cantidad || '';
+        form.cantidadTotal.value  = i.cantidad || '';
         originalTotal = parseInt(i.cantidad) || 0;
-        updateRemaining();
 
-        // extras
+        updateRemaining();
+        updateValorTotal();
+        updateValorRestante();
+
         form.modelo_extra.value              = i.modelo  || '';
-        form.valor_unitario_restante.value   = i.valor_unitario;
-        form.valor_restante.value            = i.valor;
+        form.valor_unitario_restante.value   = i.valor_unitario_usa;
+        form.valor_restante.value            = i.valor_usa;
         form.unidad_restante.value           = i.unidad;
         form.longitud_restante.value         = i.longitud_in || '';
         form.ancho_restante.value            = i.ancho_in   || '';
         form.altura_restante.value           = i.altura_in  || '';
         form.peso_restante.value             = i.peso;
 
-        // contenedor
         document.getElementById("numeroContenedor").value        = i.numero_contenedor || "";
         document.getElementById("numeroContenedorDisplay").value = i.numero_contenedor || "";
 
-        // facturas, lotes y partes (selects)
         facturaSel.value = i.numero_factura; facturaSel.disabled = false;
         loteSel.value    = i.numero_lote;    loteSel.disabled    = false;
         parteSel.value   = i.numero_parte;   parteSel.disabled   = false;
 
-        // orden de compra (input + datalist)
         ordenInput.value = i.numero_orden_compra || '';
         ordenInput.disabled = false;
 
-        // recibo de almacén
         form.recibo_almacen.value = i.recibo_almacen || '';
       })
       .catch(() => Swal.fire('Error', 'No se pudo cargar el detalle', 'error'));
   });
 
-  // --- CÁLCULO DE CAJAS RESTANTES ---
   const paletsInput    = form.palets;
   const cajasInput     = form.cantidad;
   const totalInput     = form.cantidadTotal;
@@ -823,7 +820,6 @@ document.addEventListener('DOMContentLoaded', () => {
     remainingSpan.textContent = diff;
     extraBlock.style.display = diff > 0 ? 'block' : 'none';
     if (diff > 0) {
-      // copia datos a los campos "_restante"
       ['valor_unitario','valor','unidad','longitud','ancho','altura','peso','palets','cantidad']
         .forEach(name => {
           const target = form[`${name}_restante`];
@@ -831,15 +827,44 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       form.cantidad_restante.value = diff;
     }
+    updateValorRestante();
   }
 
-  [paletsInput, cajasInput].forEach(el =>
-    el.addEventListener('input', updateRemaining)
+  function updateValorTotal() {
+    const palets = parseFloat(paletsInput.value) || 0;
+    const cajas  = parseFloat(cajasInput.value)  || 0;
+    const valorUnitario = parseFloat(form.valor_unitario.value) || 0;
+
+    const totalValor = palets * cajas * valorUnitario;
+    form.valor.value = totalValor.toFixed(2);
+  }
+
+  function updateValorRestante() {
+    const paletsRestante = parseFloat(form.palets_restante.value) || 0;
+    const cajasRestante  = parseFloat(form.cantidad_restante.value) || 0;
+    const valorUnitarioRestante = parseFloat(form.valor_unitario_restante.value) || 0;
+
+    const totalValorRestante = paletsRestante * cajasRestante * valorUnitarioRestante;
+    form.valor_restante.value = totalValorRestante.toFixed(2);
+  }
+
+  [paletsInput, cajasInput, form.valor_unitario].forEach(el =>
+    el.addEventListener('input', () => {
+      updateRemaining();
+      updateValorTotal();
+    })
   );
-  // inicializo
+
+  [form.palets_restante, form.cantidad_restante, form.valor_unitario_restante].forEach(el =>
+    el.addEventListener('input', updateValorRestante)
+  );
+
   updateRemaining();
+  updateValorTotal();
+  updateValorRestante();
 });
 </script>
+
 
 
 

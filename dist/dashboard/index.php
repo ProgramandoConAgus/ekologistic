@@ -893,6 +893,18 @@ function formatCurrency(value) {
 <!--ACTUALIZAR FECHA ETA-->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    
+    // Inputs de texto/número editables
+  document.querySelectorAll('.editable-field').forEach(input => {
+    input.addEventListener('change', function () {
+      const id = this.dataset.id;
+      const field = this.dataset.field;
+      const value = this.value.trim();
+      actualizarCampo(id, field, value, this);
+    });
+  });
+  
+  
     flatpickr(".eta-date-picker", {
         dateFormat: "d/m/Y",
         locale: "es",
@@ -913,6 +925,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
 });
+
+
+async function actualizarCampo(id, field, value, element) {
+  try {
+    const response = await fetch('../api/update_dispatch_field.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ id, field, value })
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      alert('Error al actualizar: ' + result.error);
+      element.classList.add('border-danger');
+    } else {
+      element.classList.add('border-success');
+      setTimeout(() => element.classList.remove('border-success'), 2000);
+    }
+
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error de conexión');
+    element.classList.add('border-danger');
+  }
+}
+
 </script>
 <!-- FILTRO DE FECHA -->
  
