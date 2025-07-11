@@ -6,33 +6,21 @@ if (!isset($input['id'], $input['po'])) {
     exit;
 }
 
-$id = intval($input['id']); // id de dispatch
+$idItem = intval($input['id']); // id de dispatch
 $po = $input['po']; 
 
 include('../con_db.php');
 
-// Primero obtener el id_container asociado a ese dispatch
-$query = "SELECT c.IdContainer 
-          FROM container c
-          INNER JOIN dispatch d 
-             ON c.Number_Container = d.notas
-          WHERE d.id = ?";
 
-$stmt = $conexion->prepare($query);
-$stmt->bind_param('i', $id);
-$stmt->execute();
-$stmt->bind_result($idContainer);
-$stmt->fetch();
-$stmt->close();
 
-if (!$idContainer) {
-    echo json_encode(['success'=>false, 'error'=>'No se encontró el container asociado', 'id'=>$idContainer]);
+if (!$idItem) {
+    echo json_encode(['success'=>false, 'error'=>'No se encontró el item asociado', 'id'=>$idContainer]);
     exit;
 }
 
-$update = "UPDATE items SET Number_PO = ? WHERE idContainer = ?";
+$update = "UPDATE items SET Number_PO = ? WHERE IdItem = ?";
 $stmt2 = $conexion->prepare($update);
-$stmt2->bind_param('si', $po, $idContainer);
+$stmt2->bind_param('si', $po, $idItem);
 
 if ($stmt2->execute()) {
     echo json_encode(['success'=>true]);

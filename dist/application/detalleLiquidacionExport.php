@@ -595,69 +595,109 @@ function descargarExcel() {
     // document.getElementById('btnExport').addEventListener('click', descargarExcel);
   });
 
-  function descargarExcel() {
-    const bookingEl = document.getElementById('booking');
-    const invoiceEl = document.getElementById('commercial_Invoice');
+function descargarExcel() {
+  const bookingEl = document.getElementById('booking');
+  const invoiceEl = document.getElementById('commercial_Invoice');
+  if (!bookingEl || !invoiceEl) {
+    return alert('Error: no se encontró Booking o Commercial Invoice');
+  }
 
-    // 2) Validar que existan
-    if (!bookingEl || !invoiceEl) {
-      alert('Error: no se encontró Booking o Commercial Invoice en la página.');
-      return;
-    }
+  const booking = bookingEl.textContent.trim();
+  const invoice = invoiceEl.textContent.trim();
 
-    const wb      = XLSX.utils.book_new();
-    const ws_data = [];
+  const wb      = XLSX.utils.book_new();
+  const ws_data = [];
 
-    // 3) Ahora sí, podemos leer seguros
-    ws_data.push(['N° Booking', bookingEl.textContent.trim()]);
-    ws_data.push(['Commercial Invoice', invoiceEl.textContent.trim()]);
-    ws_data.push([]);
+  // 1) Cabecera general
+  ws_data.push(['N° Booking', booking]);
+  ws_data.push(['Commercial Invoice', invoice]);
+  ws_data.push([]);
 
-    document.querySelectorAll('.incoterm-item').forEach(block => {
-      const h5      = block.querySelector('h5');
-      const incName = h5?.textContent.trim();
-      const filas   = Array.from(block.querySelectorAll('tbody tr'));
+  // 2) Cada bloque de Incoterm
+  document.querySelectorAll('.incoterm-item').forEach(block => {
+    const incName = block.querySelector('h5')?.textContent.trim();
+    const filas   = Array.from(block.querySelectorAll('tbody tr'));
+    if (!incName || filas.length === 0) return;
 
-      if (!incName || filas.length === 0) return;
+    // Detectar CIF por nombre o por lógica propia
+    const isCIF = incName.toLowerCase().includes('cif');
 
-      // Detectar si es CIF (cambialo por la lógica que ya usás)
-      const isCIF = block.dataset.incoterm.toLowerCase().includes('cif');
+    // Título de sección + encabezados
+    ws_data.push([`Incoterm: ${incName}`]);
+    const headers = isCIF
+      ? ['Descripción','Cantidad','Valor U.','Valor T.','% Impuesto','Valor Impuesto','Notas']
+      : ['Descripción','Cantidad','Valor U.','Valor T.'];
+    ws_data.push(headers);
 
-      ws_data.push([`Incoterm: ${incName}`]);
-      ws_data.push(
-        isCIF
-          ? ['Descripción','Cantidad','Valor U.','Valor T.','% Impuesto','Valor Impuesto','Notas']
-          : ['Descripción','Cantidad','Valor U.','Valor T.']
-      );
+    // Variables para subtotalizar
+    let subtotalSin      = 0;
+    let subtotalImpuestos= 0;
 
-      filas.forEach(tr => {
-        const cols = Array.from(tr.children).map(td => td.textContent.trim());
-        ws_data.push(isCIF ? cols : cols.slice(0,4));
-      });
+    // 2.1) Recorremos filas y volcamos datos
+    filas.forEach(tr => {
+      const cols = Array.from(tr.children).map(td => td.textContent.trim());
+      // cols = [descr, cant, "$1.000,00", "$2.000,00", impPct?, "$xxx,yy"?, notas?]
+      // limpiamos numéricos
+      const rawT = cols[3].replace(/[^0-9,]/g, '').replace(',', '.');
+      const numT = parseFloat(rawT) || 0;
+      subtotalSin += numT;
 
-      // Totales
       if (isCIF) {
-        const totSin = block.querySelector('h6')?.textContent.replace(/[^0-9,\.]/g,'') || '';
-        const totCI  = block.querySelector('h5.text-success')?.textContent.replace(/[^0-9,\.]/g,'') || '';
-        ws_data.push(['Total sin impuestos','','','', '', '', totSin]);
-        ws_data.push(['Total con impuestos','','','', '', '', totCI]);
+        const rawVI = cols[5].replace(/[^0-9,]/g, '').replace(',', '.');
+        const numVI = parseFloat(rawVI) || 0;
+        subtotalImpuestos += numVI;
+        // volcamos fila completa
+        ws_data.push([
+          cols[0], // descripción
+          cols[1], // cantidad
+          cols[2].replace('₿',''), // valor U. (quitar símbolo si existe)
+          cols[3], // valor T.
+          cols[4], // % impuesto
+          cols[5], // valor impuesto
+          cols[6]  // notas
+        ]);
       } else {
-        const tot = block.querySelector('h5.text-success')?.textContent.replace(/[^0-9,\.]/g,'') || '';
-        ws_data.push(['Total','','', tot]);
+        // volcamos sólo las primeras 4 columnas
+        ws_data.push([cols[0], cols[1], cols[2], cols[3]]);
       }
-
-      ws_data.push([]);
     });
 
-    if (ws_data.length <= 3) {
-      alert('No hay datos para exportar.');
-      return;
+    // 2.2) Agregar renglones de totales del bloque
+    if (isCIF) {
+      ws_data.push([
+        'Total sin impuestos', '', '', '',
+        '', '', 
+        subtotalSin.toLocaleString('es-AR',{minimumFractionDigits:2})
+      ]);
+      ws_data.push([
+        'Total impuestos', '', '', '',
+        '', '', 
+        subtotalImpuestos.toLocaleString('es-AR',{minimumFractionDigits:2})
+      ]);
+      ws_data.push([
+        'Total con impuestos', '', '', '',
+        '', '', 
+        (subtotalSin + subtotalImpuestos).toLocaleString('es-AR',{minimumFractionDigits:2})
+      ]);
+    } else {
+      ws_data.push([
+        'Total', '', '', 
+        subtotalSin.toLocaleString('es-AR',{minimumFractionDigits:2})
+      ]);
     }
 
-    const ws = XLSX.utils.aoa_to_sheet(ws_data);
-    XLSX.utils.book_append_sheet(wb, ws, 'DetalleExport');
-    XLSX.writeFile(wb, `ExportID_<?= $idExport ?>.xlsx`);
+    ws_data.push([]);  // línea en blanco antes del siguiente bloque
+  });
+
+  // 3) Validar y generar hoja
+  if (ws_data.length <= 3) {
+    return alert('No hay datos para exportar.');
   }
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  XLSX.utils.book_append_sheet(wb, ws, 'DetalleExport');
+  XLSX.writeFile(wb, `ExportID_<?= $idExport ?>.xlsx`);
+}
+
 </script>
 
 

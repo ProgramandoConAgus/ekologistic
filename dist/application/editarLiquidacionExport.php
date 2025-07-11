@@ -441,7 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const rows = Array.from(document.querySelectorAll('tbody tr'));
   const sinEl = document.getElementById('subtotal-sin');
   const ciEl  = document.getElementById('subtotal-ci');
-
+  const total = document.getElementById('totalGeneral');
   function formatNumber(num) {
     return num.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   }
@@ -466,6 +466,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sinEl.textContent = formatNumber(sumSin);
     if (ciEl) ciEl.textContent = formatNumber(sumCi);
+
+    total.textContent= "Total General: $ "+formatNumber(sumCi)
   }
 
   // Atachar listener a cada input que afecte

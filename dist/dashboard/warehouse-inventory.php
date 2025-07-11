@@ -531,7 +531,7 @@ try {
                     <input
                       type="text"
                       class="form-control form-control-sm po-input"
-                      data-id="<?= $row['id'] ?>"
+                      data-id="<?= $row['idItem'] ?>"
                       value="<?= htmlspecialchars($row['Number_PO']) ?>">
                 </td>                
                 <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
@@ -774,7 +774,7 @@ $(document).ready(function(){
           `<input
             type="text"
             class="form-control form-control-sm po-input"
-            data-id="${r.id}"
+            data-id="${r.idItem}"
             value="${r.Number_PO || ''}"
           >`,
           r.Number_Commercial_Invoice,

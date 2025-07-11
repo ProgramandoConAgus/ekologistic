@@ -597,6 +597,9 @@ document.addEventListener('DOMContentLoaded', () => {
 <!--Autocalcular totales-->
 <!-- 1) Cálculo dinámico de totales -->
 <script>
+function parseCurrency(str) {
+  return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+}
 document.addEventListener('DOMContentLoaded', () => {
   function formatCurrency(value) {
     let parts = value.toFixed(2).split('.');
@@ -604,9 +607,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return parts.join(',');
   }
 
-  function parseCurrency(str) {
-    return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
-  }
+  
+  
 
   function recalculate() {
   document.querySelectorAll('tr[data-item-id]').forEach(tr => {
@@ -704,11 +706,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const notasEl  = tr.querySelector('.notas');
       const rawNotas = notasEl  ? notasEl.value.trim() : '';
 
-      const cantidad      = rawCant === '' ? null : parseFloat(rawCant.replace(',', '.'))      || 0;
-      const valorUnitario = rawVU   === '' ? null : parseFloat(rawVU.replace(',', '.'))       || 0;
+      const cantidad      = rawCant === '' ? null : parseCurrency(rawCant);
+      const valorUnitario = rawVU   === '' ? null : parseCurrency(rawVU);
       const valorTotal    = (cantidad || 0) * (valorUnitario || 0);
-      const impuestoPct   = rawImp  === '' ? null : parseFloat(rawImp.replace(',', '.'))      || 0;
-      const valorImpuesto = rawVI   === '' ? null : parseFloat(rawVI.replace(',', '.'))       || 0;
+      const impuestoPct   = rawImp  === '' ? null : parseCurrency(rawImp);
+      const valorImpuesto = rawVI   === '' ? null : parseCurrency(rawVI);
       const notas         = rawNotas === '' ? null : rawNotas;
 
       items.push({
