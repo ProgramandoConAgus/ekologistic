@@ -1,0 +1,85 @@
+<?php
+include("../../con_db.php");
+header('Content-Type: application/json');
+
+try {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $datos = $input['datos'] ?? [];
+
+    if (empty($datos)) {
+        echo json_encode(['success' => false, 'message' => 'Datos vacíos']);
+        exit;
+    }
+
+    // Preparamos la consulta JOIN con la tabla incoterms para filtrar por IdIncoterms
+    $sql = "
+      UPDATE itemsliquidacionexportincoterms ii
+      JOIN incoterms ic 
+        ON ic.IdItemsLiquidacionExportIncoterms = ii.IdItemsLiquidacionExportIncoterms
+      SET 
+        ii.Cantidad       = ?,
+        ii.ValorUnitario  = ?,
+        ii.ValorTotal     = ?,
+        ii.Impuesto       = ?,
+        ii.ValorImpuesto  = ?,
+        ii.Notas          = ?
+      WHERE ic.IdIncoterms = ?
+    ";
+    $stmt = $conexion->prepare($sql);
+    if (!$stmt) {
+        throw new Exception("Error preparando UPDATE: " . $conexion->error);
+    }
+
+    $errores = [];
+    foreach ($datos as $i => $d) {
+        // Leemos del payload
+        $idIncoterms   = intval($d['idIncoterms']    ?? 0);
+        $cantidad      = intval($d['cantidad']        ?? 0);
+        $valorUnitario = floatval($d['valorUnitario'] ?? 0);
+        $valorTotal    = floatval($d['valorTotal']    ?? ($cantidad * $valorUnitario));
+        $impuestoPct   = floatval($d['impuestoPct']   ?? 0);
+        $valorImpuesto = floatval($d['valorImpuesto'] ?? ($valorTotal * $impuestoPct / 100));
+        $notas         = $d['notas'] ?? '';
+
+        // vinculamos y ejecutamos
+        $stmt->bind_param(
+            "dddddsi",
+            $cantidad,
+            $valorUnitario,
+            $valorTotal,
+            $impuestoPct,
+            $valorImpuesto,
+            $notas,
+            $idIncoterms
+        );
+        if (!$stmt->execute()) {
+            $errores[] = "Fila {$i} (IdIncoterms {$idIncoterms}): " . $stmt->error;
+        }
+    }
+
+    // Respuesta con los datos que efectivamente procesó
+    if (empty($errores)) {
+        echo json_encode([
+            'success'         => true,
+            'message'         => 'Actualización exitosa',
+            'datosProcesados' => $datos
+        ]);
+    } else {
+        echo json_encode([
+            'success'         => false,
+            'message'         => 'Algunos registros no se actualizaron.',
+            'errors'          => $errores,
+            'datosProcesados' => $datos
+        ]);
+    }
+
+    $stmt->close();
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Error inesperado.',
+        'error'   => $e->getMessage()
+    ]);
+}

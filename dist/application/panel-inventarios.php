@@ -51,8 +51,9 @@
   <div class="navbar-wrapper">
     <div class="m-header">
       <a href="../dashboard/index.html" class="b-brand text-primary">
-        <!-- ========   Change your logo from here   ============ -->
-        <img src="../assets/images/ekologistic.png" alt="logo image" height="70px" width="240px"/>
+          <!-- ========   Change your logo from here   ============ -->
+        <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="220px"/>
+        
       </a>
     </div>
     <div class="navbar-content">
@@ -68,11 +69,11 @@
         <span class="pc-mtext">Logistica</span>
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
-     <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">BLs</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Contenedores</a></li>
-        <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Inventarios</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Packing List</a></li>
+      <ul class="pc-submenu">
+        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Dashboard Containers</a></li>
+        <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Panel Inventory</a></li>
         <li class="pc-item"><a class="pc-link">Despachos</a></li>
         <li class="pc-item"><a class="pc-link">Palets</a></li>
         <li class="pc-item"><a class="pc-link" >Ordenes de Compra</a></li>
@@ -461,14 +462,14 @@
             <div class="row align-items-center">
               <div class="col-md-12">
                 <ul class="breadcrumb">
-                  <li class="breadcrumb-item"><a href="../dashboard/index.html">Inicio</a></li>
+                  <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
                   <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
-                  <li class="breadcrumb-item" aria-current="page">Inventarios</li>
+                  <li class="breadcrumb-item" aria-current="page">Panel Inventory</li>
                 </ul>
               </div>
               <div class="col-md-12">
                 <div class="page-header-title">
-                  <h2 class="mb-0">Panel de Inventarios</h2>
+                  <h2 class="mb-0">Panel Inventory</h2>
                 </div>
               </div>
             </div>
