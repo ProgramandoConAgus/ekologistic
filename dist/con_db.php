@@ -1,9 +1,9 @@
 <?php
 
 $servidor="localhost";
-$usuario="u981249563_agustinapontee";
-$contraseña="Pca@70071";
-$baseDatos="u981249563_ekologisticaaa";
+$usuario="root";
+$contraseña="";
+$baseDatos="ecopacking";
 
 //Crear conexion
 

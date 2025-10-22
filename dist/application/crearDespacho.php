@@ -388,9 +388,10 @@ while ($inc = $res->fetch_assoc()) {
         <tbody>
           <?php
           $items = $conexion->query(
-            "SELECT IdItemsLiquidacionDespacho, NombreItems 
-             FROM itemsliquidaciondespacho
-             WHERE IdTipoIncoterm = {$inc['IdTipoIncoterm']}"
+              "SELECT IdItemsLiquidacionDespacho, NombreItems 
+              FROM itemsliquidaciondespacho
+              WHERE IdTipoIncoterm = {$inc['IdTipoIncoterm']}
+              AND NombreItems NOT IN ('repalletize + Fix pallet')"
           );
           while ($row = $items->fetch_assoc()):
           ?>
