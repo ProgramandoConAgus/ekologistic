@@ -489,21 +489,15 @@ try {
           <tr>
             <th>NUM OP</th>
             <th>Code Dispatch</th>
-            <th>Number_Container</th>
-            <th>Entry Date</th>
             <th>Departure Date</th>
             <th>Warehouse Receipt</th>
             <th>Lot_Number</th>
-            <th>Booking_BK</th>
             <th>Number_PO</th>
             <th>Number_Commercial_Invoice</th>
-            <th>Code Product EC</th>
             <th>Description</th>
             <th>Palets</th>
             <th>Cantidad</th>
             <th>Qty Item Packing</th>
-            <th>Unit Value</th>
-            <th>Value</th>
             <th>Length (in)</th>
             <th>Broad (in)</th>
             <th>Height (in)</th>
@@ -516,8 +510,6 @@ try {
            <tr>
   <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
   <td><?= htmlspecialchars($row['codigo_despacho']) ?></td>
-  <td><?= htmlspecialchars($row['Number_Container']) ?></td>
-  <td><?= htmlspecialchars($row['Entry_Date']) ?></td>
 
   <!-- Departure Date editable -->
   <td>
@@ -531,17 +523,13 @@ try {
   <td><?= htmlspecialchars($row['Receive']) ?></td>
   <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
   
-  <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
    <td><?= htmlspecialchars($row['Number_PO']) ?></td>
 
   <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
-  <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
   <td><?= htmlspecialchars($row['Description_Item']) ?></td>
   <td><?= htmlspecialchars($row['palets']) ?></td>
   <td><?= htmlspecialchars($row['cantidad']) ?></td>
   <td><?= htmlspecialchars($row['Qty_Item_Packing']) ?></td>
-  <td>$<?= htmlspecialchars($row['Unit_Value']) ?></td>
-  <td>$<?= htmlspecialchars($row['Value']) ?></td>
 
   <!-- Medidas editables -->
   <td>
