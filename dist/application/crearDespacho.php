@@ -837,7 +837,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(resp => {
       if (resp.success) {
         Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Correcto.' })
-          window.location.href = 'https://ekopackinglogistica.com/dist/admins/despachosPanel.php';
+          window.location.href = '../admins/despachosPanel.php';
       } else {
         Swal.fire({ icon: 'error', title: 'Error', text: resp.message });
       }
