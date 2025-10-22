@@ -98,7 +98,7 @@ try {
   <!-- [Head] start -->
 
   <head>
-    <title>Dashboard WareHouse Inventory | Eko Logistic</title>
+    <title>Dashboard WareHouse USA 1 | Eko Logistic</title>
     <!-- [Meta] -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -265,8 +265,8 @@ try {
       </a>
       <ul class="pc-submenu">
         <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
-        <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse USA 1</a></li>
+        <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA 2</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Warehouse Receipt</a></li>
       </ul>
@@ -430,12 +430,12 @@ try {
                 <ul class="breadcrumb">
                   <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
                   <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
-                  <li class="breadcrumb-item" aria-current="page">Dashboard Warehouse Inventory</li>
+                  <li class="breadcrumb-item" aria-current="page">Dashboard WareHouse USA 1</li>
                 </ul>
               </div>
               <div class="col-md-12">
                 <div class="page-header-title">
-                  <h2 class="mb-0">Dashboard Warehouse Inventory</h2>
+                  <h2 class="mb-0">Dashboard WareHouse USA 1</h2>
                 </div>
               </div>
             </div>
@@ -449,7 +449,7 @@ try {
         <div class="col-md-12 col-xl-12">
     <div class="card table-card">
         <div class="card-header d-flex align-items-center justify-content-between py-3">
-            <h5 class="mb-0">Warehouse Inventory</h5>
+            <h5 class="mb-0">WareHouse USA 1</h5>
           <!-- Botón único de acciones -->
           <button class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#actionsModal">
             <i class="ti ti-menu-2"></i> Acciones
@@ -536,21 +536,37 @@ try {
     <div class="table-responsive">
 <?php
 $palletsPorGrupo = [];
-$result->data_seek(0);
-while($rowTemp = $result->fetch_assoc()) {
-  $key = $rowTemp['Description_Item'] . '|' . $rowTemp['Modelo_Dispatch'];
-  if (!isset($palletsPorGrupo[$key])) $palletsPorGrupo[$key] = 0;
-  if ($rowTemp['total_palets'] > 0) {
-    $palletsPorGrupo[$key]++;
-  }
+
+if (isset($result) && $result->num_rows > 0) {
+    $result->data_seek(0);
+
+    while ($rowTemp = $result->fetch_assoc()) {
+        // Usamos ?? para evitar "Undefined array key"
+        $descripcion = $rowTemp['Description_Item'] ?? '';
+        $modelo = $rowTemp['Modelo_Dispatch'] ?? '';
+        $totalPalets = $rowTemp['total_palets'] ?? 0;
+
+        $key = $descripcion . '|' . $modelo;
+
+        if (!isset($palletsPorGrupo[$key])) {
+            $palletsPorGrupo[$key] = 0;
+        }
+
+        if ((int)$totalPalets > 0) {
+            $palletsPorGrupo[$key]++;
+        }
+    }
+
+    // Volvemos al inicio del puntero para reutilizar el resultado
+    $result->data_seek(0);
 }
-$result->data_seek(0);
 ?>
+
 
 <table class="table table-hover" id="pc-dt-simple">
   <thead>
     <tr>
-        <th>Código Despacho</th>
+      <th>Código Despacho</th>
       <th>NUM OP</th>
       <th>Number_Container</th>
       <th>Entry Date</th>
@@ -594,7 +610,7 @@ $result->data_seek(0);
     <td><?= htmlspecialchars($row['Receive']) ?></td>
     <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
     <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-    <td><input type="text" class="form-control form-control-sm po-input" data-id="<?= htmlspecialchars($row['idItem']) ?>" value="<?= htmlspecialchars($row['First_Number_PO']) ?>"></td>
+    <td><input type="text" class="form-control form-control-sm po-input" data-id="<?= htmlspecialchars($row['idItem'] ?? '') ?>" value="<?= htmlspecialchars($row['First_Number_PO'] ?? '') ?>"> </td>
     <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
     <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
     <td><?= htmlspecialchars($row['First_Description_Item']) ?></td>
@@ -791,6 +807,7 @@ async function handlePoChange() {
 async function handleCodigoDespachoChange() {
   const id = this.dataset.id;
   const codigo = this.value.trim();
+  const input = this; // referencia al input actual
 
   try {
     const res = await fetch('../api/update_codigo_despacho.php', {
@@ -799,26 +816,39 @@ async function handleCodigoDespachoChange() {
       body: JSON.stringify({ id, codigo })
     });
 
-    const text = await res.text(); // leer como texto en vez de json
+    const text = await res.text(); 
     let json;
 
     try {
-      json = JSON.parse(text); // intentar parsear
+      json = JSON.parse(text); 
     } catch (parseError) {
-      console.error('Respuesta no es JSON válida:', text); // mostrar respuesta cruda
-      Swal.fire('Error inesperado', 'Respuesta inválida del servidor.', 'error');
+      console.error('Respuesta no es JSON válida:', text);
       return;
     }
 
-    Swal.fire(
-      json.success ? 'Éxito' : 'Error',
-      json.success ? (json.message || 'Código actualizado') : json.error || 'Ocurrió un error.',
-      json.success ? 'success' : 'error'
-    );
+    if (json.success) {
+      // Cambiar fondo a verde temporalmente
+      input.style.backgroundColor = '#d4edda'; // verde claro
+      input.style.transition = 'background-color 0.5s';
+      setTimeout(() => {
+        input.style.backgroundColor = ''; // vuelve al color original
+      }, 1500);
+    } else {
+      // Si hubo error, podemos marcar en rojo temporal
+      input.style.backgroundColor = '#f8d7da'; // rojo claro
+      setTimeout(() => {
+        input.style.backgroundColor = '';
+      }, 2000);
+      console.error(json.error || 'Error al actualizar código');
+    }
 
   } catch (err) {
-    Swal.fire('Error de red', err.message, 'error');
     console.error('Error de red o fetch:', err);
+    // opcional: marcar en rojo temporal
+    input.style.backgroundColor = '#f8d7da';
+    setTimeout(() => {
+      input.style.backgroundColor = '';
+    }, 2000);
   }
 }
 

@@ -40,7 +40,7 @@ $manualRes = $conexion->query($queryManual);
 <!-- [Head] start -->
 
 <head>
-  <title>Warehouse USA | Eko Logistic</title>
+  <title>Warehouse USA 2 | Eko Logistic</title>
   <!-- [Meta] -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -200,8 +200,8 @@ $manualRes = $conexion->query($queryManual);
       </a>
       <ul class="pc-submenu">
         <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
-        <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse USA 1</a></li>
+        <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA 2</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Warehouse Receipt</a></li>
       </ul>
@@ -366,12 +366,12 @@ $manualRes = $conexion->query($queryManual);
               <ul class="breadcrumb">
                 <li class="breadcrumb-item"><a href="../dashboard/index.html">Inicio</a></li>
                 <li class="breadcrumb-item"><a href="javascript: void(0)">Liquidaciones</a></li>
-                <li class="breadcrumb-item" aria-current="page">Warehouse USA</li>
+                <li class="breadcrumb-item" aria-current="page">Warehouse USA 2</li>
               </ul>
             </div>
             <div class="col-md-12">
               <div class="page-header-title">
-                <h2 class="mb-0">Panel Warehouse USA</h2>
+                <h2 class="mb-0">Panel Warehouse USA 2</h2>
               </div>
             </div>
           </div>
