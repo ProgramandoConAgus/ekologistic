@@ -135,8 +135,8 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
       </a>
       <ul class="pc-submenu">
         <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
-        <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse USA 1</a></li>
+        <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA 2</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Warehouse Receipt</a></li>
       </ul>
@@ -388,6 +388,12 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                             <a <?= $href ?> class="<?= $classes ?>" <?= $isDisabled ? 'aria-disabled="true" tabindex="-1"' : '' ?>>
                               <i class="ti ti-edit"></i>
                             </a>
+
+                          <button class="btn btn-danger btn-sm eliminar-despacho" 
+                                  data-id="<?= htmlspecialchars($row['DespachoID']) ?>" 
+                                  style="margin-left:5px;">
+                            <i class="ti ti-trash"></i>
+                          </button>
                           </td>
                         </tr>
                     <?php
@@ -602,6 +608,42 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
   <script>
     preset_change("preset-1");
   </script>
+
+  <script>
+  document.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('eliminar-despacho')) {
+      const id = e.target.dataset.id;
+      if (!id) {
+        alert('No se encontró el ID del despacho.');
+        return;
+      }
+      if (!confirm('¿Seguro que deseas eliminar este despacho?')) return;
+
+      const formData = new FormData();
+      formData.append('DespachoID', id);
+
+      try {
+        const resp = await fetch('../api/despacho/eliminarDespacho.php', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await resp.json();
+        alert(data.message);
+
+        if (data.success) {
+          // quita visualmente la fila
+          e.target.closest('tr').remove();
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error al conectar con el servidor.');
+      }
+    }
+  });
+  </script>
+
+
 
   <script type="module">
     import {

@@ -31,7 +31,7 @@ $warehouse = $stmt->get_result()->fetch_assoc();
   <!-- [Head] start -->
 
   <head>
-    <title>Detalle Warehouse Usa | Eko Logistic</title>
+    <title>Detalle WareHouse USA 2 | Eko Logistic</title>
     <!-- [Meta] -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -127,8 +127,8 @@ $warehouse = $stmt->get_result()->fetch_assoc();
       </a>
       <ul class="pc-submenu">
         <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
-        <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse USA 1</a></li>
+        <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA 2</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Warehouse Receipt</a></li>
       </ul>
@@ -292,13 +292,13 @@ $warehouse = $stmt->get_result()->fetch_assoc();
         <ul class="breadcrumb">
           <li class="breadcrumb-item"><a href="../dashboard/index.html">Inicio</a></li>
           <li class="breadcrumb-item"><a href="javascript:void(0)">Inventarios</a></li>
-          <li class="breadcrumb-item"><a href="javascript:void(0)">Warehouse Usa</a></li>
+          <li class="breadcrumb-item"><a href="javascript:void(0)">WareHouse USA 2</a></li>
           <li class="breadcrumb-item active" aria-current="page">Detalle</li>
         </ul>
       </div>
       <div class="col-md-12">
         <div class="page-header-title">
-          <h2 class="mb-0">Detalle Warehouse Usa</h2>
+          <h2 class="mb-0">Detalle WareHouse USA 2</h2>
         </div>
       </div>
     </div>
