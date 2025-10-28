@@ -533,7 +533,7 @@ try {
             <th>Number_Commercial_Invoice</th>
             <th>Description</th>
             <th>Palets</th>
-            <th>Cantidad</th>
+            <th>Qty</th>
             <th>Qty Item Packing</th>
             <th>Length (in)</th>
             <th>Broad (in)</th>

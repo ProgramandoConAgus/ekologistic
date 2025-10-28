@@ -566,31 +566,30 @@ if (isset($result) && $result->num_rows > 0) {
 <table class="table table-hover" id="pc-dt-simple">
   <thead>
     <tr>
-      <th>Código Despacho</th>
-      <th>NUM OP</th>
-      <th>Number_Container</th>
+      <th>Dispatch Code</th>
+      <th>OP Num</th>
+      <th>Container Num</th>
       <th>Entry Date</th>
-      <th>Warehouse Receipt</th>
-      <th>Lot_Number</th>
-      <th>Booking_BK</th>
-      <th>Number_PO</th>
-      <th>Number_Commercial_Invoice</th>
-      <th>Code Product EC</th>
+      <th>Warehouse Rec.</th>
+      <th>Lot Num</th>
+      <th>Booking BK</th>
+      <th>PO Num</th>
+      <th>Comm. Invoice Num</th>
+      <th>EC Product Code</th>
       <th>Description</th>
       <th>Palets</th>
-      <th>Qty por Palet</th>
+      <th>Qty/Pallet</th>
       <th>Total</th>
       <th>Qty Item</th>
-    
       <th>Unit Value</th>
       <th>Value</th>
       <th>Unit</th>
       <th>Length (in)</th>
-      <th>Broad (in)</th>
+      <th>Width (in)</th>
       <th>Height (in)</th>
       <th>Weight (lb)</th>
-      <th>Palets de carga</th>
-      <th>Cantidad a Cargar</th>
+      <th>Load Pallets</th>
+      <th>Load Qty</th>
       <th>Status‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ </th>
     </tr>
   </thead>

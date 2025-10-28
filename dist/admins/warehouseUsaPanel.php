@@ -395,16 +395,16 @@ $manualRes = $conexion->query($queryManual);
                 <table class="table table-sm" id="pc-dt-simple">
                   <thead>
                     <tr>
-                      <th>Cajas</th>
+                      <th>Boxes</th>
                       <th>Palets</th>
-                      <th>Num Contenedor</th>
-                      <th>Lote</th>
-                      <th>Num Orden de Compra</th>
-                      <th>Descripción</th>
+                      <th>Container Num</th>
+                      <th>Lot Num</th>
+                      <th>PO Num</th>
+                      <th>Description</th>
                       <th>Invoice</th>
-                      <th>Fecha Ingreso</th>
+                      <th>Entry Date</th>
                       <th>Warehouse Receive</th>
-                      <th>Acciones</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
