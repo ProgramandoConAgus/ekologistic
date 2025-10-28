@@ -98,7 +98,7 @@ try {
   <!-- [Head] start -->
 
   <head>
-    <title>Dashboard WareHouse USA 1 | Eko Logistic</title>
+    <title>WareHouse USA 1 | Eko Logistic</title>
     <!-- [Meta] -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -430,12 +430,12 @@ try {
                 <ul class="breadcrumb">
                   <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
                   <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
-                  <li class="breadcrumb-item" aria-current="page">Dashboard WareHouse USA 1</li>
+                  <li class="breadcrumb-item" aria-current="page">WareHouse USA 1</li>
                 </ul>
               </div>
               <div class="col-md-12">
                 <div class="page-header-title">
-                  <h2 class="mb-0">Dashboard WareHouse USA 1</h2>
+                  <h2 class="mb-0">WareHouse USA 1</h2>
                 </div>
               </div>
             </div>

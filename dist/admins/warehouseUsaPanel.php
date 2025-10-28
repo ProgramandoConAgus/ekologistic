@@ -371,7 +371,7 @@ $manualRes = $conexion->query($queryManual);
             </div>
             <div class="col-md-12">
               <div class="page-header-title">
-                <h2 class="mb-0">Panel Warehouse USA 2</h2>
+                <h2 class="mb-0">Warehouse USA 2</h2>
               </div>
             </div>
           </div>

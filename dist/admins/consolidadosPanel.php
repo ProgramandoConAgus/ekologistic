@@ -667,7 +667,7 @@ document.getElementById('num_op').addEventListener('change', function() {
 document.getElementById('btnGenerarExcel').addEventListener('click', async () => {
   const num_op = document.getElementById('num_op').value;
   if (!num_op) return alert('Selecciona un número de operación.');
-  
+
   try {
     const resp = await fetch('../api/despacho/obtenerLiquidacionesConItems.php', {
       method: 'POST',
@@ -678,9 +678,12 @@ document.getElementById('btnGenerarExcel').addEventListener('click', async () =>
     if (!success) return alert(`Error: ${message}`);
 
     const wb = XLSX.utils.book_new();
-    const tipos = ['exports','imports','despacho'];
+    const tipos = ['exports', 'imports', 'despacho'];
 
-    // 1) Hojas individuales
+    // Guardamos los subtotales por tipo para luego calcular el total general
+    const subtotales = {};
+
+    // 1️⃣ Hojas individuales
     tipos.forEach(tipo => {
       const arr = liquidaciones.filter(l => l.origen === tipo);
       if (!arr.length) return;
@@ -698,19 +701,25 @@ document.getElementById('btnGenerarExcel').addEventListener('click', async () =>
 
       let subtotal = 0;
       liq.items.forEach(it => {
-        datos.push([it.NombreItems, it.Cantidad, it.ValorUnitario, it.ValorTotal]);
-        subtotal += Number(it.ValorTotal) || 0;
+        const total = Number(it.ValorTotal) || 0;
+        subtotal += total;
+        datos.push([it.NombreItems, it.Cantidad, it.ValorUnitario, total]);
       });
+
       datos.push([]);
       datos.push(['Subtotal','','', subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+
+      subtotales[tipo] = subtotal;
 
       const ws = XLSX.utils.aoa_to_sheet(datos);
       XLSX.utils.book_append_sheet(wb, ws, tipo.slice(0,31));
     });
 
-    // 2) Hoja “Resumen” con los 3 bloques
+    // 2️⃣ Hoja “Resumen” con los 3 bloques
     const resumen = [];
     resumen.push([`RESUMEN CONSOLIDADO • Operación ${num_op}`], []);
+
+    let totalGeneral = 0;
 
     tipos.forEach(tipo => {
       const arr = liquidaciones.filter(l => l.origen === tipo);
@@ -727,13 +736,26 @@ document.getElementById('btnGenerarExcel').addEventListener('click', async () =>
 
       let subtotal = 0;
       liq.items.forEach(it => {
-        resumen.push([it.NombreItems, it.Cantidad, it.ValorUnitario, it.ValorTotal]);
-        subtotal += Number(it.ValorTotal) || 0;
+        const total = Number(it.ValorTotal) || 0;
+        subtotal += total;
+        resumen.push([it.NombreItems, it.Cantidad, it.ValorUnitario, total]);
       });
+
       resumen.push(['Subtotal','','', subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})], []);
+      totalGeneral += subtotal;
     });
 
-    // Una vez escrito el archivo, actualizamos los estados
+    // ➕ Agregamos total general
+    resumen.push([]);
+    resumen.push(['TOTAL GENERAL','','', totalGeneral.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+
+    const wsRes = XLSX.utils.aoa_to_sheet(resumen);
+    XLSX.utils.book_append_sheet(wb, wsRes, 'Resumen');
+
+    // 3️⃣ Descargar el archivo Excel
+    XLSX.writeFile(wb, `consolidado_liquidaciones_${num_op}.xlsx`);
+
+    // 4️⃣ Actualizar estado (igual que antes)
     try {
       const resp = await fetch('../api/despacho/actualizarEstadoConsolidado.php', {
         method: 'POST',
@@ -745,24 +767,18 @@ document.getElementById('btnGenerarExcel').addEventListener('click', async () =>
         throw new Error(data.message || 'Error desconocido');
       }
       Swal.fire('¡Listo!','Los estados se han marcado como “Total”.','success');
-      // recarga o actualiza la UI si hace falta:
       window.location.reload();
     } catch (err) {
       console.error(err);
       Swal.fire('Error','No se pudieron actualizar los estados: ' + err.message,'error');
     }
 
-    const wsRes = XLSX.utils.aoa_to_sheet(resumen);
-    XLSX.utils.book_append_sheet(wb, wsRes, 'Resumen');
-
-    // Descargar
-    XLSX.writeFile(wb, `consolidado_liquidaciones_${num_op}.xlsx`);
-
   } catch (err) {
     console.error(err);
     alert('Error al generar el archivo.');
   }
 });
+
 </script>
 
 </div>

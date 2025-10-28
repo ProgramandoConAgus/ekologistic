@@ -28,6 +28,8 @@ $sql = "SELECT
   i.Qty_Box,
   i.Price_Box_EC AS 'PRICE BOX EC',
   i.Total_Price_EC AS 'TOTAL PRICE EC',
+  i.Price_Box_USA AS 'PRICE BOX USA',
+  i.Total_Price_USA AS 'TOTAL PRICE USA',
   c.ETA_Date AS 'ETA Date',
   c.New_ETA_DATE AS 'NEW ETA DATE'
 FROM container c
@@ -46,14 +48,15 @@ $result = $conexion->query($sql);
 // Contadores totales
 $total_inventory_boxes = 0; // pongo boxes por si despues los quieren ver
 $total_transit_boxes = 0; // pongo boxes por si despues los quieren ver
-$total_price = 0;
-
+$total_price_ec = 0;
+$total_price_usa = 0;
 // Guardo en array
 $items = [];
 while ($row = $result->fetch_assoc()) {
     $items[] = $row;
     
-    $total_price += $row['TOTAL PRICE EC'];
+    $total_price_ec += $row['TOTAL PRICE EC'];
+    $total_price_usa += $row['TOTAL PRICE USA'];
     
 }
 
@@ -391,7 +394,27 @@ $result->data_seek(0);
           </div>
           
           <div class="d-flex gap-3">
-            <!-- Primera tarjeta -->
+            <!-- Primera tarjeta Total USA-->
+            <div class="card prod-p-card bg-info mb-0">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="prod-icon">
+                    <i class="ti ti-package text-white f-36"></i>
+                  </div>
+                  <div class="ms-auto text-end text-white">
+                    
+                      <h3 class="mb-0 text-white">
+                          
+                      $<?= number_format($total_price_usa, 2) ?>
+                    </h3>
+                    
+                    <span>Monto Total USA</span>
+                   
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Primera tarjeta Total Ec-->
             <div class="card prod-p-card bg-warning mb-0">
               <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -402,10 +425,10 @@ $result->data_seek(0);
                     
                       <h3 class="mb-0 text-white">
                           
-                      $<?= number_format($total_price, 2) ?>
+                      $<?= number_format($total_price_ec, 2) ?>
                     </h3>
                     
-                    <span>Monto Total</span>
+                    <span>Monto Total EC</span>
                    
                   </div>
                 </div>
@@ -507,6 +530,8 @@ $result->data_seek(0);
                             <th>Qty_Box</th>
                             <th>Price Box Ec</th>
                             <th>TOTAL PRICE EC</th>
+                            <th>Price Box USA</th>
+                            <th>TOTAL PRICE USA</th>
                             <th>ETA Date</th>
                             <th>NEW ETA DATE</th>
                         </tr>
@@ -527,7 +552,8 @@ $result->data_seek(0);
                             <td><?= $row['Qty_Box'] ?></td>
                             <td>$<?= number_format($row['PRICE BOX EC'], 2) ?></td>
                             <td>$<?= number_format($row['TOTAL PRICE EC'], 2) ?></td>
-                           
+                            <td>$<?= number_format($row['PRICE BOX USA'], 2) ?></td>
+                            <td>$<?= number_format($row['TOTAL PRICE USA'], 2) ?></td>
                             <td><?= date('d/m/Y', strtotime($row['ETA Date'])) ?></td>
                             <?php
                             if ($row['NEW ETA DATE'] != null) {

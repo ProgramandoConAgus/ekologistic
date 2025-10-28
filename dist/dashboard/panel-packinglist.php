@@ -51,7 +51,7 @@ try {
   <!-- [Head] start -->
 
   <head>
-    <title>Dashboard Packing List | Eko Logistic</title>
+    <title>Packing List | Eko Logistic</title>
     <!-- [Meta] -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -341,12 +341,12 @@ try {
                 <ul class="breadcrumb">
                   <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
                   <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
-                  <li class="breadcrumb-item" aria-current="page">Dashboard Packing List</li>
+                  <li class="breadcrumb-item" aria-current="page">Packing List</li>
                 </ul>
               </div>
               <div class="col-md-12">
                 <div class="page-header-title">
-                  <h2 class="mb-0">Dashboard Packing List</h2>
+                  <h2 class="mb-0">Packing List</h2>
                 </div>
               </div>
             </div>

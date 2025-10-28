@@ -4,95 +4,114 @@ include('../../con_db.php');
 
 try {
     // 1) Recuperar filtros
-    $op      = $_GET['op']       ?? '';
-    $lot     = $_GET['lot']      ?? '';
-    $from    = $_GET['dateFrom'] ?? '';
-    $to      = $_GET['dateTo']   ?? '';
+    $op       = $_GET['op']       ?? '';
+    $dispatch = $_GET['dispatch'] ?? '';
+    $invoice  = $_GET['invoice']  ?? '';
 
-    // 2) Consulta base con JOIN en el orden correcto
+    // 2) Consulta base (tablas actuales)
     $sql = "
       SELECT
-        d.id,
-        i.idItem                      AS idItem,
-        c.num_op                      AS NUM_OP,
-        c.Number_Container            AS Number_Container,
-        c.Booking_BK                  AS Booking_BK,
-        d.numero_lote                 AS Lot_Number,
-        d.fecha_entrada               AS Entry_Date,
-        d.fecha_salida                AS Out_Date,
-        i.Number_PO                   AS Number_PO,
-        i.Number_Commercial_Invoice   AS Number_Commercial_Invoice,
-        d.numero_parte                AS Code_Product_EC,
-        d.descripcion                 AS Description,
-        d.cantidad                    AS Qty,
-        d.valor_unitario              AS Unit_Value,
-        d.valor                       AS Value,
-        d.unidad                      AS Unit,
-        d.longitud_in                 AS Length_in,
-        d.ancho_in                    AS Broad_in,
-        d.altura_in                   AS Height_in,
-        d.peso_lb                     AS Weight_lb,
-        d.estado                      AS Status,
-        d.recibo_almacen              AS Receive
-      FROM container c
-      INNER JOIN items i
-        ON i.idContainer = c.idContainer
-      INNER JOIN dispatch d
-        ON d.numero_factura = i.Number_Commercial_Invoice
-       AND d.notas          = c.Number_Container
-       AND d.numero_parte   = i.Code_Product_EC
-      WHERE d.estado = 'Cargado'
+  d.id,
+  c.num_op AS NUM_OP,
+  c.Number_Container,
+  c.Booking_BK,
+  d.fecha_entrada AS Entry_Date,
+  d.fecha_salida AS departure_date,
+  d.recibo_almacen AS Receive,
+  d.numero_lote AS Lot_Number,
+  d.numero_factura AS Number_Commercial_Invoice,
+  d.numero_parte AS Code_Product_EC,
+  d.descripcion AS Description_Dispatch,
+  d.modelo AS Modelo_Dispatch,
+
+  (SELECT i.Description FROM items i 
+   WHERE i.Number_Commercial_Invoice = d.numero_factura 
+     AND i.Code_Product_EC = d.numero_parte
+   ORDER BY i.Number_PO LIMIT 1) AS Description_Item,
+
+  (SELECT i.Number_PO FROM items i 
+   WHERE i.Number_Commercial_Invoice = d.numero_factura 
+     AND i.Code_Product_EC = d.numero_parte
+   ORDER BY i.Number_PO LIMIT 1) AS Number_PO,
+
+  (SELECT SUM(i.Qty_Box) FROM items i 
+   WHERE i.Number_Commercial_Invoice = d.numero_factura 
+     AND i.Code_Product_EC = d.numero_parte) AS Qty_Item_Packing,
+
+  d.palets AS palets,
+  d.codigo_despacho,
+  d.cantidad AS cantidad,
+  (d.palets * d.cantidad) AS Total_Despachado,
+  d.valor_unitario AS Unit_Value,
+  (d.valor_unitario * d.cantidad) AS Value,
+  d.unidad AS Unit,
+  d.longitud_in AS Length_in,
+  d.ancho_in AS Broad_in,
+  d.altura_in AS Height_in,
+  d.peso_lb AS Weight_lb,
+  d.valor_unitario_restante,
+  d.valor_restante,
+  d.unidad_restante,
+  d.longitud_in_restante,
+  d.ancho_in_restante,
+  d.altura_in_restante,
+  d.peso_lb_restante,
+  d.estado AS Status
+
+FROM palets_cargados d
+LEFT JOIN container c
+  ON c.Number_Container = d.notas
+
+WHERE d.estado = 'Cargado'
+
+
     ";
 
-    // 3) Construir filtros dinámicos
+    // 3) Armar condiciones dinámicas
     $conds  = [];
     $params = [];
     $types  = '';
 
     if ($op !== '') {
         $conds[]  = "c.num_op LIKE ?";
-        $params[] = "%{$op}%"; 
+        $params[] = "%{$op}%";
         $types   .= 's';
     }
-    if ($lot !== '') {
-        $conds[]  = "d.numero_lote LIKE ?";
-        $params[] = "%{$lot}%"; 
+
+    if ($dispatch !== '') {
+        $conds[]  = "d.codigo_despacho LIKE ?";
+        $params[] = "%{$dispatch}%";
         $types   .= 's';
     }
-    if ($from !== '' && $to !== '') {
-        // Comparar sólo fecha sin hora
-        $conds[]  = "DATE(d.fecha_entrada) BETWEEN ? AND ?";
-        $params[] = $from;   // 'YYYY-MM-DD'
-        $params[] = $to;     // 'YYYY-MM-DD'
-        $types   .= 'ss';
-    } elseif ($from !== '') {
-        $conds[]  = "DATE(d.fecha_entrada) >= ?";
-        $params[] = $from;
-        $types   .= 's';
-    } elseif ($to !== '') {
-        $conds[]  = "DATE(d.fecha_entrada) <= ?";
-        $params[] = $to;
+
+    if ($invoice !== '') {
+        $conds[]  = "d.numero_factura LIKE ?";
+        $params[] = "%{$invoice}%";
         $types   .= 's';
     }
+
 
     if (count($conds) > 0) {
         $sql .= ' AND ' . implode(' AND ', $conds);
     }
 
-    $sql .= " ORDER BY c.num_op, d.numero_parte";
+    $sql .= " ORDER BY c.num_op, d.descripcion, d.modelo;";
 
     // 4) Preparar y ejecutar
     $stmt = $conexion->prepare($sql);
     if ($params) {
         $stmt->bind_param($types, ...$params);
     }
+
     $stmt->execute();
+    $result = $stmt->get_result();
 
     // 5) Devolver JSON
-    $data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $data = $result->fetch_all(MYSQLI_ASSOC);
     echo json_encode($data);
 
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);
 }
+?>

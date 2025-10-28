@@ -101,7 +101,7 @@ try {
   <!-- [Head] start -->
 
   <head>
-  <title>Dashboard Dispatch Inventory | Eko Logistic</title>
+  <title>Dispatch Inventory | Eko Logistic</title>
   <!-- [Meta] -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -449,12 +449,12 @@ try {
                 <ul class="breadcrumb">
                   <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
                   <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
-                  <li class="breadcrumb-item" aria-current="page">Dashboard Warehouse Receipt</li>
+                  <li class="breadcrumb-item" aria-current="page">Warehouse Receipt</li>
                 </ul>
               </div>
               <div class="col-md-12">
                 <div class="page-header-title">
-                  <h2 class="mb-0">Dashboard Warehouse Receipt</h2>
+                  <h2 class="mb-0">Warehouse Receipt</h2>
                 </div>
               </div>
             </div>
@@ -481,6 +481,43 @@ try {
       </button>
     </div>
   </div>
+  <!-- Modal de filtros -->
+  <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form id="filterForm">
+                  <!-- Filtro por NUM OP -->
+                  <div class="mb-3">
+                    <label for="numOpFilter" class="form-label">Número de OP</label>
+                    <input type="text" class="form-control" id="numOpFilter" placeholder="Ingrese número de OP">
+                  </div>
+
+                  <!-- Filtro por Code Dispatch -->
+                  <div class="mb-3">
+                    <label for="dispatchFilter" class="form-label">Code Dispatch</label>
+                    <input type="text" class="form-control" id="dispatchFilter" placeholder="Ingrese código de despacho">
+                  </div>
+
+                  <!-- Filtro por Number_Commercial_Invoice -->
+                  <div class="mb-3">
+                    <label for="invoiceFilter" class="form-label">Número de Commercial Invoice</label>
+                    <input type="text" class="form-control" id="invoiceFilter" placeholder="Ingrese número de factura comercial">
+                  </div>
+
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
+              </div>
+            </div>
+          </div>
+        </div>
 
   <div class="card-body">
     <div class="table-responsive">
@@ -647,7 +684,7 @@ document.getElementById('selectCodigoDespacho').addEventListener('change', funct
 });
 
 document.getElementById('btnConfirmarDespacho').addEventListener('click', async function () {
-  const codigoSeleccionado = document.getElementById('selectCodigoDespacho').value;
+  const codigoSeleccionado = document.getElementById('selectCodigoDespacho').value.trim();
 
   if (!codigoSeleccionado) {
     alert("Por favor selecciona un código de despacho.");
@@ -655,74 +692,73 @@ document.getElementById('btnConfirmarDespacho').addEventListener('click', async 
   }
 
   try {
-      console.log("Código seleccionado:", codigoSeleccionado);
+    console.log("Código seleccionado:", codigoSeleccionado);
 
     const response = await fetch('../api/despacho/get_datos_por_codigo.php', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      codigo_despacho: codigoSeleccionado
-    })
-  })
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codigo_despacho: codigoSeleccionado })
+    });
 
-    if (!response.ok) throw new Error("Error en la respuesta del servidor");
+    if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
 
-    const responseData = await response.json();
+    let responseData;
+    try {
+      responseData = await response.json();
+    } catch {
+      throw new Error("La respuesta del servidor no es JSON válido.");
+    }
 
-  if (
-    !responseData.success ||
-    !Array.isArray(responseData.data) ||
-    responseData.data.length === 0
-  ) {
-    alert("No se encontraron datos para ese código.");
-    return;
-  }
+    if (
+      !responseData.success ||
+      !Array.isArray(responseData.data) ||
+      responseData.data.length === 0
+    ) {
+      alert("No se encontraron datos para ese código de despacho.");
+      return;
+    }
 
-  const data = responseData.data;
+    const data = responseData.data;
 
-  const encabezados = [
-    "Warehouse Receipt", "Number_Commercial_Invoice", "Lot_Number", "Code Product EC",
-    "Number_PO", "Description", "Packing U.", "QTY Pallet", "QTY Box", "Total Boxes",
-    "Length (in)", "Broad (in)", "Height (in)", "Weight (lb)", "Unit Value", "Value"
-  ];
+    const encabezados = [
+      "Warehouse Receipt", "Number_Commercial_Invoice", "Lot_Number",
+      "Number_PO", "Description", "Packing U.", "QTY Pallet", "QTY Box", "Total Boxes",
+      "Length (in)", "Width (in)", "Height (in)", "Weight (lb)"
+    ];
 
-  const datosFormateados = data.map(item => [
-    item.Receive,                          // Warehouse Receipt
-    item.Number_Commercial_Invoice,
-    item.Lot_Number,
-    item.Code_Product_EC,
-    item.Number_PO,
-    item.Description_Item,
-    item.Qty_Item_Packing,                // Packing U.
-    item.palets,
-    item.cantidad,
-    item.Total_Despachado,
-    item.Length_in,
-    item.Broad_in,
-    item.Height_in,
-    item.Weight_lb,
-    item.Unit_Value,
-    item.Value
-  ]);
+    const datosFormateados = data.map(item => [
+      item.Receive || '',
+      item.Number_Commercial_Invoice || '',
+      item.Lot_Number || '',
+      item.Number_PO || '',
+      item.Description_Item || '',
+      item.Qty_Item_Packing || '',
+      item.palets || '',
+      item.cantidad || '',
+      item.Total_Despachado || '',
+      item.Length_in || '',
+      item.Broad_in || '',
+      item.Height_in || '',
+      item.Weight_lb || ''
+    ]);
 
+    // Crear archivo Excel
     const ws = XLSX.utils.aoa_to_sheet([encabezados, ...datosFormateados]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Despacho");
     XLSX.writeFile(wb, `despacho_${codigoSeleccionado}.xlsx`);
 
-    // Cerrar modal
+    // Cerrar modal (solo si existe)
     const modalElement = document.getElementById('modalCodigoDespacho');
     const modalInstance = bootstrap.Modal.getInstance(modalElement);
-    if (modalInstance) {
-      modalInstance.hide();
-    }
+    if (modalInstance) modalInstance.hide();
+
   } catch (error) {
     console.error("Error al obtener los datos:", error);
-    alert("Ocurrió un error al generar el archivo.");
+    alert("Ocurrió un error al generar el archivo. Ver consola para más detalles.");
   }
 });
+
 
 
 
@@ -884,100 +920,118 @@ $(document).ready(function(){
 }
 
 
-  // Función de aplicar filtros (igual que tenías)
-  async function aplicarFiltrosAvanzados() {
-    // 0) Asegurarnos de tener la instancia de DataTable
-    const table = $('#pc-dt-simple').DataTable();
+async function aplicarFiltrosAvanzados() {
+  const table = $('#pc-dt-simple').DataTable();
 
-    // 1) Leer filtros
-    const op    = $('#OpFilter').val().trim();
-    const lot   = $('#LotFilter').val().trim();
-    const rango = $('#rangoFechas').val().trim();
-    const params = new URLSearchParams();
-    if (op)    params.append('op', op);
-    if (lot)   params.append('lot', lot);
-    if (rango) {
-      const [f,t] = rango.split(' a ').map(s=>s.trim());
-      params.append('dateFrom', toISODate(f));
-      params.append('dateTo',   toISODate(t));
-    }
+  // 1) Leer valores de los filtros
+  const op       = $('#numOpFilter').val().trim();
+  const dispatch = $('#dispatchFilter').val().trim();
+  const invoice  = $('#invoiceFilter').val().trim();
 
-    try {
-      // 2) Llamada AJAX
-      const query = params.toString();
-      const res   = await fetch(`../api/filters/fetchDispatch.php?${query}`);
-      if (!res.ok) throw new Error(res.statusText);
-      const items = await res.json();
+  // 2) Construir parámetros
+  const params = new URLSearchParams();
+  if (op) params.append('op', op);
+  if (dispatch) params.append('dispatch', dispatch);
+  if (invoice) params.append('invoice', invoice);
 
-      // 3) Limpiar y repoblar la tabla
-      table.clear();
-      items.forEach(item => {
-        table.row.add([
-          item.NUM_OP,
-          item.Number_Container,
-          item.Booking_BK,
-          `<input
-            type="text"
-            class="form-control form-control-sm po-input"
-            data-id="${item.idItem}"
-            value="${item.Number_PO||''}"
-          >`,
-          item.Lot_Number,
-          item.Receive,
-          item.Entry_Date ? item.Entry_Date : '<span class="text-muted">no cargado</span>',
-          item.Out_Date   ? item.Out_Date   : '<span class="text-muted">no cargado</span>',
-          item.Code_Product_EC,
-          item.Description,
-          item.Qty,
-          item.Unit_Value,
-          item.Value,
-          item.Unit,
-          item.Length_in,
-          item.Broad_in,
-          item.Height_in,
-          item.Weight_lb,
-          `<select
-            class="form-select form-select-sm status-select"
-            data-id="${item.id}"
-            data-container="${item.Number_Container}"
-            data-invoice="${item.Number_Commercial_Invoice}"
-          >
-            <option value="Cargado"${item.Status==='Cargado'?' selected':''}>Cargado</option>
-            <option value="En Almacén"${item.Status==='En Almacén'?' selected':''}>En Almacén</option>
-          </select>`
-        ]);
+  try {
+    const query = params.toString();
+    const res = await fetch(`../api/filters/fetchDispatch.php?${query}`);
+    if (!res.ok) throw new Error(res.statusText);
+    const items = await res.json();
+
+    // 3) Limpiar la tabla
+    table.clear();
+
+    // 4) Agregar las filas
+    items.forEach(item => {
+      table.row.add([
+        item.NUM_OP || '',
+        item.codigo_despacho || '',
+
+        // Departure Date editable
+        `<input type="date"
+          class="form-control form-control-sm editable-field"
+          data-id="${item.id}"
+          data-field="departure_date"
+          value="${item.departure_date || ''}">`,
+
+        item.Receive || '',
+        item.Lot_Number || '',
+        item.Number_PO || '',
+        item.Number_Commercial_Invoice || '',
+        item.Description_Item || '',
+        item.palets || '',
+        item.cantidad || '',
+        item.Qty_Item_Packing || '',
+
+        // Medidas editables
+        `<input type="number" step="any"
+          class="form-control form-control-sm editable-field"
+          data-id="${item.id}" data-field="Length_in"
+          value="${item.Length_in || ''}">`,
+
+        `<input type="number" step="any"
+          class="form-control form-control-sm editable-field"
+          data-id="${item.id}" data-field="Broad_in"
+          value="${item.Broad_in || ''}">`,
+
+        `<input type="number" step="any"
+          class="form-control form-control-sm editable-field"
+          data-id="${item.id}" data-field="Height_in"
+          value="${item.Height_in || ''}">`,
+
+        `<input type="number" step="any"
+          class="form-control form-control-sm editable-field"
+          data-id="${item.id}" data-field="Weight_lb"
+          value="${item.Weight_lb || ''}">`,
+
+        // Select de estado editable
+        `<select class="form-select form-select-sm status-select"
+          data-id="${item.id}"
+          data-container="${item.Number_Container || ''}"
+          data-invoice="${item.Number_Commercial_Invoice || ''}">
+          <option value="Cargado"${item.Status === 'Cargado' ? ' selected' : ''}>Cargado</option>
+          <option value="En Almacén"${item.Status === 'En Almacén' ? ' selected' : ''}>En Almacén</option>
+          <option value="Completado"${item.Status === 'Completado' ? ' selected' : ''}>Completado</option>
+        </select>`
+      ]);
+    });
+
+    table.draw();
+
+    // 5) Cerrar el modal de filtros
+    bootstrap.Modal.getInstance($('#filterModal')[0])?.hide();
+
+    // 6) Reasignar los eventos de edición
+    const tbody = $('#pc-dt-simple tbody');
+
+    // Cambio de estado
+    tbody
+      .off('change', '.status-select')
+      .on('change', '.status-select', handleStatusChange);
+
+    // Cambio en campos numéricos o fecha
+    tbody
+      .off('change', '.editable-field')
+      .on('change', '.editable-field', function () {
+        const id = this.dataset.id;
+        const field = this.dataset.field;
+        const value = this.value.trim();
+        handleFieldChange(field, value, id);
       });
-      table.draw();
 
-      // 4) Cerrar modal
-      bootstrap.Modal.getInstance($('#filterModal')[0])?.hide();
-
-      // 5) Volver a enganchar los handlers
-     $('#pc-dt-simple tbody')
-  .off('change', '.status-select').on('change', '.status-select', handleStatusChange)
-  .off('change', '.po-input')    .on('change', '.po-input',    handlePoChange)
-  .off('change', 'input[data-field]').on('change', 'input[data-field]', function () {
-    const id = this.dataset.id;
-    const field = this.dataset.field;
-    const value = this.value.trim();
-    handleFieldChange(field, value, id);
-  });
-
-
-    } catch (err) {
-      console.error('Error al aplicar filtros:', err);
-      Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
-    }
+  } catch (err) {
+    console.error('Error al aplicar filtros:', err);
+    Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
   }
+}
 
+async function limpiarFiltrosAvanzados() {
+ $('#numOpFilter, #dispatchFilter, #invoiceFilter').val('');
+  await aplicarFiltrosAvanzados();
+}
 
-  // Limpia filtros y llama a la función anterior
-  async function limpiarFiltrosAvanzados() {
-    $('#OpFilter, #LotFilter').val('');
-    const fp = document.getElementById('rangoFechas')._flatpickr;
-    if (fp) fp.clear();
-    await aplicarFiltrosAvanzados();
-  }
 
 </script>
 
