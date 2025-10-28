@@ -18,6 +18,7 @@ $sql = "SELECT
   pl.IdPackingList AS 'ITEM #',
   i.IdItem,
   c.num_op AS 'Num OP',
+  c.Number_Container AS 'Container Number',
   i.Number_PO,
   i.Customer,
   i.Description,
@@ -547,6 +548,7 @@ $result->data_seek(0);
                   <thead>
                       <tr>
                           <th>Num OP</th>
+                          <th>Container Num</th>
                           <th>Number_PO</th>
                           <th>Customer</th>
                           <th>Description</th>
@@ -576,6 +578,7 @@ $result->data_seek(0);
                       ?>
                       <tr>
                           <td><?= $row['Num OP'] ?></td>
+                          <td><?= $row['Container Number'] ?></td>
                           <td><?= $row['Number_PO'] ?></td>
                           <td><?= $row['Customer'] ?></td>
                           <td><?= $row['Description'] ?></td>

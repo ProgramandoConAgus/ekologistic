@@ -107,7 +107,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
       </a>
       <ul class="pc-submenu">
         <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse Inventory</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse USA 1</a></li>
         <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA 2</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
         <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Warehouse Receipt</a></li>
@@ -555,28 +555,35 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         const json = await resp.json();
         Swal.close();
 
-        if (json.success) {
-          Swal.fire({
-            icon: 'success',
-            title: '¡Listo!',
-            text: json.message
-          });
-        } else {
+      if (json.success) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Done!',
+              text: json.message,
+              showConfirmButton: false,
+              timer: 1200
+            });
+
+            // Redirigir después de un breve delay
+            setTimeout(() => {
+              window.location.href = '../dashboard/warehouse-inventory.php';
+            }, 1200);
+          } else {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: json.message || 'An unexpected problem occurred.'
+            });
+          }
+        } catch (err) {
+          console.error(err);
           Swal.fire({
             icon: 'error',
-            title: 'Error',
-            text: json.message || 'Ocurrió un problema.'
+            title: 'Network Error',
+            text: 'Could not connect to the server.'
           });
         }
-      } catch (err) {
-        console.error(err);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error de red',
-          text: 'No se pudo conectar con el servidor.'
-        });
-      }
-    });
+      });
   </script>
 
     <!-- [Page Specific JS] start -->

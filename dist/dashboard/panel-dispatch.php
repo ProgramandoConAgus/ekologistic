@@ -500,7 +500,7 @@ try {
             <th>Code Product EC</th>
             <th>Description</th>
             <th>Palets</th>
-            <th>Cantidad</th>
+            <th>Qty</th>
             <th>Qty Item Packing</th>
             <th>Unit Value</th>
             <th>Value</th>
