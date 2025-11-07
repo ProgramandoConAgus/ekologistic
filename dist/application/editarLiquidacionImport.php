@@ -24,6 +24,7 @@ SELECT
   t.NombreTipoIncoterm,
   t.IdTipoIncoterm AS idTipo,
   i.IdIncotermsImport,
+  il.IdItemsLiquidacionImport,
   il.NombreItems,
   ii.Cantidad,
   ii.ValorUnitario,
@@ -398,7 +399,7 @@ while ($row = $result->fetch_assoc()) {
                   $vt   = floatval($item['ValorTotal']);
                   $tipo = intval($item['idTipo']);  // <-- aquí
                 ?>
-                <tr data-item-id="<?= intval($item['IdIncotermsImport']) ?>">
+                <tr data-item-id="<?= intval($item['IdItemsLiquidacionImport'] ?? $item['IdIncotermsImport']) ?>">
                   <td><?= htmlspecialchars($item['NombreItems']) ?></td>
                   <td>
                     <input type="number" class="form-control form-control-sm cantidad" value="<?= $cant ?>" min="0">
@@ -486,15 +487,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Convierte cualquier valor del input en número, soporta coma decimal
   function normalizaNumero(v) {
-    if (!v) return 0;
-    v = v.toString().trim();
-
-    // Si contiene coma, asumimos formato europeo
-    if (v.includes(",")) {
-      v = v.replace(/\./g,"").replace(",","."); // elimina miles y cambia coma por punto
+    if (v === undefined || v === null) return 0;
+    let s = String(v).trim();
+    if (s === '') return 0;
+    // Si viene con porcentaje, convertir a decimal (15% -> 0.15)
+    if (s.indexOf('%') !== -1) {
+      s = s.replace('%', '').replace(',', '.').trim();
+      const n = parseFloat(s);
+      return isNaN(n) ? 0 : n / 100;
     }
-
-    return parseFloat(v) || 0;
+    // Si contiene coma como decimal (formato local), eliminar separador de miles
+    if (s.indexOf(',') !== -1) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      s = s.replace(/,/g, '.');
+    }
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
   }
 
   // Formatea número a string con coma decimal y 2 decimales
@@ -575,7 +584,66 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Inicializar inputs que deben mostrarse como porcentajes (arancel, MPH, HMF)
+  function initPercentDisplays() {
+    const arancelIds = [64,65,51];
+    const mphIds = [18,35,49];
+    const hmfIds = [19,36,50];
+
+    document.querySelectorAll('tr[data-item-id]').forEach(tr => {
+      const itemId = Number(tr.dataset.itemId || 0);
+      const qty = tr.querySelector('.cantidad');
+      const vu = tr.querySelector('.valor-unitario');
+      if (!qty) return;
+
+      if (arancelIds.includes(itemId)) {
+        qty.type = 'text';
+        qty.dataset.isPercent = '1';
+        qty.value = (Number(qty.value) * 100).toFixed(2).replace('.', ',') + '%';
+        if (vu) vu.value = vu.value; // keep existing
+      }
+
+      if (mphIds.includes(itemId)) {
+        qty.type = 'text';
+        qty.dataset.isPercent = '1';
+        qty.dataset.decimal = '0.003464';
+        qty.value = (Number(qty.value) * 100).toFixed(4).replace('.', ',') + '%';
+        qty.readOnly = true;
+      }
+
+      if (hmfIds.includes(itemId)) {
+        qty.type = 'text';
+        qty.dataset.isPercent = '1';
+        qty.dataset.decimal = '0.00125';
+        qty.value = (Number(qty.value) * 100).toFixed(4).replace('.', ',') + '%';
+        qty.readOnly = true;
+      }
+
+      // attach focus/blur for percent inputs
+      if (qty && qty.dataset && qty.dataset.isPercent) {
+        qty.addEventListener('focus', () => {
+          let v = String(qty.value || '').trim();
+          if (v.indexOf('%') !== -1) v = v.replace('%','').replace(',', '.').trim();
+          qty.value = v;
+        });
+        qty.addEventListener('blur', () => {
+          let v = String(qty.value || '').trim().replace(',', '.');
+          let n = parseFloat(v);
+          if (isNaN(n)) n = 0;
+          if (qty.dataset.decimal) {
+            qty.value = n.toFixed(4).replace('.', ',') + '%';
+          } else {
+            qty.value = n.toFixed(2).replace('.', ',') + '%';
+          }
+          recalcularFila(tr);
+          recalcularTodo();
+        });
+      }
+    });
+  }
+
   attachEvents();
+  initPercentDisplays();
   recalcularTodo();
 
 });
@@ -590,14 +658,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const datos = [];
     let totalGeneral = 0;
 
+    function parseSmartNumber(s) {
+      if (s === undefined || s === null) return 0;
+      let str = String(s).trim();
+      if (str === '') return 0;
+      if (str.indexOf('%') !== -1) {
+        str = str.replace('%','').replace(',', '.');
+        const n = parseFloat(str);
+        return isNaN(n) ? 0 : n / 100;
+      }
+      if (str.indexOf(',') !== -1) {
+        str = str.replace(/\./g, '').replace(',', '.');
+      } else {
+        str = str.replace(/,/g, '.');
+      }
+      const n = parseFloat(str);
+      return isNaN(n) ? 0 : n;
+    }
+
     document.querySelectorAll('.accordion-item tbody tr').forEach(row => {
-      // 1) ID de la fila de pivot
+      // 1) ID de la fila de pivot or item id
       const idInc = parseInt(row.dataset.itemId, 10);
       // 2) Cantidad y Valor Unitario
-      const qtyRaw  = row.querySelector('.cantidad')?.value.replace(',', '.') || '0';
-      const vuRaw   = row.querySelector('.valor-unitario')?.value.replace(/\./g, '').replace(',', '.') || '0';
-      const cantidad      = parseFloat(qtyRaw) || 0;
-      const valorUnitario = parseFloat(vuRaw) || 0;
+      const qtyRaw  = row.querySelector('.cantidad')?.value || '0';
+      const vuRaw   = row.querySelector('.valor-unitario')?.value || '0';
+      const cantidad      = parseSmartNumber(qtyRaw) || 0;
+      const valorUnitario = parseFloat(vuRaw.replace(/\./g, '').replace(',', '.')) || 0;
 
       // 3) Recalcular Totales
       const valorTotal = cantidad * valorUnitario;

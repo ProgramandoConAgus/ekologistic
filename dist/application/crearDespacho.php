@@ -737,48 +737,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <script>
-document.getElementById('addNewDeliveryBtn').addEventListener('click', () => {
-  const tbody = document.querySelector('table tbody');
-
-  // Buscar el item-id del ítem original con nombre "New delivery"
-  const original = [...tbody.querySelectorAll('tr[data-item-id]')].find(tr =>
-    tr.children[0].textContent.trim().toLowerCase() === 'new delivery'
-  );
-  const itemId = original ? original.dataset.itemId : '';
-
-  const tr = document.createElement('tr');
-  tr.setAttribute('data-item-id', itemId);
-
-  tr.innerHTML = `
-    <td>New delivery</td>
-    <td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>
-    <td>
-      <div class="input-group input-group-sm">
-        <span class="input-group-text">$</span>
-        <input type="text" class="form-control valor-unitario" value="0,00">
-      </div>
-    </td>
-    <td>
-      <div class="input-group input-group-sm">
-        <span class="input-group-text">$</span>
-        <input type="text" class="form-control valor-total" value="0,00" readonly>
-      </div>
-    </td>
-    <td>
-      <input type="text" class="form-control form-control-sm notas" placeholder="Notas">
-    </td>
-    <td>
-      <button type="button" class="btn btn-danger btn-sm btn-delete-row">Eliminar</button>
-    </td>
-  `;
-
-  const addButtonRow = tbody.querySelector('tr:last-child');
-  tbody.insertBefore(tr, addButtonRow);
-});
 
 document.getElementById('addNewDeliveryBtn').addEventListener('click', () => {
   const tbody = document.querySelector('table tbody');
-  const itemId = 1; // ID real de "New delivery" si ya está creado
+  const itemId = 9; // ID real de "New delivery" si ya está creado
 
   const tr = document.createElement('tr');
   tr.setAttribute('data-item-id', itemId);
@@ -854,7 +816,7 @@ document.querySelector('table tbody').addEventListener('click', (e) => {
 });
 
 </script>
-
+  
 
 
 
@@ -873,7 +835,7 @@ document.querySelector('table tbody').addEventListener('click', (e) => {
       <div class="footer-wrapper container-fluid">
         <div class="row">
           <div class="col-sm-6 my-1">
-            <p class="m-0">Software <a style="color:#afc97c"> EKO LOGISTIC</a></p>
+            <p class="m-0">Software <a style="color:#afc9 7c"> EKO LOGISTIC</a></p>
           </div>
           <div class="col-sm-6 ms-auto my-1">
             <ul class="list-inline footer-link mb-0 justify-content-sm-end d-flex">

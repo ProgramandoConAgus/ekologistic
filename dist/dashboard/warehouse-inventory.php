@@ -664,7 +664,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const palletsValue = parseFloat(input.value) || 0;
 
       // Calcular Load Qty
-      const loadQty = (palletsValue * qtyPerPallet).toFixed(2);
+      const loadQty = (qtyPerPallet)
       loadQtyInput.value = loadQty;
     });
   });

@@ -22,10 +22,11 @@ $importsData = $stmt->get_result()->fetch_assoc();
 
 // Consulta para los incoterms y sus ítems
 $query = "
-  SELECT 0
+  SELECT
     t.IdTipoIncoterm    AS idTipo,
     t.NombreTipoIncoterm,
     i.IdIncotermsImport,
+    il.IdItemsLiquidacionImport,
     il.NombreItems,
     ii.Cantidad,
     ii.ValorUnitario,
@@ -39,7 +40,7 @@ $query = "
   JOIN tipoincoterm t 
     ON il.IdTipoIncoterm = t.IdTipoIncoterm
   WHERE i.IdImports = ?
-  ORDER BY il.IdItemsLiquidacionImport
+  ORDER BY il.posicion
 ";
 
 $stmt = $conexion->prepare($query);
@@ -396,16 +397,45 @@ while ($row = $result->fetch_assoc()) {
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($items as $item): ?>
-            <?php $totalGeneral += floatval($item['ValorTotal']); ?>
-            <tr>
-              <td><?= htmlspecialchars($item['NombreItems']) ?></td>
-              <td><?= floatval($item['Cantidad']) ?></td>
-              <td>$<?= number_format(floatval($item['ValorUnitario']), 2, ',', '.') ?></td>
-              <td>$<?= number_format(floatval($item['ValorTotal']),   2, ',', '.') ?></td>
-              <td><?= htmlspecialchars($item['Notas']) ?></td>
-            </tr>
-          <?php endforeach; ?>
+                  <?php foreach ($items as $item): ?>
+                    <?php
+                      $totalGeneral += floatval($item['ValorTotal']);
+                      $qty = floatval($item['Cantidad']);
+                      $itemId = isset($item['IdItemsLiquidacionImport']) ? intval($item['IdItemsLiquidacionImport']) : 0;
+
+                      // IDs que deben mostrarse como porcentajes (aranceles)
+                      $arancelIds = [64,65,51];
+                      // MPH
+                      $mphIds = [18,35,49];
+                      // HMF
+                      $hmfIds = [19,36,50];
+
+                      if (in_array($itemId, $arancelIds, true)) {
+                        // mostrar 15.00% para 0.15
+                        $displayQty = number_format($qty * 100, 2, ',', '.').'%';
+                      } elseif (in_array($itemId, $mphIds, true)) {
+                        // mostrar con 4 decimales para valores muy pequeños
+                        $displayQty = number_format($qty * 100, 4, ',', '.').'%';
+                      } elseif (in_array($itemId, $hmfIds, true)) {
+                        $displayQty = number_format($qty * 100, 4, ',', '.').'%';
+                      } else {
+                        // por defecto mostrar número sin formateo de porcentaje
+                        // si es entero mostrar sin decimales
+                        if (fmod($qty, 1.0) === 0.0) {
+                          $displayQty = number_format($qty, 0, ',', '.');
+                        } else {
+                          $displayQty = rtrim(rtrim(number_format($qty, 6, ',', '.'), '0'), ',');
+                        }
+                      }
+                    ?>
+                    <tr>
+                      <td><?= htmlspecialchars($item['NombreItems']) ?></td>
+                      <td><?= $displayQty ?></td>
+                      <td>$<?= number_format(floatval($item['ValorUnitario']), 2, ',', '.') ?></td>
+                      <td>$<?= number_format(floatval($item['ValorTotal']),   2, ',', '.') ?></td>
+                      <td><?= htmlspecialchars($item['Notas']) ?></td>
+                    </tr>
+                  <?php endforeach; ?>
         </tbody>
       </table>
     </div>

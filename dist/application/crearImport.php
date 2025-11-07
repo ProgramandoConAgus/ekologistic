@@ -3,9 +3,7 @@ session_start();
 include('../usuarioClass.php');
 include("../con_db.php");
 $IdUsuario=$_SESSION["IdUsuario"];
-
-$usuario= new Usuario($conexion);
-
+$usuario = new Usuario($conexion);
 $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 ?>
@@ -32,7 +30,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
  <!-- [Google Font : Public Sans] icon -->
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- [Tabler Icons] https://tablericons.com -->
+                    
 <link rel="stylesheet" href="../assets/fonts/tabler-icons.min.css" >
 <!-- [Feather Icons] https://feathericons.com -->
 <link rel="stylesheet" href="../assets/fonts/feather.css" >
@@ -511,7 +509,24 @@ while ($inc = $res->fetch_assoc()) {
 document.addEventListener("DOMContentLoaded", function () {
 
   function normalizaNumero(v) {
-    return parseFloat((v || "0").toString().replace(",", "."));
+    // Acepta formatos: "15%", "15,5%", "1.234,56", "1234.56" y "0.15"
+    if (v === undefined || v === null) return 0;
+    let s = String(v).trim();
+    if (s === '') return 0;
+    // Si viene con porcentaje, convertir a decimal
+    if (s.indexOf('%') !== -1) {
+      s = s.replace('%', '').replace(',', '.').trim();
+      const n = parseFloat(s);
+      return isNaN(n) ? 0 : n / 100;
+    }
+    // Si contiene coma como decimal (formato local), eliminar separador de miles
+    if (s.indexOf(',') !== -1) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      s = s.replace(/,/g, '.');
+    }
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
   }
 
   function recalcularFila(tr) {
@@ -566,6 +581,28 @@ document.addEventListener("DOMContentLoaded", function () {
           recalcularTodo();
         });
       });
+      // Si la fila tiene un input de cantidad marcado como porcentaje, agregar focus/blur
+      const qty = tr.querySelector('.cantidad');
+      if (qty && qty.dataset && qty.dataset.isPercent) {
+        qty.addEventListener('focus', () => {
+          let v = String(qty.value || '').trim();
+          if (v.indexOf('%') !== -1) {
+            v = v.replace('%', '').replace(',', '.').trim();
+          } else {
+            const n = parseFloat(v.replace(',', '.'));
+            if (!isNaN(n) && n <= 1) v = (n * 100).toString();
+          }
+          qty.value = v;
+        });
+        qty.addEventListener('blur', () => {
+          let v = String(qty.value || '').trim().replace(',', '.');
+          let n = parseFloat(v);
+          if (isNaN(n)) n = 0;
+          qty.value = (n).toFixed(2).replace('.', ',') + '%';
+          recalcularFila(tr);
+          recalcularTodo();
+        });
+      }
     });
   }
 
@@ -611,22 +648,64 @@ document.addEventListener("DOMContentLoaded", function () {
 
           // Arancel EDITABLE
           if ([64,65,51].includes(id)) {
-            qty.value = 0.15;
+            // Mostrar como porcentaje visualmente (15%) pero mantener calculo en decimal (0.15)
+            qty.type = 'text';
+            qty.dataset.isPercent = '1';
+            // Mostrar con 2 decimales y coma como separador decimal
+            qty.value = (0.15 * 100).toFixed(2).replace('.', ',') + '%';
             vu.value = totalEC;
           }
 
-          // MPH fijo
+          // MPH fijo (mostrar como porcentaje muy pequeño)
           if ([18,35,49].includes(id)) {
-            qty.value = 0.003464;
+            qty.type = 'text';
+            qty.dataset.isPercent = '1';
+            const pct = 0.003464 * 100; // 0.3464%
+            qty.value = pct.toFixed(4).replace('.', ',') + '%';
             vu.value = totalEC;
             qty.readOnly = true;
+            // store actual decimal in dataset for calculations if needed
+            qty.dataset.decimal = '0.003464';
           }
 
-          // HMF fijo
+          // HMF fijo (mostrar como porcentaje muy pequeño)
           if ([19,36,50].includes(id)) {
-            qty.value = 0.00125;
+            qty.type = 'text';
+            qty.dataset.isPercent = '1';
+            const pct = 0.00125 * 100; // 0.125%
+            qty.value = pct.toFixed(4).replace('.', ',') + '%';
             vu.value = totalEC;
             qty.readOnly = true;
+            qty.dataset.decimal = '0.00125';
+          }
+
+          // Attach focus/blur handlers for percentage inputs so they are editable nicely
+          if (qty && qty.dataset && qty.dataset.isPercent) {
+            qty.addEventListener('focus', () => {
+              let v = String(qty.value || '').trim();
+              if (v.indexOf('%') !== -1) {
+                v = v.replace('%', '').replace(',', '.').trim();
+              } else {
+                const n = parseFloat(v.replace(',', '.'));
+                if (!isNaN(n) && n <= 1) v = (n * 100).toString();
+              }
+              qty.value = v;
+            });
+
+            qty.addEventListener('blur', () => {
+              let v = String(qty.value || '').trim().replace(',', '.');
+              let n = parseFloat(v);
+              if (isNaN(n)) n = 0;
+              // si el campo tiene dataset.decimal lo uso para formatear con precision
+              if (qty.dataset.decimal) {
+                // mostrar con 4 decimales para valores muy pequeños
+                qty.value = (n).toFixed(4).replace('.', ',') + '%';
+              } else {
+                qty.value = (n).toFixed(2).replace('.', ',') + '%';
+              }
+              recalcularFila(tr);
+              recalcularTodo();
+            });
           }
 
           // recalcular fila
@@ -669,22 +748,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const items = [];
+    // helper para parsear cantidades que pueden venir como "15%" o como números
+    function parseSmartNumber(s) {
+      if (s === undefined || s === null) return 0;
+      let str = String(s).trim();
+      if (str === '') return 0;
+      if (str.indexOf('%') !== -1) {
+        str = str.replace('%', '').replace(',', '.');
+        const n = parseFloat(str);
+        return isNaN(n) ? 0 : n / 100;
+      }
+      if (str.indexOf(',') !== -1) {
+        str = str.replace(/\./g, '').replace(',', '.');
+      } else {
+        str = str.replace(/,/g, '.');
+      }
+      const n = parseFloat(str);
+      return isNaN(n) ? 0 : n;
+    }
+
     document.querySelectorAll(`.incoterm-item[data-incoterm="${incotermId}"] tbody tr`)
       .forEach(tr => {
         const itemId = +tr.dataset.itemId;
-        const cantidad = parseFloat(tr.querySelector('.cantidad').value.replace(',', '.')) || 0;
-        const valorUnit = parseFloat(
-          tr.querySelector('.valor-unitario').value
-            .replace(/\./g, '').replace(',', '.')
-        ) || 0;
+        const rawCantidad = tr.querySelector('.cantidad')?.value;
+        const cantidad = parseSmartNumber(rawCantidad) || 0;
+  const rawVU = tr.querySelector('.valor-unitario')?.value || '0';
+  // usar parseSmartNumber para manejar correctamente separadores de miles y decimales
+  const valorUnitNum = parseSmartNumber(rawVU) || 0;
+  const valorUnit = Number(valorUnitNum.toFixed(2));
         const valorTotal = cantidad * valorUnit;
         const notas = (tr.querySelector('.notas')?.value || '').trim();
-        const impuesto = parseFloat(tr.querySelector('.impuesto')?.value || "0");
+        // impuesto: entrada suele ser '5' (porcentaje). Permitimos '5%' también.
+        function parsePercentValue(s) {
+          if (s === undefined || s === null) return 0;
+          let str = String(s).trim();
+          if (str.indexOf('%') !== -1) {
+            str = str.replace('%', '').replace(',', '.');
+          }
+          str = str.replace(/\./g, '').replace(',', '.');
+          const n = parseFloat(str);
+          return isNaN(n) ? 0 : n;
+        }
+
+        const impuesto = parsePercentValue(tr.querySelector('.impuesto')?.value || "0") || 0;
         const valorImpuesto = valorTotal * (impuesto / 100);
 
         items.push({
           itemId,
-          cantidad: cantidad.toFixed(2),
+          cantidad: cantidad.toFixed(6), // mantener precisión si viene en fracciones
           valorUnitario: valorUnit.toFixed(2),
           valorTotal: valorTotal.toFixed(2),
           notas,
