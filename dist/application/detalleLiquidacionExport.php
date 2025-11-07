@@ -9,7 +9,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 $idExport = $_GET["ExportID"] ?? 0;
 
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM exports WHERE ExportsID = ?");
+$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice, costoEXW, num_op, coeficiente FROM exports WHERE ExportsID = ?");
 $stmt->bind_param("i", $idExport);
 $stmt->execute();
 $exportData = $stmt->get_result()->fetch_assoc();
@@ -350,6 +350,20 @@ while ($row = $result->fetch_assoc()) {
         <label class="form-label fw-bold">Commercial Invoice</label>
         <div id="commercial_Invoice" class="form-control bg-light"><?= htmlspecialchars($exportData['Number_Commercial_Invoice']) ?></div>
       </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-bold">N° Operación</label>
+        <input type="text" class="form-control bg-light" value="<?= htmlspecialchars($exportData['num_op']) ?>" readonly>
+      </div>
+      <div class="col-md-6 mb-3">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label for="productoEXW" class="form-label" >Costo del producto EXW</label>
+        <h2 id="productoEXW" data-totalEcu="<?=$exportData['costoEXW']?>">$<?= $exportData['costoEXW'] ?></h2>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label for="coeficiente" class="form-label">COEFICIENTE %</label>
+        <h2 id="coeficiente" data-coeficiente="<?= $exportData['coeficiente'] ?>">%<?= $exportData['coeficiente'] ?></h2>
+      </div>
     </div>
 
     <!-- Bloques dinámicos de Incoterm -->
@@ -465,157 +479,29 @@ while ($row = $result->fetch_assoc()) {
 <script src="../assets/js/fonts/custom-font.js"></script>
 <script src="../assets/js/pcoded.js"></script>
 <script src="../assets/js/plugins/feather.min.js"></script>
+
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
-<!-- <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
 <script>
-function descargarExcel() {
-  const wb      = XLSX.utils.book_new();
-  const ws_data = [];
-
-  // 1) Booking e Invoice
-  const bookingEl = document.getElementById('booking');
-  const invoiceEl = document.getElementById('commercial_Invoice');
-  const booking   = bookingEl?.textContent.trim() || '';
-  const invoice   = invoiceEl?.textContent.trim() || '';
-
-  ws_data.push(['N° Booking', booking]);
-  ws_data.push(['Commercial Invoice', invoice]);
-  ws_data.push([]);
-
-  // 2) Recorremos cada bloque de Incoterm
-  document.querySelectorAll('.incoterm-item').forEach(block => {
-    const h5      = block.querySelector('h5');
-    const incName = h5?.textContent.trim();
-    const filas   = Array.from(block.querySelectorAll('tbody tr'));
-    if (!incName || filas.length === 0) return;
-
-    const n = filas.length;
-    // solo incluimos impuestos y notas si hay exactamente 15 filas
-    const includeTaxes = (n === 15);
-
-    // 2.1) Secciones según el número de filas
-    let secciones = [];
-    if (n === 3) {
-      secciones = [{ title: incName, rows: filas }];
-    } else if (n === 12) {
-      secciones = [
-        { title: 'FCA Ec', rows: filas.slice(0, 3) },
-        { title: 'FOB Ec', rows: filas.slice(3) }
-      ];
-    } else if (n >= 15) {
-      secciones = [
-        { title: 'FCA Ec',     rows: filas.slice(0, 3) },
-        { title: 'FOB Ec',     rows: filas.slice(3, n - 3) },
-        { title: 'CFR/CIF Ec', rows: filas.slice(n - 3) }
-      ];
-    } else {
-      secciones = [{ title: incName, rows: filas }];
-    }
-
-    // 2.2) Convertir cada sección a ws_data
-    secciones.forEach(sec => {
-      let subtotal = 0;
-      ws_data.push([`Incoterm: ${sec.title}`]);
-
-      // Header
-      if (includeTaxes) {
-        ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.','% Impuesto','Valor Impuesto','Notas']);
-      } else {
-        ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.']);
-      }
-
-      // Filas
-      sec.rows.forEach(tr => {
-        const cells = tr.children;
-        const desc = cells[0].textContent.trim();
-        const cant = cells[1].textContent.trim();
-        const rawU = cells[2].textContent.replace(/[^0-9,\.]/g,'').trim();
-        const rawT = cells[3].textContent.replace(/[^0-9,\.]/g,'').trim();
-        const numT = parseFloat(rawT.replace(/\./g,'').replace(',','.')) || 0;
-        subtotal += numT;
-
-        if (includeTaxes) {
-          const rawImp = cells[4].textContent.replace(/[^0-9,\.]/g,'').trim();
-          const rawVI  = cells[5].textContent.replace(/[^0-9,\.]/g,'').trim();
-          const notas  = cells[6].textContent.trim();
-          ws_data.push([desc, cant, rawU, rawT, rawImp, rawVI, notas]);
-        } else {
-          ws_data.push([desc, cant, rawU, rawT]);
-        }
-      });
-
-      // Subtotal
-      if (includeTaxes) {
-        ws_data.push([
-          `Total ${sec.title}`, '', '', '', '', 
-          subtotal.toLocaleString('es-AR',{minimumFractionDigits:2}),
-          ''
-        ]);
-      } else {
-        ws_data.push([
-          `Total ${sec.title}`, '', '', 
-          subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})
-        ]);
-      }
-      ws_data.push([]);
-    });
-  });
-
-  if (ws_data.length <= 3) {
-    return alert('No hay datos para exportar.');
-  }
-
-  // 3) Crear hoja y aplicar estilos
-  const ws    = XLSX.utils.aoa_to_sheet(ws_data);
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  // calculamos dinámicamente cuántas columnas hay en el sheet
-  const colCount = range.e.c - range.s.c + 1;
-
-  for (let R = range.s.r; R <= range.e.r; ++R) {
-    const A = ws[`A${R+1}`];
-    if (A && typeof A.v === 'string') {
-      if (A.v.startsWith('Incoterm:')) {
-        A.s = { fill:{fgColor:{rgb:'C6EFCE'}}, font:{bold:true} };
-      }
-      if (A.v === 'Descripción') {
-        for (let C = 0; C < colCount; ++C) {
-          const cell = ws[`${String.fromCharCode(65+C)}${R+1}`];
-          if (cell) cell.s = { fill:{fgColor:{rgb:'FFF2CC'}}, font:{bold:true} };
-        }
-      }
-    }
-  }
-
-  // 4) Definir ancho de columnas (asumimos máximo 7, los extras no importan)
-  ws['!cols'] = [
-    {wch:30}, // A
-    {wch:10}, // B
-    {wch:15}, // C
-    {wch:15}, // D
-    {wch:10}, // E
-    {wch:15}, // F
-    {wch:20}  // G
-  ];
-
-  XLSX.utils.book_append_sheet(wb, ws, 'Exportación');
-  XLSX.writeFile(wb, 'exportacion.xlsx');
+function parseARS(str) {
+  if (!str) return 0;
+  return parseFloat(
+    str
+      .toString()
+      .replace(/[^0-9,.-]/g, '') // dejar solo números , . -
+      .replace(/\./g, '')       // eliminar miles
+      .replace(',', '.')        // reemplazar decimal
+  ) || 0;
 }
-</script> -->
 
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-<script>
-  // 1) Asegurarnos de que el DOM esté listo
-  document.addEventListener('DOMContentLoaded', () => {
-    // Tu botón ya tiene inline onclick, así que esto es opcional
-    // si preferís delegar con addEventListener:
-    // document.getElementById('btnExport').addEventListener('click', descargarExcel);
-  });
+  document.addEventListener('DOMContentLoaded', () => {});
 
-function descargarExcel() {
+  function descargarExcel() {
   const bookingEl = document.getElementById('booking');
   const invoiceEl = document.getElementById('commercial_Invoice');
+  const exwEl     = document.getElementById('productoEXW');
+  const totalEl   = <?= $totalGeneralSinImpuesto + $totalGeneralImpuestos ?>;
+  const coefEl    = document.getElementById('coeficiente');
+
   if (!bookingEl || !invoiceEl) {
     return alert('Error: no se encontró Booking o Commercial Invoice');
   }
@@ -623,101 +509,93 @@ function descargarExcel() {
   const booking = bookingEl.textContent.trim();
   const invoice = invoiceEl.textContent.trim();
 
+  // ✅ Leer valores con dataset si existen
+  const exw   = exwEl.dataset.totalecu ;
+  const total = totalEl;
+  const coef  = coefEl.dataset.coeficiente;
+
   const wb      = XLSX.utils.book_new();
   const ws_data = [];
 
-  // 1) Cabecera general
+  // ============================
+  // ✅ Cabeceras generales
+  // ============================
+  console.log(coef);
   ws_data.push(['N° Booking', booking]);
   ws_data.push(['Commercial Invoice', invoice]);
+  ws_data.push(['Costo EXW', exw.toLocaleString('es-AR', { minimumFractionDigits: 2 })]);
+  ws_data.push(['Total Liquidación', total.toLocaleString('es-AR', { minimumFractionDigits: 2 })]);
+  ws_data.push(['Coeficiente (%)', "%"+coef]);
   ws_data.push([]);
 
-  // 2) Cada bloque de Incoterm
+  // ============================
+  // ✅ Recorrer cada bloque Incoterm
+  // ============================
   document.querySelectorAll('.incoterm-item').forEach(block => {
     const incName = block.querySelector('h5')?.textContent.trim();
     const filas   = Array.from(block.querySelectorAll('tbody tr'));
     if (!incName || filas.length === 0) return;
 
-    // Detectar CIF por nombre o por lógica propia
     const isCIF = incName.toLowerCase().includes('cif');
 
-    // Título de sección + encabezados
     ws_data.push([`Incoterm: ${incName}`]);
+
     const headers = isCIF
       ? ['Descripción','Cantidad','Valor U.','Valor T.','% Impuesto','Valor Impuesto','Notas']
       : ['Descripción','Cantidad','Valor U.','Valor T.'];
+
     ws_data.push(headers);
 
-    // Variables para subtotalizar
-    let subtotalSin      = 0;
-    let subtotalImpuestos= 0;
+    let subtotalSin = 0;
+    let subtotalImp = 0;
 
-    // 2.1) Recorremos filas y volcamos datos
     filas.forEach(tr => {
       const cols = Array.from(tr.children).map(td => td.textContent.trim());
-      // cols = [descr, cant, "$1.000,00", "$2.000,00", impPct?, "$xxx,yy"?, notas?]
-      // limpiamos numéricos
-      const rawT = cols[3].replace(/[^0-9,]/g, '').replace(',', '.');
-      const numT = parseFloat(rawT) || 0;
-      subtotalSin += numT;
+
+      const valorT = parseARS(cols[3]);
+      subtotalSin += valorT;
 
       if (isCIF) {
-        const rawVI = cols[5].replace(/[^0-9,]/g, '').replace(',', '.');
-        const numVI = parseFloat(rawVI) || 0;
-        subtotalImpuestos += numVI;
-        // volcamos fila completa
+        const valorImp = parseARS(cols[5]);
+        subtotalImp += valorImp;
+
         ws_data.push([
-          cols[0], // descripción
-          cols[1], // cantidad
-          cols[2].replace('₿',''), // valor U. (quitar símbolo si existe)
-          cols[3], // valor T.
-          cols[4], // % impuesto
-          cols[5], // valor impuesto
-          cols[6]  // notas
+          cols[0], cols[1], cols[2], cols[3], cols[4], cols[5], cols[6]
         ]);
       } else {
-        // volcamos sólo las primeras 4 columnas
         ws_data.push([cols[0], cols[1], cols[2], cols[3]]);
       }
     });
 
-    // 2.2) Agregar renglones de totales del bloque
     if (isCIF) {
-      ws_data.push([
-        'Total sin impuestos', '', '', '',
-        '', '', 
+      ws_data.push(['Total sin impuestos','','','','','',
         subtotalSin.toLocaleString('es-AR',{minimumFractionDigits:2})
       ]);
-      ws_data.push([
-        'Total impuestos', '', '', '',
-        '', '', 
-        subtotalImpuestos.toLocaleString('es-AR',{minimumFractionDigits:2})
+      ws_data.push(['Total impuestos','','','','','',
+        subtotalImp.toLocaleString('es-AR',{minimumFractionDigits:2})
       ]);
-      ws_data.push([
-        'Total con impuestos', '', '', '',
-        '', '', 
-        (subtotalSin + subtotalImpuestos).toLocaleString('es-AR',{minimumFractionDigits:2})
+      ws_data.push(['Total con impuestos','','','','','',
+        (subtotalSin + subtotalImp).toLocaleString('es-AR',{minimumFractionDigits:2})
       ]);
     } else {
-      ws_data.push([
-        'Total', '', '', 
+      ws_data.push(['Total','','','',
         subtotalSin.toLocaleString('es-AR',{minimumFractionDigits:2})
       ]);
     }
 
-    ws_data.push([]);  // línea en blanco antes del siguiente bloque
+    ws_data.push([]);
   });
 
-  // 3) Validar y generar hoja
   if (ws_data.length <= 3) {
     return alert('No hay datos para exportar.');
   }
+
   const ws = XLSX.utils.aoa_to_sheet(ws_data);
   XLSX.utils.book_append_sheet(wb, ws, 'DetalleExport');
+
   XLSX.writeFile(wb, `ExportID_<?= $idExport ?>.xlsx`);
 }
-
 </script>
-
 
 
 

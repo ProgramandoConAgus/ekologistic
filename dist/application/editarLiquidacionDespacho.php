@@ -10,7 +10,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 $idDespacho = $_GET["DespachoID"] ?? 0;
 
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM despacho WHERE DespachoID = ?");
+$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice, costoEXW, num_op FROM despacho WHERE DespachoID = ?");
 $stmt->bind_param("i", $idDespacho);
 $stmt->execute();
 $importsData = $stmt->get_result()->fetch_assoc();
@@ -349,6 +349,21 @@ while ($row = $result->fetch_assoc()) {
         <label class="form-label fw-bold">Commercial Invoice</label>
         <div class="form-control bg-light"><?= $importsData['Number_Commercial_Invoice'] ?></div>
       </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-bold">N° Operación</label>
+        <input type="text" class="form-control bg-light" value="<?= htmlspecialchars($importsData['num_op']) ?>" readonly>
+      </div>
+
+      <div class="col-md-6 mb-3">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label for="productoEXW" class="form-label" >Costo del producto EXW</label>
+        <h2 id="productoEXW" data-totalEcu="<?=$importsData['costoEXW']?>"><?= $importsData['costoEXW'] ?></h2>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label for="coeficiente" class="form-label">COEFICIENTE %</label>
+        <h2 id="coeficiente"></h2>
+      </div>
     </div>
 
     <div class="accordion" id="incotermAccordion">
@@ -468,6 +483,8 @@ while ($row = $result->fetch_assoc()) {
 
 <!--Sweet alert-->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
 <!-- Calcular totales automaticamente-->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
@@ -484,6 +501,11 @@ document.addEventListener('DOMContentLoaded', () => {
       totalGeneral += parseFloat(raw) || 0;
     });
     totalGeneralEl.textContent = `Total General: $${totalGeneral.toFixed(2).replace('.', ',')}`;
+    console.log('Total General actualizado:', totalGeneral);
+    const coeficiente= ((totalGeneral / parseFloat(document.getElementById('productoEXW').dataset.totalecu)) ) * 100;
+    document.getElementById('coeficiente').textContent = coeficiente.toFixed(2) + ' %';
+    document.getElementById('coeficiente').dataset.coeficiente = coeficiente;
+
   }
 
   document.querySelectorAll('.accordion-item').forEach(accordion => {
@@ -580,10 +602,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
+    const coeficienteEl = document.getElementById('coeficiente');
+    const coeficiente = parseFloat(coeficienteEl.dataset.coeficiente) || 0;
+    const idDespacho = <?= intval($idDespacho) ?>;
+
     fetch('../api/despacho/actualizarliquidaciondespacho.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ datos })
+      body: JSON.stringify({ datos, coeficiente, idDespacho })
     })
     .then(r => r.json())
     .then(json => {

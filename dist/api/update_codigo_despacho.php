@@ -6,27 +6,16 @@ error_reporting(E_ALL);
 
 header('Content-Type: application/json');
 
-// Crear conexión PDO local sin tocar con_db.php
-$host = 'localhost';
-$db   = 'u981249563_ekologisticaaa';
-$user = 'u981249563_agustinapontee';
-$pass = 'Pca@70071';
-$charset = 'utf8mb4';
+// Incluir conexión
+require_once '../con_db.php'; // ajusta la ruta si es necesario
 
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-$options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
-];
-
-try {
-    $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (PDOException $e) {
-    echo json_encode(['success' => false, 'error' => 'Error conexión PDO: ' . $e->getMessage()]);
+// Verificar conexión
+if (!$conexion) {
+    echo json_encode(['success' => false, 'error' => 'Error conexión DB']);
     exit;
 }
 
+// Obtener JSON
 $data = json_decode(file_get_contents('php://input'), true);
 
 if (!isset($data['id'], $data['codigo'])) {
@@ -37,11 +26,19 @@ if (!isset($data['id'], $data['codigo'])) {
 $id = intval($data['id']);
 $codigo = trim($data['codigo']);
 
-try {
-    $stmt = $pdo->prepare("UPDATE dispatch SET codigo_despacho = :codigo WHERE id = :id");
-    $stmt->execute(['codigo' => $codigo, 'id' => $id]);
-
-    echo json_encode(['success' => true, 'message' => 'Código de despacho actualizado']);
-} catch (PDOException $e) {
-    echo json_encode(['success' => false, 'error' => 'Error PDO: ' . $e->getMessage()]);
+$stmt = $conexion->prepare("UPDATE dispatch SET codigo_despacho = ? WHERE id = ?");
+if (!$stmt) {
+    echo json_encode(['success' => false, 'error' => "Error prepare: " . $con->error]);
+    exit;
 }
+
+$stmt->bind_param("si", $codigo, $id);
+
+if ($stmt->execute()) {
+    echo json_encode(['success' => true, 'message' => 'Código de despacho actualizado']);
+} else {
+    echo json_encode(['success' => false, 'error' => "Error execute: " . $stmt->error]);
+}
+
+$stmt->close();
+$conexion->close();

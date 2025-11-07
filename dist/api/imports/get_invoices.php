@@ -4,12 +4,13 @@ require '../../con_db.php';
 if (isset($_GET['booking'])) {
     $booking = $_GET['booking'];
 
-    $stmt = $conexion->prepare("SELECT DISTINCT d.numero_factura 
-                                 FROM container c 
-                                 INNER JOIN dispatch d 
-                                 ON c.Number_Commercial_Invoice = d.numero_factura 
-                                 AND c.Number_Container = d.notas 
-                                 WHERE d.estado = 'Cargado' AND c.Booking_BK = ?");
+    // 1️⃣ Obtener facturas
+    $stmt = $conexion->prepare("
+        SELECT DISTINCT i.Number_Commercial_Invoice AS numero_factura
+        FROM items i
+        JOIN container c ON i.idContainer = c.IdContainer
+        WHERE c.Booking_BK = ?
+    ");
     $stmt->bind_param("s", $booking);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -18,8 +19,43 @@ if (isset($_GET['booking'])) {
     while ($row = $result->fetch_assoc()) {
         $invoices[] = $row['numero_factura'];
     }
+    $stmt->close();
+
+    // 2️⃣ Obtener total_ec
+    $stmt2 = $conexion->prepare("
+        SELECT SUM(i.Total_Price_EC) AS total_ec
+        FROM items i
+        JOIN container c ON i.idContainer = c.IdContainer
+        WHERE c.Booking_BK = ?
+    ");
+    $stmt2->bind_param("s", $booking);
+    $stmt2->execute();
+    $result2 = $stmt2->get_result();
+    $row2 = $result2->fetch_assoc();
+    $total_ec = $row2['total_ec'] ?? 0;
+    $stmt2->close();
+
+    // 3️⃣ Obtener números de operación
+    $stmt3 = $conexion->prepare("
+        SELECT DISTINCT c.num_op AS nOp
+        FROM container c
+        WHERE c.Booking_BK = ?
+    ");
+    $stmt3->bind_param("s", $booking);
+    $stmt3->execute();
+    $result3 = $stmt3->get_result();
+    $nops = [];
+    while ($row3 = $result3->fetch_assoc()) {
+        $nops[] = $row3['nOp'];
+    }
+    $stmt3->close();
 
     header('Content-Type: application/json');
-    echo json_encode($invoices);
+    echo json_encode([
+        "invoices" => $invoices,
+        "total_ec" => floatval($total_ec),
+        "nops" => $nops
+    ]);
 }
+
 ?>

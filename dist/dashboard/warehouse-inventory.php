@@ -627,7 +627,7 @@ if (isset($result) && $result->num_rows > 0) {
     
     <!-- Input para Palets de carga -->
    <td>
-  <input type="number" min="0" class="form-control form-control-sm palets-carga-input"
+  <input type="number" min="0" class="form-control form-control-sm palets-carga-input" 
     data-id="<?= htmlspecialchars($row['id']) ?>" placeholder="0">
 </td>
 
@@ -652,6 +652,24 @@ if (isset($result) && $result->num_rows > 0) {
 
 </table>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Cuando cambie el valor de "Load Pallets"
+  document.querySelectorAll('.palets-carga-input').forEach(input => {
+    input.addEventListener('input', () => {
+      const tr = input.closest('tr');
+      const qtyPerPallet = parseFloat(tr.children[12].textContent) || 0; // columna "Qty/Pallet"
+      const loadQtyInput = tr.querySelector('.cantidad-carga-input');
+      const palletsValue = parseFloat(input.value) || 0;
+
+      // Calcular Load Qty
+      const loadQty = (palletsValue * qtyPerPallet).toFixed(2);
+      loadQtyInput.value = loadQty;
+    });
+  });
+});
+</script>
 
 
 

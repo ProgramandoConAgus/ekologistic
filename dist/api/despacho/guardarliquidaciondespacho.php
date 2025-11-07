@@ -13,15 +13,20 @@ try {
         exit;
     }
 
-    // 1) Inserto el despacho principal
+
+    $costoEXW   = floatval($data['costoEXW'] ?? 0);
+    $coeficiente = floatval($data['coeficiente'] ?? 0);
+    $numOp      = intval($data['num_op'] ?? 0);
+
     $stmtD = $conexion->prepare(
-      "INSERT INTO despacho (Booking_BK, Number_Commercial_Invoice, creation_date, status)
-       VALUES (?, ?, NOW(), 1)"
-    );
-    $stmtD->bind_param("ss", $booking, $invoice);
-    $stmtD->execute();
-    $idDespacho = $conexion->insert_id;
-    $stmtD->close();
+        "INSERT INTO despacho 
+         (Booking_BK, Number_Commercial_Invoice, costoEXW, coeficiente, num_op, creation_date, status)
+         VALUES (?, ?, ?, ?, ?, NOW(), 1)"
+      );
+      $stmtD->bind_param("sdddi", $booking, $invoice, $costoEXW, $coeficiente, $numOp);
+      $stmtD->execute();
+      $idDespacho = $conexion->insert_id;
+      $stmtD->close();
 
     // 2) Recorro los items
     foreach ($items as $item) {

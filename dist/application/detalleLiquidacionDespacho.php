@@ -11,7 +11,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 $idDespacho = $_GET["DespachoID"] ?? 0;
 
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM despacho WHERE DespachoID = ?");
+$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice, costoEXW, num_op, coeficiente FROM despacho WHERE DespachoID = ?");
 if (!$stmt) {
   die("Error en prepare: " . $conexion->error);
 }
@@ -360,6 +360,22 @@ while ($row = $result->fetch_assoc()) {
         <label class="form-label fw-bold">Commercial Invoice</label>
         <div id="commercial_Invoice" class="form-control bg-light"><?= htmlspecialchars($importsData['Number_Commercial_Invoice']) ?></div>
       </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-bold">N° Operación</label>
+        <input type="text" class="form-control bg-light" value="<?= intval($importsData['num_op']) ?>"  readonly>
+      </div>
+      <div class="col-md-6 mb-3">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label for="productoEXW" class="form-label" >Costo del producto EXW</label>
+        <h2 id="productoEXW" data-totalEcu="<?=$importsData['costoEXW']?>">$<?= $importsData['costoEXW'] ?></h2>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label for="coeficiente" class="form-label">COEFICIENTE %</label>
+        <h2 id="coeficiente">%<?= $importsData['coeficiente'] ?></h2>
+      </div>
+    
+    </div>
     </div>
 
     <!-- Bloques dinámicos de Incoterm -->
@@ -452,17 +468,30 @@ function descargarExcel() {
   const wb      = XLSX.utils.book_new();
   const ws_data = [];
 
-  const bookingEl = document.getElementById('booking');
-  const invoiceEl = document.getElementById('commercial_Invoice');
+  // Datos generales
+  const bookingEl   = document.getElementById('booking');
+  const invoiceEl   = document.getElementById('commercial_Invoice');
+  const numOpEl     = document.querySelector('input[readonly][value]'); // N° Operación
+  const costoEXWEl  = document.getElementById('productoEXW');
+  const coefEl      = document.getElementById('coeficiente');
+
   const booking   = bookingEl?.textContent.trim() || '';
   const invoice   = invoiceEl?.textContent.trim() || '';
+  const numOp     = numOpEl?.value.trim() || '';
+  const costoEXW  = costoEXWEl?.dataset.totalecu || '';
+  const coef      = coefEl?.textContent.replace('%','').trim() || '';
 
+  // 1) Cabecera general
   ws_data.push(['N° Booking', booking]);
   ws_data.push(['Commercial Invoice', invoice]);
-  ws_data.push([]);
+  ws_data.push(['N° Operación', numOp]);
+  ws_data.push(['Costo EXW', costoEXW]);
+  ws_data.push(['Coeficiente %', coef]);
+  ws_data.push([]); // línea en blanco
 
   let totalGeneral = 0;
 
+  // 2) Bloques Incoterm
   document.querySelectorAll('.incoterm-item').forEach(block => {
     const incName = block.querySelector('h5')?.textContent.trim();
     if (!incName) return;
@@ -490,13 +519,14 @@ function descargarExcel() {
     ws_data.push([]);
   });
 
-  if (ws_data.length <= 3) {
+  if (ws_data.length <= 6) {
     return alert('No hay datos para exportar.');
   }
 
   ws_data.push(['']);
   ws_data.push(['Total General', '', '', totalGeneral.toLocaleString('es-AR',{minimumFractionDigits:2})]);
 
+  // 3) Estilos
   const ws    = XLSX.utils.aoa_to_sheet(ws_data);
   const range = XLSX.utils.decode_range(ws['!ref']);
   const colCount = range.e.c - range.s.c + 1;
@@ -526,6 +556,7 @@ function descargarExcel() {
   XLSX.utils.book_append_sheet(wb, ws, 'Despacho');
   XLSX.writeFile(wb, 'detalle_despacho.xlsx');
 }
+
 
 
 

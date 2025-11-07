@@ -8,11 +8,14 @@ $usuario= new Usuario($conexion);
 
 $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
-  $stmtBookings = $conexion->prepare("
-    SELECT DISTINCT Booking_BK
-    FROM container
-    ORDER BY Booking_BK
-  ");
+$stmtBookings = $conexion->prepare("
+  SELECT DISTINCT c.Booking_BK
+  FROM container c
+  LEFT JOIN dispatch d ON c.Number_Container = d.notas
+  WHERE d.estado != 'En Almacén' OR d.notas IS NULL
+  ORDER BY c.Booking_BK;
+");
+
   $stmtBookings->execute();
   $bookings = $stmtBookings->get_result()->fetch_all(MYSQLI_ASSOC);
 

@@ -11,7 +11,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 $idImport = $_GET["ImportID"] ?? 0;
 
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM imports WHERE ImportsID = ?");
+$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice, costoEXW, num_op, coeficiente FROM imports WHERE ImportsID = ?");
 if (!$stmt) {
   die("Error en prepare: " . $conexion->error);
 }
@@ -22,7 +22,7 @@ $importsData = $stmt->get_result()->fetch_assoc();
 
 // Consulta para los incoterms y sus ítems
 $query = "
-  SELECT 
+  SELECT 0
     t.IdTipoIncoterm    AS idTipo,
     t.NombreTipoIncoterm,
     i.IdIncotermsImport,
@@ -358,8 +358,22 @@ while ($row = $result->fetch_assoc()) {
         <label class="form-label fw-bold">Commercial Invoice</label>
         <div id="commercial_Invoice" class="form-control bg-light"><?= htmlspecialchars($importsData['Number_Commercial_Invoice']) ?></div>
       </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-bold">N° Operación</label>
+        <input type="text" class="form-control bg-light" value="<?= htmlspecialchars($importsData['num_op']) ?>" readonly>
+      </div>
+      <div class="col-md-6 mb-3">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label for="productoEXW" class="form-label" >Costo del producto EXW</label>
+        <h2 id="productoEXW" data-totalEcu="<?=$importsData['costoEXW']?>">$<?= $importsData['costoEXW'] ?></h2>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label for="coeficiente" class="form-label">COEFICIENTE %</label>
+        <h2 id="coeficiente">%<?= $importsData['coeficiente'] ?></h2>
+      </div>
+    
     </div>
-
     <!-- Bloques dinámicos de Incoterm -->
 <div id="incotermContainer">
 
@@ -386,7 +400,7 @@ while ($row = $result->fetch_assoc()) {
             <?php $totalGeneral += floatval($item['ValorTotal']); ?>
             <tr>
               <td><?= htmlspecialchars($item['NombreItems']) ?></td>
-              <td><?= intval($item['Cantidad']) ?></td>
+              <td><?= floatval($item['Cantidad']) ?></td>
               <td>$<?= number_format(floatval($item['ValorUnitario']), 2, ',', '.') ?></td>
               <td>$<?= number_format(floatval($item['ValorTotal']),   2, ',', '.') ?></td>
               <td><?= htmlspecialchars($item['Notas']) ?></td>
@@ -444,7 +458,6 @@ while ($row = $result->fetch_assoc()) {
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
 <script>
 function descargarExcel() {
   const wb      = XLSX.utils.book_new();
@@ -458,7 +471,23 @@ function descargarExcel() {
 
   ws_data.push(['N° Booking', booking]);
   ws_data.push(['Commercial Invoice', invoice]);
-  ws_data.push([]);
+
+  // N° Operación
+  const numOpEl = document.querySelector('input[value][readonly]');
+  const numOp   = numOpEl?.value.trim() || '';
+  ws_data.push(['N° Operación', numOp]);
+
+  // Costo EXW
+  const exwEl = document.getElementById('productoEXW');
+  const costoEXW = exwEl?.textContent.trim() || '';
+  ws_data.push(['Costo del producto EXW', costoEXW]);
+
+  // Coeficiente %
+  const coefEl = document.getElementById('coeficiente');
+  const coef = coefEl?.textContent.trim() || '';
+  ws_data.push(['COEFICIENTE %', coef]);
+
+  ws_data.push([]); // fila en blanco antes de los incoterms
 
   let totalGeneral = 0;
 
@@ -468,7 +497,7 @@ function descargarExcel() {
     if (!incName) return;
 
     ws_data.push([`Incoterm: ${incName}`]);
-    ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.']);
+    ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.','Notas']);
 
     let subtotal = 0;
 
@@ -478,25 +507,27 @@ function descargarExcel() {
       const cant = cells[1].textContent.trim();
       const rawU = cells[2].textContent.replace(/[^0-9,\.]/g,'').trim();
       const rawT = cells[3].textContent.replace(/[^0-9,\.]/g,'').trim();
+      const notas = cells[4].textContent.trim();
+
       const numT = parseFloat(rawT.replace(/\./g,'').replace(',','.')) || 0;
 
       subtotal += numT;
       totalGeneral += numT;
 
-      ws_data.push([desc, cant, rawU, rawT]);
+      ws_data.push([desc, cant, rawU, rawT, notas]);
     });
 
-    ws_data.push([`Total ${incName}`, '', '', subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+    ws_data.push([`Total ${incName}`, '', '', subtotal.toLocaleString('es-AR',{minimumFractionDigits:2}), '']);
     ws_data.push([]);
   });
 
-  if (ws_data.length <= 3) {
+  if (ws_data.length <= 6) {
     return alert('No hay datos para exportar.');
   }
 
   // Total General al final
   ws_data.push(['']);
-  ws_data.push(['Total General', '', '', totalGeneral.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+  ws_data.push(['Total General', '', '', totalGeneral.toLocaleString('es-AR',{minimumFractionDigits:2}), '']);
 
   // Crear hoja Excel
   const ws    = XLSX.utils.aoa_to_sheet(ws_data);
@@ -522,17 +553,15 @@ function descargarExcel() {
     }
   }
 
+  // Ajuste de ancho de columnas
   ws['!cols'] = [
-    {wch:35}, {wch:12}, {wch:15}, {wch:15}
+    {wch:35}, {wch:12}, {wch:15}, {wch:15}, {wch:30}
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, 'Liquidación');
   XLSX.writeFile(wb, 'detalle_importacion.xlsx');
 }
-
-
 </script>
-
 
 
 

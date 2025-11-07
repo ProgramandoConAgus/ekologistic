@@ -5,7 +5,8 @@ header('Content-Type: application/json');
 try {
     $input = json_decode(file_get_contents('php://input'), true);
     $datos = $input['datos'] ?? [];
-
+    $coeficiente = $input['coeficiente'] ?? null;
+    $idExport = $input['idExport'] ?? null;
     if (empty($datos)) {
         echo json_encode(['success' => false, 'message' => 'Datos vacíos']);
         exit;
@@ -28,6 +29,15 @@ try {
     $stmt = $conexion->prepare($sql);
     if (!$stmt) {
         throw new Exception("Error preparando UPDATE: " . $conexion->error);
+    }
+
+     // ✅ Primero actualizamos el coeficiente de la liquidación
+     if ($idExport && $coeficiente !== null) {
+        $sqlCoef = "UPDATE exports SET coeficiente = ? WHERE ExportsID = ?";
+        $stmtCoef = $conexion->prepare($sqlCoef);
+        $stmtCoef->bind_param("di", $coeficiente, $idExport);
+        $stmtCoef->execute();
+        $stmtCoef->close();
     }
 
     $errores = [];

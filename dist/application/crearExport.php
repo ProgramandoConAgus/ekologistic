@@ -327,6 +327,23 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
               <!-- Se autocompleta con Javascript (buscar comentario de "Completador de select")  -->
             </select>
           </div>
+          <div class="col-md-6 mb-3">
+            <label for="nOpSelect" class="form-label">Nº Operacion</label>
+            <select id="nOpSelect" class="form-select" disabled>
+              <option selected>Seleccionar...</option>
+              <!-- Se autocompleta con Javascript (buscar comentario de "Completador de select")  -->
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="productoEXW" class="form-label" >Costo del producto EXW</label>
+            <h2 id="productoEXW"></h2>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="coeficiente" class="form-label">COEFICIENTE %</label>
+            <h2 id="coeficiente"></h2>
+          </div>
         </div>
 
       </div>
@@ -468,74 +485,227 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
         });
       </script>
 
+
+<!--Completador de select-->
+<script>
+document.getElementById('bookingSelect').addEventListener('change', function () {
+  const booking = this.value;
+  const invoiceSelect = document.getElementById('invoiceSelect');
+  const nOpSelect = document.getElementById('nOpSelect');
+  const productoEXW = document.getElementById('productoEXW');
+
+  // Limpiar y desactivar los selects y el costo del producto EXW
+  invoiceSelect.innerHTML = '<option selected>Seleccionar...</option>';
+  invoiceSelect.disabled = true;
+  nOpSelect.innerHTML = '<option selected>Seleccionar...</option>';
+  nOpSelect.disabled = true;
+  productoEXW.textContent = '';
+
+  if (booking && booking !== 'Seleccionar...') {
+    fetch(`../api/exports/get_invoices.php?booking=${encodeURIComponent(booking)}`)
+      .then(response => response.json())
+      .then(data => {
+        // Llenar select de facturas
+        if (data.invoices.length > 0) {
+          data.invoices.forEach(invoice => {
+            const option = document.createElement('option');
+            option.value = invoice;
+            option.textContent = invoice;
+            invoiceSelect.appendChild(option);
+          });
+          invoiceSelect.disabled = false;
+        } else {
+          const opt = document.createElement('option');
+          opt.text = 'Sin facturas disponibles';
+          opt.disabled = true;
+          invoiceSelect.appendChild(opt);
+        }
+
+        // Llenar select de números de operación
+        if (data.nops.length > 0) {
+          data.nops.forEach(op => {
+            const option = document.createElement('option');
+            option.value = op;
+            option.textContent = op;
+            nOpSelect.appendChild(option);
+          });
+          nOpSelect.disabled = false;
+        }
+
+        // Mostrar el costo del producto EXW
+        productoEXW.textContent = `$${data.total_ec.toFixed(2)}`;
+        productoEXW.dataset.totalecu = data.total_ec.toFixed(2);
+      })
+      .catch(error => {
+        console.error('Error al cargar datos:', error);
+      });
+  }
+});
+
+</script>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const totalGeneralEl = document.getElementById('totalGeneral');
-
-  // Función para recalcular el total de un bloque (incluye impuesto)
-  function recalculaTotalBloque(block, id) {
-    let suma = 0;
-    block.querySelectorAll('tbody tr').forEach(tr => {
-      const vt = parseFloat(tr.querySelector('.valor-total').value.replace(/,/g, '.'))   || 0;
-      const vi = parseFloat(tr.querySelector('.valor-impuesto').value.replace(/,/g, '.')) || 0;
-      suma += vt + vi;
-    });
-    const span = document.querySelector(`.total-incoterm[data-incoterm-total="${id}"]`);
-    span.textContent = suma.toFixed(2);
-    return suma;
+  function parseCurrency(str) {
+    return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
   }
 
-  // Función para recalcular todo el formulario
-  function recalculaTodo() {
-    let general = 0;
-    document.querySelectorAll('.incoterm-item').forEach(block => {
-      const id = block.dataset.incoterm;
-      // solo sumamos bloques visibles (o todos si prefieres)
-      if (block.style.display === 'block') {
-        general += recalculaTotalBloque(block, id);
+  function formatCurrency(value) {
+    let parts = value.toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return parts.join(',');
+  }
+
+  function recalculate() {
+    let totalGeneral = 0;
+
+    document.querySelectorAll('tr[data-item-id]').forEach(tr => {
+      const qty = parseFloat(tr.querySelector('.cantidad').value) || 0;
+      const vu  = parseCurrency(tr.querySelector('.valor-unitario').value);
+      const vt  = qty * vu;
+      tr.querySelector('.valor-total').value = formatCurrency(vt);
+
+      const impInput = tr.querySelector('.impuesto');
+      if (impInput) {
+        const pct      = parseFloat(impInput.value) || 0;
+        const valorImp = vt * pct / 100;
+        const valorCI  = vt + valorImp;
+        tr.querySelector('.valor-impuesto').value      = formatCurrency(valorImp);
+        tr.querySelector('.valor-con-impuestos').value = formatCurrency(valorCI);
       }
     });
-    totalGeneralEl.textContent = `$${general.toFixed(2)}`;
+
+    // Totales por incoterm
+    document.querySelectorAll('.incoterm-item').forEach(container => {
+      const rows = container.querySelectorAll('tr[data-item-id]');
+      const incTot = Array.from(rows).reduce((sum, tr) => {
+        const ciInput = tr.querySelector('.valor-con-impuestos');
+        const val = ciInput
+          ? parseCurrency(ciInput.value)
+          : parseCurrency(tr.querySelector('.valor-total').value);
+        return sum + val;
+      }, 0);
+      container.querySelector('.total-incoterm').textContent = formatCurrency(incTot);
+      totalGeneral += incTot;
+    });
+
+    // Total general
+    document.getElementById('totalGeneral').textContent =
+      'Total General: $' + formatCurrency(totalGeneral);
+
+    // Calcular coeficiente
+    console.log(document.getElementById('productoEXW')?.dataset.totalecu);
+    const totalExw = parseFloat(document.getElementById('productoEXW')?.dataset.totalecu || 0);
+    const coef = totalExw > 0 ? (totalGeneral / totalExw) * 100 : 0;
+    document.getElementById('coeficiente').textContent = coef.toFixed(2) + '%';
+    document.getElementById('coeficiente').dataset.coeficiente = coef.toFixed(2);
   }
 
-  // Atachar listeners a cada fila/input
-  document.querySelectorAll('.incoterm-item').forEach(block => {
-    const id = block.dataset.incoterm;
-    block.querySelectorAll('tbody tr').forEach(tr => {
-      ['.cantidad', '.valor-unitario', '.impuesto'].forEach(sel => {
-        const input = tr.querySelector(sel);
-        if (!input) return;
-        input.addEventListener('input', () => {
-          // recalcular fila
-          const qtyRaw = tr.querySelector('.cantidad').value.replace(/,/g, '.');
-          const vuRaw  = tr.querySelector('.valor-unitario').value.replace(/,/g, '.');
-          const impRaw = tr.querySelector('.impuesto').value.replace(/,/g, '.');
-
-          const qty = parseFloat(qtyRaw) || 0;
-          const vu  = parseFloat(vuRaw)  || 0;
-          const imp = parseFloat(impRaw) || 0;
-
-          const vt = qty * vu;
-          const vi = vt * (imp / 100);
-
-          tr.querySelector('.valor-total').value    = vt.toFixed(2);
-          tr.querySelector('.valor-impuesto').value = vi.toFixed(2);
-
-          // recalcular totales
-          recalculaTotalBloque(block, id);
-          recalculaTodo();
-        });
-      });
-    });
+  // Escuchar cambios en cantidad, valor-unitario e impuesto
+  document.getElementById('incotermContainer').addEventListener('input', e => {
+    if (
+      e.target.matches('.cantidad') ||
+      e.target.matches('.valor-unitario') ||
+      e.target.matches('.impuesto')
+    ) {
+      recalculate();
+    }
   });
 
-  // Mostrar bloque e inicializar totales al cambiar Incoterm
-  document.getElementById('incotermSelect').addEventListener('change', ev => {
-    document.querySelectorAll('.incoterm-item').forEach(b => {
-      b.style.display = (b.dataset.incoterm === ev.target.value) ? 'block' : 'none';
+  // Ejecutar al cargar
+  recalculate();
+});
+</script>
+
+<script>
+function parseCurrency(str) {
+  return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+}
+document.addEventListener('DOMContentLoaded', () => { 
+  const bookingEl = document.getElementById('bookingSelect'); 
+  const invoiceEl = document.getElementById('invoiceSelect'); 
+  const selectEl = document.getElementById('incotermSelect'); 
+  const btnGuardar = document.querySelector('.btn-success');
+
+
+  btnGuardar.addEventListener('click', () => {
+    const booking    = bookingEl.value.trim();
+    const invoice    = invoiceEl.value.trim();
+    const incotermId = selectEl.value;
+    const nOp        = document.getElementById('nOpSelect')?.value || '';
+    const totalExw   = parseFloat(document.getElementById('productoEXW')?.dataset.totalecu) || 0;
+    const coeficiente = parseFloat(document.getElementById('coeficiente')?.dataset.coeficiente) || 0;
+    console.log(document.getElementById('productoEXW').dataset.totalecu)
+    console.log(document.getElementById('coeficiente').dataset.coeficiente)
+    if (!booking || !invoice || !incotermId) {
+      return Swal.fire({
+        icon: 'warning',
+        title: 'Faltan datos',
+        text: 'Completa Booking, Invoice e Incoterm antes de guardar.'
+      });
+    }
+    const bloque = document.querySelector(`.incoterm-item[data-incoterm="${incotermId}"]`);
+    if (!bloque) return;
+
+    const items = [];
+    bloque.querySelectorAll('tbody tr').forEach(tr => {
+      const itemId      = parseInt(tr.dataset.itemId, 10);
+      const descripcion = tr.children[0].textContent.trim();
+
+      const rawCant = tr.querySelector('.cantidad').value;
+      const rawVU   = tr.querySelector('.valor-unitario').value;
+
+      const impEl    = tr.querySelector('.impuesto');
+      const rawImp   = impEl    ? impEl.value    : '0';
+      const viEl     = tr.querySelector('.valor-impuesto');
+      const rawVI    = viEl     ? viEl.value     : '0';
+      const notasEl  = tr.querySelector('.notas');
+      const rawNotas = notasEl  ? notasEl.value.trim() : '';
+
+      const cantidad      = rawCant === '' ? null : parseCurrency(rawCant);
+      const valorUnitario = rawVU   === '' ? null : parseCurrency(rawVU);
+      const valorTotal    = (cantidad || 0) * (valorUnitario || 0);
+      const impuestoPct   = rawImp  === '' ? null : parseCurrency(rawImp);
+      const valorImpuesto = rawVI   === '' ? null : parseCurrency(rawVI);
+      const notas         = rawNotas === '' ? null : rawNotas;
+
+      items.push({
+        incotermId,
+        itemId,
+        descripcion,
+        cantidad,
+        valorUnitario,
+        valorTotal,
+        impuestoPct,
+        valorImpuesto,
+        notas
+      });
     });
-    // al mostrar uno nuevo, recalculamos todo
-    recalculaTodo();
+
+    fetch('../api/exports/guardarliquidacionexport.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        booking, 
+        invoice, 
+        nOp, 
+        totalExw, 
+        coeficiente, 
+        items 
+      })
+    })
+    .then(r => r.json())
+    .then(resp => {
+      if (resp.success) {
+        Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Correcto.' })
+          .then(() => window.location.href = '../admins/exportsPanel.php');
+      } else {
+        Swal.fire({ icon: 'error', title: 'Error', text: resp.message });
+      }
+    })
+    .catch(() => {
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Error del servidor.' });
+    });
   });
 });
 </script>
@@ -568,198 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="../assets/js/fonts/custom-font.js"></script>
 <script src="../assets/js/pcoded.js"></script>
 <script src="../assets/js/plugins/feather.min.js"></script>
-<!--Completador de select-->
-<script>
-  document.getElementById('bookingSelect').addEventListener('change', function () {
-    const booking = this.value;
-    const invoiceSelect = document.getElementById('invoiceSelect');
 
-    // Limpiar y desactivar el segundo select
-    invoiceSelect.innerHTML = '<option selected>Seleccionar...</option>';
-    invoiceSelect.disabled = true;
-
-    if (booking && booking !== 'Seleccionar...') {
-      fetch(`../api/exports/get_invoices.php?booking=${encodeURIComponent(booking)}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.length > 0) {
-            data.forEach(invoice => {
-              const option = document.createElement('option');
-              option.value = invoice;
-              option.textContent = invoice;
-              option.selected=true;
-              invoiceSelect.appendChild(option);
-            });
-            invoiceSelect.disabled = false;
-          } else {
-            const opt = document.createElement('option');
-            opt.text = 'Sin facturas disponibles';
-            opt.disabled = true;
-            invoiceSelect.appendChild(opt);
-          }
-        })
-        .catch(error => {
-          console.error('Error al cargar facturas:', error);
-        });
-    }
-  });
-</script>
-
-
-
-<!--Autocalcular totales-->
-<!-- 1) Cálculo dinámico de totales -->
-<script>
-function parseCurrency(str) {
-  return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
-}
-document.addEventListener('DOMContentLoaded', () => {
-  function formatCurrency(value) {
-    let parts = value.toFixed(2).split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return parts.join(',');
-  }
-
-  
-  
-
-  function recalculate() {
-  document.querySelectorAll('tr[data-item-id]').forEach(tr => {
-    const qty = parseFloat(tr.querySelector('.cantidad').value) || 0;
-    const vu  = parseCurrency(tr.querySelector('.valor-unitario').value);
-    const vt  = qty * vu;
-    tr.querySelector('.valor-total').value = formatCurrency(vt);
-
-    const impInput = tr.querySelector('.impuesto');
-    if (impInput) {
-      const pct      = parseFloat(impInput.value) || 0;
-      const valorImp = vt * pct / 100;
-      const valorCI  = vt + valorImp;
-      tr.querySelector('.valor-impuesto').value      = formatCurrency(valorImp);
-      tr.querySelector('.valor-con-impuestos').value = formatCurrency(valorCI);
-    }
-  });
-
-  // Totales por incoterm (ahora con impuestos en CIF)
-  document.querySelectorAll('.incoterm-item').forEach(container => {
-    const rows = container.querySelectorAll('tr[data-item-id]');
-    const incTot = Array.from(rows).reduce((sum, tr) => {
-      // si tiene campo valor-con-impuestos, lo uso; sino valor-total
-      const ciInput = tr.querySelector('.valor-con-impuestos');
-      const val = ciInput
-        ? parseCurrency(ciInput.value)
-        : parseCurrency(tr.querySelector('.valor-total').value);
-      return sum + val;
-    }, 0);
-    container.querySelector('.total-incoterm').textContent = formatCurrency(incTot);
-  });
-
-  // Total general: suma todos los total-incoterm (ya incluyen impuestos en CIF)
-  const totalGeneral = Array.from(document.querySelectorAll('.total-incoterm'))
-    .reduce((sum, span) => sum + parseCurrency(span.textContent), 0);
-
-  document.getElementById('totalGeneral').textContent =
-    'Total General: $' + formatCurrency(totalGeneral);
-}
-
-
-  // Ahora escuchamos cambios en cantidad, valor-unitario **y** impuesto
-  document.getElementById('incotermContainer')
-    .addEventListener('input', e => {
-      if (
-        e.target.matches('.cantidad') ||
-        e.target.matches('.valor-unitario') ||
-        e.target.matches('.impuesto')
-      ) {
-        recalculate();
-      }
-    });
-
-  recalculate();
-});
-
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const bookingEl   = document.getElementById('bookingSelect');
-  const invoiceEl   = document.getElementById('invoiceSelect');
-  const selectEl    = document.getElementById('incotermSelect');
-  const btnGuardar  = document.querySelector('.btn-success');
-
-  btnGuardar.addEventListener('click', () => {
-    const booking    = bookingEl.value.trim();
-    const invoice    = invoiceEl.value.trim();
-    const incotermId = selectEl.value;
-
-    if (!booking || !invoice || !incotermId) {
-      return Swal.fire({
-        icon: 'warning',
-        title: 'Faltan datos',
-        text: 'Completa Booking, Invoice e Incoterm antes de guardar.'
-      });
-    }
-
-    const bloque = document.querySelector(`.incoterm-item[data-incoterm="${incotermId}"]`);
-    if (!bloque) return;
-
-    const items = [];
-    bloque.querySelectorAll('tbody tr').forEach(tr => {
-      const itemId      = parseInt(tr.dataset.itemId, 10);
-      const descripcion = tr.children[0].textContent.trim();
-
-      // Cantidad y valor unitario
-      const rawCant = tr.querySelector('.cantidad').value;
-      const rawVU   = tr.querySelector('.valor-unitario').value;
-
-      // Seguridad para los últimos 3 campos
-      const impEl    = tr.querySelector('.impuesto');
-      const rawImp   = impEl    ? impEl.value    : '0';
-      const viEl     = tr.querySelector('.valor-impuesto');
-      const rawVI    = viEl     ? viEl.value     : '0';
-      const notasEl  = tr.querySelector('.notas');
-      const rawNotas = notasEl  ? notasEl.value.trim() : '';
-
-      const cantidad      = rawCant === '' ? null : parseCurrency(rawCant);
-      const valorUnitario = rawVU   === '' ? null : parseCurrency(rawVU);
-      const valorTotal    = (cantidad || 0) * (valorUnitario || 0);
-      const impuestoPct   = rawImp  === '' ? null : parseCurrency(rawImp);
-      const valorImpuesto = rawVI   === '' ? null : parseCurrency(rawVI);
-      const notas         = rawNotas === '' ? null : rawNotas;
-
-      items.push({
-        incotermId,
-        itemId,
-        descripcion,
-        cantidad,
-        valorUnitario,
-        valorTotal,
-        impuestoPct,
-        valorImpuesto,
-        notas
-      });
-    });
-
-    fetch('../api/exports/guardarliquidacionexport.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ booking, invoice, items })
-    })
-    .then(r => r.json())
-    .then(resp => {
-      if (resp.success) {
-        Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Correcto.' })
-          
-          window.location.href = 'https://ekopackinglogistica.com/dist/admins/exportsPanel.php';
-      } else {
-        Swal.fire({ icon: 'error', title: 'Error', text: resp.message });
-      }
-    })
-    .catch(() => {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Error del servidor.' });
-    });
-  });
-});
-</script>
 
 
 

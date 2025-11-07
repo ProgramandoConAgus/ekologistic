@@ -39,7 +39,7 @@ SELECT
      AND i.Code_Product_EC = d.numero_parte
    ORDER BY i.Number_PO LIMIT 1) AS Number_PO,
 
-  (SELECT SUM(i.Qty_Box) FROM items i 
+  (SELECT i.Packing_Unit FROM items i 
    WHERE i.Number_Commercial_Invoice = d.numero_factura 
      AND i.Code_Product_EC = d.numero_parte) AS Qty_Item_Packing,
 

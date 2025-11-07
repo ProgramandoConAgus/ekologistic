@@ -333,6 +333,24 @@ while($row = $result->fetch_assoc()) {
               <!-- Se autocompleta con Javascript (buscar comentario de "Completador de select")  -->
             </select>
           </div>
+          <div class="col-md-6 mb-3">
+            <label for="nOpSelect" class="form-label">Nº Operacion</label>
+            <select id="nOpSelect" class="form-select" disabled>
+              <option selected>Seleccionar...</option>
+              <!-- Se autocompleta con Javascript (buscar comentario de "Completador de select")  -->
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+          </div>
+          <div class="col-md-6 mb-3">
+            
+            <label for="productoEXW" class="form-label">Costo del producto EXW</label>
+            <h2 id="productoEXW"></h2>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="coeficiente" class="form-label">COEFICIENTE %</label>
+            <h2 id="coeficiente"></h2>
+          </div>
         </div>
 
       </div>
@@ -477,6 +495,67 @@ while ($inc = $res->fetch_assoc()) {
         });
       </script>
 
+
+
+<!--Completador de select-->
+<script>
+document.getElementById('bookingSelect').addEventListener('change', function () {
+  const booking = this.value;
+  const invoiceSelect = document.getElementById('invoiceSelect');
+  const nOpSelect = document.getElementById('nOpSelect');
+  const productoEXW = document.getElementById('productoEXW');
+
+  // Limpiar y desactivar los selects y el costo del producto EXW
+  invoiceSelect.innerHTML = '<option selected>Seleccionar...</option>';
+  invoiceSelect.disabled = true;
+  nOpSelect.innerHTML = '<option selected>Seleccionar...</option>';
+  nOpSelect.disabled = true;
+  productoEXW.textContent = '';
+
+  if (booking && booking !== 'Seleccionar...') {
+    fetch(`../api/despacho/get_invoices.php?booking=${encodeURIComponent(booking)}`)
+      .then(response => response.json())
+      .then(data => {
+        // Llenar select de facturas
+        if (data.invoices.length > 0) {
+          data.invoices.forEach(invoice => {
+            const option = document.createElement('option');
+            option.value = invoice;
+            option.textContent = invoice;
+            invoiceSelect.appendChild(option);
+          });
+          invoiceSelect.disabled = false;
+        } else {
+          const opt = document.createElement('option');
+          opt.text = 'Sin facturas disponibles';
+          opt.disabled = true;
+          invoiceSelect.appendChild(opt);
+        }
+
+        // Llenar select de números de operación
+        if (data.nops.length > 0) {
+          data.nops.forEach(op => {
+            const option = document.createElement('option');
+            option.value = op;
+            option.textContent = op;
+            nOpSelect.appendChild(option);
+          });
+          nOpSelect.disabled = false;
+        }
+
+        // Mostrar el costo del producto EXW
+        productoEXW.textContent = `$${data.total_ec.toFixed(2)}`;
+        productoEXW.dataset.totalecu = data.total_ec.toFixed(2);
+      })
+      .catch(error => {
+        console.error('Error al cargar datos:', error);
+      });
+  }
+});
+
+</script>
+
+<!--Autocalcular totales-->
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const totalEl     = document.getElementById('totalGeneral');
@@ -510,6 +589,14 @@ while ($inc = $res->fetch_assoc()) {
           total += vt + vi;
         });
       totalEl.textContent = 'Total General: $' + formatCurrency(total);
+      totalEl.dataset.totalgeneral = total;
+
+      const coeficiente=total/(parseFloat(document.getElementById('productoEXW').dataset.totalecu))*100;
+      document.getElementById('coeficiente').textContent=coeficiente.toFixed(2)+' %';
+      document.getElementById('coeficiente').dataset.coeficiente=coeficiente;
+      if(coeficiente.isNaN || !isFinite(coeficiente)){
+        document.getElementById('coeficiente').textContent='0.00 %';
+      }
     }
 
     // Disparamos recalculate cada vez que el usuario cambie un qty, V.U. o impuesto
@@ -546,6 +633,107 @@ while ($inc = $res->fetch_assoc()) {
     recalculateGeneral();
   });
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const bookingEl   = document.getElementById('bookingSelect');
+  const invoiceEl   = document.getElementById('invoiceSelect');
+  const selectEl    = document.getElementById('incotermSelect');
+  const btnGuardar  = document.querySelector('.btn-success');
+
+  btnGuardar.addEventListener('click', () => {
+    const booking    = bookingEl.value.trim();
+    const invoice    = invoiceEl.value.trim();
+    const incotermId = selectEl.value;
+
+    if (!booking || !invoice || !incotermId) {
+      return Swal.fire({
+        icon: 'warning',
+        title: 'Faltan datos',
+        text: 'Completa Booking, Invoice e Incoterm antes de guardar.'
+      });
+    }
+
+    const bloque = document.querySelector(`.incoterm-item[data-incoterm="${incotermId}"]`);
+    if (!bloque) return;
+
+    const items = [];
+    bloque.querySelectorAll('tbody tr').forEach(tr => {
+      const itemId      = parseInt(tr.dataset.itemId, 10);
+      const descripcion = tr.children[0].textContent.trim();
+
+      // Cantidad y valor unitario
+      const rawCant = tr.querySelector('.cantidad').value;
+      const rawVU   = tr.querySelector('.valor-unitario').value;
+
+      // Convertimos formatos con coma decimal a punto decimal
+      const cantidad      = rawCant === '' ? null : parseFloat(rawCant.replace(',', '.')) || 0;
+      const valorUnitario = rawVU   === '' ? null : parseFloat(rawVU.replace(',', '.')) || 0;
+      const valorTotal    = (cantidad || 0) * (valorUnitario || 0);
+      const notasEl = tr.querySelector('.notas');
+      const notas   = notasEl ? notasEl.value.trim() : '';
+
+      items.push({
+        incotermId,
+        itemId,
+        descripcion,
+        cantidad,
+        valorUnitario,
+        valorTotal,
+        notas      
+      });
+    });
+
+    // Tomamos los 3 datos extras
+    const costoEXW      = parseFloat(document.getElementById('productoEXW').dataset.totalecu) || 0;
+    const num_op   = document.getElementById('nOpSelect')?.value;
+    const coeficiente        = parseFloat(document.getElementById('coeficiente').dataset.coeficiente) || 0;
+
+    fetch('../api/despacho/guardarliquidaciondespacho.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        booking,
+        invoice,
+        items,
+        costoEXW,
+        num_op,
+        coeficiente
+      })
+    })
+    .then(r => r.json())
+    .then(resp => {
+      if (resp.success) {
+        Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Correcto.' })
+          window.location.href = '../admins/despachosPanel.php';
+      } else {
+        Swal.fire({ icon: 'error', title: 'Error', text: resp.message });
+      }
+    })
+    .catch(() => {
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Error del servidor.' });
+    });
+  });
+});
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 <script>
@@ -670,6 +858,14 @@ document.querySelector('table tbody').addEventListener('click', (e) => {
 
 
 
+
+
+
+
+
+
+
+
       </div>
     </div>
     <!-- [ Main Content ] end -->
@@ -696,159 +892,6 @@ document.querySelector('table tbody').addEventListener('click', (e) => {
 <script src="../assets/js/fonts/custom-font.js"></script>
 <script src="../assets/js/pcoded.js"></script>
 <script src="../assets/js/plugins/feather.min.js"></script>
-<!--Completador de select-->
-<script>
-  document.getElementById('bookingSelect').addEventListener('change', function () {
-    const booking = this.value;
-    const invoiceSelect = document.getElementById('invoiceSelect');
-
-    // Limpiar y desactivar el segundo select
-    invoiceSelect.innerHTML = '<option selected>Seleccionar...</option>';
-    invoiceSelect.disabled = true;
-
-    if (booking && booking !== 'Seleccionar...') {
-      fetch(`../api/exports/get_invoices.php?booking=${encodeURIComponent(booking)}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.length > 0) {
-            data.forEach(invoice => {
-              const option = document.createElement('option');
-              option.value = invoice;
-              option.textContent = invoice;
-              option.selected=true;
-              invoiceSelect.appendChild(option);
-            });
-            invoiceSelect.disabled = false;
-          } else {
-            const opt = document.createElement('option');
-            opt.text = 'Sin facturas disponibles';
-            opt.disabled = true;
-            invoiceSelect.appendChild(opt);
-          }
-        })
-        .catch(error => {
-          console.error('Error al cargar facturas:', error);
-        });
-    }
-  });
-</script>
-
-
-
-<!--Autocalcular totales-->
-<!-- 1) Cálculo dinámico de totales -->
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  function formatCurrency(value) {
-    let parts = value.toFixed(2).split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return parts.join(',');
-  }
-
-  function parseCurrency(str) {
-    return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
-  }
-
-  function recalculate() {
-    document.querySelectorAll('tr[data-item-id]').forEach(tr => {
-      const qty = parseFloat(tr.querySelector('.cantidad').value) || 0;
-      const vu  = parseCurrency(tr.querySelector('.valor-unitario').value);
-      const vt  = qty * vu;
-      tr.querySelector('.valor-total').value = formatCurrency(vt);
-    });
-
-    document.querySelectorAll('.incoterm-item').forEach(container => {
-      const incTot = Array.from(container.querySelectorAll('.valor-total'))
-        .reduce((sum, input) => sum + parseCurrency(input.value), 0);
-      container.querySelector('.total-incoterm').textContent = formatCurrency(incTot);
-    });
-
-    const totalGeneral = Array.from(document.querySelectorAll('.total-incoterm'))
-      .reduce((sum, span) => sum + parseCurrency(span.textContent), 0);
-    document.getElementById('totalGeneral').innerHTML = 'Total General: $' + formatCurrency(totalGeneral);
-  }
-
-  document.getElementById('incotermContainer')
-    .addEventListener('input', e => {
-      if (e.target.matches('.cantidad') || e.target.matches('.valor-unitario')) {
-        recalculate();
-      }
-    });
-
-  recalculate();
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const bookingEl   = document.getElementById('bookingSelect');
-  const invoiceEl   = document.getElementById('invoiceSelect');
-  const selectEl    = document.getElementById('incotermSelect');
-  const btnGuardar  = document.querySelector('.btn-success');
-
-  btnGuardar.addEventListener('click', () => {
-    const booking    = bookingEl.value.trim();
-    const invoice    = invoiceEl.value.trim();
-    const incotermId = selectEl.value;
-
-    if (!booking || !invoice || !incotermId) {
-      return Swal.fire({
-        icon: 'warning',
-        title: 'Faltan datos',
-        text: 'Completa Booking, Invoice e Incoterm antes de guardar.'
-      });
-    }
-
-    const bloque = document.querySelector(`.incoterm-item[data-incoterm="${incotermId}"]`);
-    if (!bloque) return;
-
-    const items = [];
-    bloque.querySelectorAll('tbody tr').forEach(tr => {
-      const itemId      = parseInt(tr.dataset.itemId, 10);
-      const descripcion = tr.children[0].textContent.trim();
-
-      // Cantidad y valor unitario
-      const rawCant = tr.querySelector('.cantidad').value;
-      const rawVU   = tr.querySelector('.valor-unitario').value;
-
-      // Convertimos formatos con coma decimal a punto decimal
-      const cantidad      = rawCant === '' ? null : parseFloat(rawCant.replace(',', '.')) || 0;
-      const valorUnitario = rawVU   === '' ? null : parseFloat(rawVU.replace(',', '.')) || 0;
-      const valorTotal    = (cantidad || 0) * (valorUnitario || 0);
-      const notasEl = tr.querySelector('.notas');
-      const notas   = notasEl ? notasEl.value.trim() : '';
-
-      items.push({
-        incotermId,
-        itemId,
-        descripcion,
-        cantidad,
-        valorUnitario,
-        valorTotal,
-        notas        // <-- lo añadimos aquí
-      });
-    });
-
-    fetch('../api/despacho/guardarliquidaciondespacho.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ booking, invoice, items })
-    })
-    .then(r => r.json())
-    .then(resp => {
-      if (resp.success) {
-        Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Correcto.' })
-          window.location.href = '../admins/despachosPanel.php';
-      } else {
-        Swal.fire({ icon: 'error', title: 'Error', text: resp.message });
-      }
-    })
-    .catch(() => {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Error del servidor.' });
-    });
-  });
-});
-
-</script>
 
 
 

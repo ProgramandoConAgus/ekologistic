@@ -5,13 +5,25 @@ header('Content-Type: application/json');
 try {
     $input = json_decode(file_get_contents('php://input'), true);
     $datos = $input['datos'] ?? [];
+    $coeficiente = floatval($input['coeficiente'] ?? 0);
+    $idDespacho = intval($input['idDespacho'] ?? 0);
 
-    if (empty($datos)) {
-        echo json_encode(['success' => false, 'message' => 'Datos vacíos']);
+    if (empty($datos) || !$idDespacho) {
+        echo json_encode(['success' => false, 'message' => 'Datos vacíos o DespachoID inválido']);
         exit;
     }
 
-    // Preparamos la consulta JOIN con la tabla incoterms para filtrar por IdIncoterms
+    // 1) Actualizamos el coeficiente en la tabla despacho
+    $stmtCoef = $conexion->prepare("
+        UPDATE despacho
+        SET coeficiente = ?
+        WHERE DespachoID = ?
+    ");
+    $stmtCoef->bind_param("di", $coeficiente, $idDespacho);
+    $stmtCoef->execute();
+    $stmtCoef->close();
+
+    // 2) Actualizamos los items
     $sql = "
     UPDATE itemsliquidaciondespachoincoterms ii
     JOIN incotermsDespacho ic 
@@ -23,50 +35,42 @@ try {
         ii.Notas         = ?
     WHERE ic.IdIncotermsDespacho = ?
     ";
+    $stmt = $conexion->prepare($sql);
+    if (!$stmt) throw new Exception("Error preparando UPDATE: " . $conexion->error);
 
-$stmt = $conexion->prepare($sql);
+    $errores = [];
+    foreach ($datos as $d) {
+        $cantidad      = floatval($d['cantidad']);
+        $valorUnitario = floatval($d['valorUnitario']);
+        $valorTotal    = floatval($d['valorTotal']);
+        $notas         = $d['notas'] ?? '';
+        $idIncoterms   = intval($d['idIncoterms']);
 
-// ...
-
-foreach ($datos as $d) {
-    $cantidad      = floatval($d['cantidad']);
-    $valorUnitario = floatval($d['valorUnitario']);
-    $valorTotal    = floatval($d['valorTotal']);
-    $notas         = $d['notas'];           // cadena
-    $idIncoterms   = intval($d['idIncoterms']);
-
-    // tipos: d, d, d, s, i
-    $stmt->bind_param(
-      "dddsi",
-      $cantidad,
-      $valorUnitario,
-      $valorTotal,
-      $notas,
-      $idIncoterms
-    );
-
-    if (! $stmt->execute()) {
-      $errores[] = "Id {$idIncoterms}: " . $stmt->error;
+        $stmt->bind_param("dddsi", $cantidad, $valorUnitario, $valorTotal, $notas, $idIncoterms);
+        if (!$stmt->execute()) {
+            $errores[] = "Id {$idIncoterms}: " . $stmt->error;
+        }
     }
-}
 
-    // Respuesta con los datos que efectivamente procesó
+    $stmt->close();
+
+    // 3) Respuesta
     if (empty($errores)) {
         echo json_encode([
             'success'         => true,
             'message'         => 'Actualización exitosa',
-            'datosProcesados' => $datos
+            'datosProcesados' => $datos,
+            'coeficiente'     => $coeficiente
         ]);
     } else {
         echo json_encode([
             'success'         => false,
             'message'         => 'Algunos registros no se actualizaron.',
             'errors'          => $errores,
-            'datosProcesados' => $datos
+            'datosProcesados' => $datos,
+            'coeficiente'     => $coeficiente
         ]);
     }
-
-    $stmt->close();
 
 } catch (Exception $e) {
     http_response_code(500);

@@ -328,6 +328,24 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
               <!-- Se autocompleta con Javascript (buscar comentario de "Completador de select")  -->
             </select>
           </div>
+          <div class="col-md-6 mb-3">
+            <label for="nOpSelect" class="form-label">Nº Operacion</label>
+            <select id="nOpSelect" class="form-select" disabled>
+              <option selected>Seleccionar...</option>
+              <!-- Se autocompleta con Javascript (buscar comentario de "Completador de select")  -->
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+          </div>
+          <div class="col-md-6 mb-3">
+            
+            <label for="productoEXW" class="form-label">Costo del producto EXW</label>
+            <h2 id="productoEXW"></h2>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="coeficiente" class="form-label">COEFICIENTE %</label>
+            <h2 id="coeficiente"></h2>
+          </div>
         </div>
 
       </div>
@@ -385,9 +403,10 @@ while ($inc = $res->fetch_assoc()) {
               <tbody>
                 <?php
                   $items = $conexion->query(
-                    "SELECT IdItemsLiquidacionImport, NombreItems 
+                    "SELECT IdItemsLiquidacionImport, NombreItems , posicion
                     FROM itemsliquidacionimport
-                    WHERE IdTipoIncoterm = {$inc['IdTipoIncoterm']}"
+                    WHERE IdTipoIncoterm = {$inc['IdTipoIncoterm']}
+                    Order By posicion"
                   );
                   while ($row = $items->fetch_assoc()):
                 ?>
@@ -403,7 +422,7 @@ while ($inc = $res->fetch_assoc()) {
                   <td>
                     <div class="input-group input-group-sm">
                       <span class="input-group-text">$</span>
-                      <input type="text" class="form-control valor-total" value="0,00" readonly>
+                      <input type="text" class="form-control valor-total " value="0,00" readonly>
                     </div>
                   </td>
                   <td>
@@ -449,90 +468,6 @@ while ($inc = $res->fetch_assoc()) {
         <button id="btnGuardar" type="button" class="btn btn-success">Guardar</button>
       </div>
 
-      <!-- Script para mostrar/ocultar -->
-      <script>
-        const sel = document.getElementById('incotermSelect');
-        const bloques = document.querySelectorAll('.incoterm-item');
-        sel.addEventListener('change', () => {
-          bloques.forEach(b => {
-            b.style.display = (b.dataset.incoterm === sel.value) ? 'block' : 'none';
-          });
-        });
-      </script>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const totalGeneralEl = document.getElementById('totalGeneral');
-
-  // Función para recalcular el total de un bloque (incluye impuesto)
-  function recalculaTotalBloque(block, id) {
-    let suma = 0;
-    block.querySelectorAll('tbody tr').forEach(tr => {
-      const vt = parseFloat(tr.querySelector('.valor-total').value.replace(/,/g, '.'))   || 0;
-      const vi = parseFloat(tr.querySelector('.valor-impuesto').value.replace(/,/g, '.')) || 0;
-      suma += vt + vi;
-    });
-    const span = document.querySelector(`.total-incoterm[data-incoterm-total="${id}"]`);
-    span.textContent = suma.toFixed(2);
-    return suma;
-  }
-
-  // Función para recalcular todo el formulario
-  function recalculaTodo() {
-    let general = 0;
-    document.querySelectorAll('.incoterm-item').forEach(block => {
-      const id = block.dataset.incoterm;
-      // solo sumamos bloques visibles (o todos si prefieres)
-      if (block.style.display === 'block') {
-        general += recalculaTotalBloque(block, id);
-      }
-    });
-    totalGeneralEl.textContent = `$${general.toFixed(2)}`;
-  }
-
-  // Atachar listeners a cada fila/input
-  document.querySelectorAll('.incoterm-item').forEach(block => {
-    const id = block.dataset.incoterm;
-    block.querySelectorAll('tbody tr').forEach(tr => {
-      ['.cantidad', '.valor-unitario', '.impuesto'].forEach(sel => {
-        const input = tr.querySelector(sel);
-        if (!input) return;
-        input.addEventListener('input', () => {
-          // recalcular fila
-          const qtyRaw = tr.querySelector('.cantidad').value.replace(/,/g, '.');
-          const vuRaw  = tr.querySelector('.valor-unitario').value.replace(/,/g, '.');
-          const impRaw = tr.querySelector('.impuesto').value.replace(/,/g, '.');
-
-          const qty = parseFloat(qtyRaw) || 0;
-          const vu  = parseFloat(vuRaw)  || 0;
-          const imp = parseFloat(impRaw) || 0;
-
-          const vt = qty * vu;
-          const vi = vt * (imp / 100);
-
-          tr.querySelector('.valor-total').value    = vt.toFixed(2);
-          tr.querySelector('.valor-impuesto').value = vi.toFixed(2);
-
-          // recalcular totales
-          recalculaTotalBloque(block, id);
-          recalculaTodo();
-        });
-      });
-    });
-  });
-
-  // Mostrar bloque e inicializar totales al cambiar Incoterm
-  document.getElementById('incotermSelect').addEventListener('change', ev => {
-    document.querySelectorAll('.incoterm-item').forEach(b => {
-      b.style.display = (b.dataset.incoterm === ev.target.value) ? 'block' : 'none';
-    });
-    // al mostrar uno nuevo, recalculamos todo
-    recalculaTodo();
-  });
-});
-</script>
-
-
 
       </div>
     </div>
@@ -560,153 +495,228 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="../assets/js/fonts/custom-font.js"></script>
 <script src="../assets/js/pcoded.js"></script>
 <script src="../assets/js/plugins/feather.min.js"></script>
-<!--Completador de select-->
+
+
+<!-- Script para mostrar/ocultar -->
 <script>
-  document.getElementById('bookingSelect').addEventListener('change', function () {
-    const booking = this.value;
-    const invoiceSelect = document.getElementById('invoiceSelect');
-
-    // Limpiar y desactivar el segundo select
-    invoiceSelect.innerHTML = '<option selected>Seleccionar...</option>';
-    invoiceSelect.disabled = true;
-
-    if (booking && booking !== 'Seleccionar...') {
-      fetch(`../api/exports/get_invoices.php?booking=${encodeURIComponent(booking)}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.length > 0) {
-            data.forEach(invoice => {
-              const option = document.createElement('option');
-              option.value = invoice;
-              option.textContent = invoice;
-              option.selected=true;
-              invoiceSelect.appendChild(option);
-            });
-            invoiceSelect.disabled = false;
-          } else {
-            const opt = document.createElement('option');
-            opt.text = 'Sin facturas disponibles';
-            opt.disabled = true;
-            invoiceSelect.appendChild(opt);
-          }
-        })
-        .catch(error => {
-          console.error('Error al cargar facturas:', error);
-        });
-    }
+  const sel = document.getElementById('incotermSelect');
+  const bloques = document.querySelectorAll('.incoterm-item');
+  sel.addEventListener('change', () => {
+    bloques.forEach(b => {
+      b.style.display = (b.dataset.incoterm === sel.value) ? 'block' : 'none';
+    });
   });
 </script>
-
-
-
-<!--Autocalcular totales-->
-<!-- 1) Cálculo dinámico de totales -->
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  function formatCurrency(value) {
-    let parts = value.toFixed(2).split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return parts.join(',');
+document.addEventListener("DOMContentLoaded", function () {
+
+  function normalizaNumero(v) {
+    return parseFloat((v || "0").toString().replace(",", "."));
   }
 
-  function parseCurrency(str) {
-    return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+  function recalcularFila(tr) {
+    const qty = normalizaNumero(tr.querySelector(".cantidad")?.value);
+    const vu  = normalizaNumero(tr.querySelector(".valor-unitario")?.value);
+
+    const vt = qty * vu;
+    tr.querySelector(".valor-total").value = vt.toFixed(2);
+
+    // Si existe impuesto en esta fila (solo para incoterm 3)
+    const impInput = tr.querySelector(".impuesto");
+    if (impInput) {
+      const imp = normalizaNumero(impInput.value);
+      const vi = vt * (imp / 100);
+      tr.querySelector(".valor-impuesto").value = vi.toFixed(2);
+    }
   }
 
-  function recalculate() {
-    document.querySelectorAll('tr[data-item-id]').forEach(tr => {
-      const qty = parseFloat(tr.querySelector('.cantidad').value) || 0;
-      const vu  = parseCurrency(tr.querySelector('.valor-unitario').value);
-      const vt  = qty * vu;
-      tr.querySelector('.valor-total').value = formatCurrency(vt);
+  function totalBloque(block) {
+    let sum = 0;
+    block.querySelectorAll("tbody tr").forEach(tr => {
+      const vt = normalizaNumero(tr.querySelector(".valor-total")?.value);
+      const vi = normalizaNumero(tr.querySelector(".valor-impuesto")?.value);
+      sum += vt + vi;
     });
-
-    document.querySelectorAll('.incoterm-item').forEach(container => {
-      const incTot = Array.from(container.querySelectorAll('.valor-total'))
-        .reduce((sum, input) => sum + parseCurrency(input.value), 0);
-      container.querySelector('.total-incoterm').textContent = formatCurrency(incTot);
-    });
-
-    const totalGeneral = Array.from(document.querySelectorAll('.total-incoterm'))
-      .reduce((sum, span) => sum + parseCurrency(span.textContent), 0);
-    document.getElementById('totalGeneral').innerHTML = 'Total General: $' + formatCurrency(totalGeneral);
+    const id = block.dataset.incoterm;
+    document.querySelector(`[data-incoterm-total="${id}"]`).textContent = sum.toFixed(2);
+    return sum;
   }
 
-  document.getElementById('incotermContainer')
-    .addEventListener('input', e => {
-      if (e.target.matches('.cantidad') || e.target.matches('.valor-unitario')) {
-        recalculate();
-      }
-    });
+  function recalcularTodo() {
+    const visible = document.querySelector('.incoterm-item[style*="block"]');
+    if (!visible) return;
 
-  recalculate();
+    const general = totalBloque(visible);
+    document.getElementById("totalGeneral").textContent = `Total General: $${general.toFixed(2)}`;
+
+    const totalECU = normalizaNumero(document.getElementById("productoEXW").dataset.totalEcu);
+    if (totalECU > 0) {
+      const coef = (general / totalECU) * 100;
+      document.getElementById("coeficiente").textContent = coef.toFixed(2) + "%";
+    }
+  }
+
+  function attachEvents() {
+    document.querySelectorAll(".incoterm-item tbody tr").forEach(tr => {
+      ["cantidad", "valor-unitario", "impuesto"].forEach(cls => {
+        const input = tr.querySelector(`.${cls}`);
+        if (!input) return;
+        input.addEventListener("input", () => {
+          recalcularFila(tr);
+          recalcularTodo();
+        });
+      });
+    });
+  }
+
+  attachEvents();
+
+  // Cambiar incoterm (mostrar tabla y recalcular)
+  document.getElementById("incotermSelect").addEventListener("change", e => {
+    document.querySelectorAll(".incoterm-item").forEach(b =>
+      b.style.display = (b.dataset.incoterm === e.target.value) ? "block" : "none"
+    );
+    recalcularTodo();
+  });
+
+  // Booking → cargar valores ECU + setear automáticos
+  document.getElementById("bookingSelect").addEventListener("change", function () {
+    const booking = this.value;
+    if (!booking || booking === "Seleccionar...") return;
+
+    fetch(`../api/imports/get_invoices.php?booking=${booking}`)
+      .then(r => r.json())
+      .then(data => {
+        const totalEC = data.total_ec;
+        const exwEl = document.getElementById("productoEXW");
+        exwEl.textContent = `$${totalEC.toFixed(2)}`;
+        exwEl.dataset.totalEcu = totalEC;
+
+        // Completar selects
+        const invoice = document.getElementById("invoiceSelect");
+        const nops = document.getElementById("nOpSelect");
+        invoice.innerHTML = "<option>Seleccionar...</option>";
+        nops.innerHTML = "<option>Seleccionar...</option>";
+
+        data.invoices?.forEach(i => invoice.insertAdjacentHTML("beforeend", `<option>${i}</option>`));
+        data.nops?.forEach(n => nops.insertAdjacentHTML("beforeend", `<option>${n}</option>`));
+        invoice.disabled = false;
+        nops.disabled = false;
+
+        // Set automáticos segun IDs
+        document.querySelectorAll('tr[data-item-id]').forEach(tr => {
+          const id = Number(tr.dataset.itemId);
+          const qty = tr.querySelector(".cantidad");
+          const vu = tr.querySelector(".valor-unitario");
+
+          // Arancel EDITABLE
+          if ([64,65,51].includes(id)) {
+            qty.value = 0.15;
+            vu.value = totalEC;
+          }
+
+          // MPH fijo
+          if ([18,35,49].includes(id)) {
+            qty.value = 0.003464;
+            vu.value = totalEC;
+            qty.readOnly = true;
+          }
+
+          // HMF fijo
+          if ([19,36,50].includes(id)) {
+            qty.value = 0.00125;
+            vu.value = totalEC;
+            qty.readOnly = true;
+          }
+
+          // recalcular fila
+          recalcularFila(tr);
+        });
+
+        recalcularTodo();
+      });
+  });
+
 });
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const btnGuardar  = document.getElementById('btnGuardar');
-  const bookingEl   = document.getElementById('bookingSelect');
-  const invoiceEl   = document.getElementById('invoiceSelect');
-  const selectEl    = document.getElementById('incotermSelect');
+  const btnGuardar = document.getElementById('btnGuardar');
+  const bookingEl = document.getElementById('bookingSelect');
+  const invoiceEl = document.getElementById('invoiceSelect');
+  const selectEl = document.getElementById('incotermSelect');
+  const nOpEl = document.getElementById('nOpSelect');
+  const exwEl = document.getElementById('productoEXW');
+  const coeficienteEl = document.getElementById('coeficiente');
 
   if (!btnGuardar) return console.warn('No se encontró #btnGuardar');
 
   btnGuardar.addEventListener('click', () => {
-    console.log('✔ Click en Guardar');    // <–– prueba de que el handler existe
-
-    const booking    = bookingEl.value.trim();
-    const invoice    = invoiceEl.value.trim();
+    console.log('✔ Click en Guardar');
+    const numOp = nOpEl.value.trim();
+    const booking = bookingEl.value.trim();
+    const invoice = invoiceEl.value.trim();
     const incotermId = selectEl.value;
+    const costoEXW = parseFloat(exwEl.dataset.totalEcu || "0");
+    const coeficiente = parseFloat(coeficienteEl.textContent.replace('%', '').trim() || "0");
 
-    if (!booking || !invoice || !incotermId) {
+    if (!booking || !invoice || !incotermId || !numOp) {
       return Swal.fire({
         icon: 'warning',
         title: 'Faltan datos',
-        text: 'Completa Booking, Invoice e Incoterm antes de guardar.'
+        text: 'Completa Booking, Invoice, Nº Operación e Incoterm antes de guardar.'
       });
     }
 
-    // Montas el array de items igual que antes...
     const items = [];
     document.querySelectorAll(`.incoterm-item[data-incoterm="${incotermId}"] tbody tr`)
       .forEach(tr => {
-        const itemId      = +tr.dataset.itemId;
-        const cantidad    = parseFloat(tr.querySelector('.cantidad').value.replace(',', '.')) || 0;
-        const valorUnit   = parseFloat(
-                             tr.querySelector('.valor-unitario').value
-                               .replace(/\./g,'').replace(',', '.')
-                           ) || 0;
-        const valorTotal  = cantidad * valorUnit;
-        const notas       = (tr.querySelector('.notas')?.value || '').trim();
+        const itemId = +tr.dataset.itemId;
+        const cantidad = parseFloat(tr.querySelector('.cantidad').value.replace(',', '.')) || 0;
+        const valorUnit = parseFloat(
+          tr.querySelector('.valor-unitario').value
+            .replace(/\./g, '').replace(',', '.')
+        ) || 0;
+        const valorTotal = cantidad * valorUnit;
+        const notas = (tr.querySelector('.notas')?.value || '').trim();
+        const impuesto = parseFloat(tr.querySelector('.impuesto')?.value || "0");
+        const valorImpuesto = valorTotal * (impuesto / 100);
 
-        items.push({ itemId, cantidad, valorUnitario: valorUnit, valorTotal, notas });
+        items.push({
+          itemId,
+          cantidad: cantidad.toFixed(2),
+          valorUnitario: valorUnit.toFixed(2),
+          valorTotal: valorTotal.toFixed(2),
+          notas,
+          impuesto: impuesto.toFixed(2),
+          valorImpuesto: valorImpuesto.toFixed(2)
+        });
       });
 
-    console.log({ booking, invoice, incotermId, items });  // <–– valida en consola
-
+    console.log({ booking, invoice, incotermId, costoEXW, coeficiente, items });
     fetch('../api/imports/guardarliquidacionimport.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ booking, invoice, items })
+      body: JSON.stringify({ booking, invoice, numOp, costoEXW, coeficiente, items })
     })
-    .then(r => r.json())
-    .then(resp => {
-      console.log('Respuesta del servidor:', resp);
-      if (resp.success) {
-        Swal.fire('¡Guardado!', '', 'success')
-          window.location.href = 'https://ekopackinglogistica.com/dist/admins/importsPanel.php';
-      } else {
-        Swal.fire('Error', resp.message, 'error');
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      Swal.fire('Error', 'No se pudo conectar al servidor.', 'error');
-    });
+      .then(r => r.json())
+      .then(resp => {
+        console.log('Respuesta del servidor:', resp);
+        if (resp.success) {
+          Swal.fire('¡Guardado!', '', 'success')
+          window.location.href = '../admins/importsPanel.php';
+        } else {
+          Swal.fire('Error', resp.message, 'error');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        Swal.fire('Error', 'No se pudo conectar al servidor.', 'error');
+      });
   });
 });
 </script>
-
+<!--Guardado de datos-->
 
 
 

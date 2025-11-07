@@ -209,7 +209,7 @@ try {
     // 9) Commit y éxito
     $conexion->commit();
     $_SESSION['mensaje'] = "Archivo procesado correctamente";
-    header("Location: https://ekopackinglogistica.com/dist/dashboard/panel-packinglist.php");
+    header("Location: ../dashboard/panel-packinglist.php");
 
     exit;
 

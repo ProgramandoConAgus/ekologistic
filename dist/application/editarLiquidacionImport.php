@@ -10,7 +10,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 $idImport = $_GET["ImportID"] ?? 0;
 
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice FROM imports WHERE ImportsID = ?");
+$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice, num_op, costoEXW FROM imports WHERE ImportsID = ?");
 $stmt->bind_param("i", $idImport);
 $stmt->execute();
 $importsData = $stmt->get_result()->fetch_assoc();
@@ -345,6 +345,21 @@ while ($row = $result->fetch_assoc()) {
         <label class="form-label fw-bold">Commercial Invoice</label>
         <div class="form-control bg-light"><?= $importsData['Number_Commercial_Invoice'] ?></div>
       </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-bold">N° Operación</label>
+        <input type="text" class="form-control bg-light" value="<?= htmlspecialchars($importsData['num_op']) ?>" readonly>
+      </div>
+
+      <div class="col-md-6 mb-3">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label for="productoEXW" class="form-label" >Costo del producto EXW</label>
+        <h2 id="productoEXW" data-totalEcu="<?=$importsData['costoEXW']?>"><?= $importsData['costoEXW'] ?></h2>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label for="coeficiente" class="form-label">COEFICIENTE %</label>
+        <h2 id="coeficiente"></h2>
+      </div>
     </div>
 
     <div class="accordion" id="incotermAccordion">
@@ -378,7 +393,7 @@ while ($row = $result->fetch_assoc()) {
             </thead>
             <tbody>
             <?php foreach ($items as $item): 
-                  $cant = intval($item['Cantidad']);
+                  $cant = floatval($item['Cantidad']);
                   $vu   = floatval($item['ValorUnitario']);
                   $vt   = floatval($item['ValorTotal']);
                   $tipo = intval($item['idTipo']);  // <-- aquí
@@ -465,76 +480,106 @@ while ($row = $result->fetch_assoc()) {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <!-- Calcular totales automaticamente-->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const totalGeneralEl = document.getElementById('totalGeneral');
+document.addEventListener("DOMContentLoaded", () => {
 
-  function actualizarTotalGeneral() {
-    let totalGeneral = 0;
-    // Sumamos todos los valor-total y valor-impuesto (quitando miles)
-    document.querySelectorAll('.valor-total, .valor-impuesto').forEach(input => {
-      const raw = input.value
-        .replace(/\./g, '')   // quitar separador de miles
-        .replace(',', '.');   // convertir coma decimal a punto
-      totalGeneral += parseFloat(raw) || 0;
-    });
-    totalGeneralEl.textContent = `Total General: $${totalGeneral.toFixed(2).replace('.', ',')}`;
-  }
+  // Convierte cualquier valor del input en número, soporta coma decimal
+  function normalizaNumero(v) {
+    if (!v) return 0;
+    v = v.toString().trim();
 
-  document.querySelectorAll('.accordion-item').forEach(accordion => {
-    const rows = accordion.querySelectorAll('tbody tr');
-    const totalIncotermSpan = accordion.querySelector('.total-incoterm');
-
-    function calcularBloque() {
-      let subtotal = 0;
-
-      rows.forEach(row => {
-        // parsear cantidad, valor unitario e impuesto (si existe)
-        const qtyRaw = row.querySelector('.cantidad')?.value   .replace(',', '.') || '0';
-        const vuRaw  = row.querySelector('.valor-unitario')?.value
-                          .replace(/\./g, '').replace(',', '.') || '0';
-        const impRaw = row.querySelector('.impuesto')?.value   .replace(',', '.') || '0';
-
-        const cantidad     = parseFloat(qtyRaw) || 0;
-        const valorUnitario= parseFloat(vuRaw)  || 0;
-        const impuestoPct  = parseFloat(impRaw) || 0;
-
-        const vt = cantidad * valorUnitario;
-        const vi = vt * (impuestoPct / 100);
-
-        // actualizar inputs de tota les filas si existen
-        const vtEl = row.querySelector('.valor-total');
-        if (vtEl) vtEl.value = vt.toFixed(2).replace('.', ',');
-
-        const viEl = row.querySelector('.valor-impuesto');
-        if (viEl) viEl.value = vi.toFixed(2).replace('.', ',');
-
-        subtotal += vt + vi;
-      });
-
-      if (totalIncotermSpan) {
-        totalIncotermSpan.textContent = subtotal.toFixed(2).replace('.', ',');
-      }
-      actualizarTotalGeneral();
+    // Si contiene coma, asumimos formato europeo
+    if (v.includes(",")) {
+      v = v.replace(/\./g,"").replace(",","."); // elimina miles y cambia coma por punto
     }
 
-    // atachar listeners a cantidad, valor-unitario e impuesto
-    rows.forEach(row => {
-      ['.cantidad', '.valor-unitario', '.impuesto'].forEach(sel => {
-        const input = row.querySelector(sel);
-        if (input) input.addEventListener('input', calcularBloque);
-      });
+    return parseFloat(v) || 0;
+  }
+
+  // Formatea número a string con coma decimal y 2 decimales
+  function formateaNumero(num) {
+    if (isNaN(num)) return "0,00";
+    return num.toFixed(2).replace(".", ",");
+  }
+
+  // Recalcula valores de una fila: cantidad, valor unitario, impuesto
+  function recalcularFila(tr) {
+    const qty = normalizaNumero(tr.querySelector(".cantidad")?.value);
+    const vu  = normalizaNumero(tr.querySelector(".valor-unitario")?.value);
+    const imp = normalizaNumero(tr.querySelector(".impuesto")?.value);
+
+    const vt = qty * vu;       // subtotal
+    const vi = vt * (imp / 100); // impuesto
+
+    const vtInput = tr.querySelector(".valor-total");
+    const viInput = tr.querySelector(".valor-impuesto");
+
+    if (vtInput) vtInput.value = formateaNumero(vt);
+    if (viInput) viInput.value = formateaNumero(vi);
+
+    return vt + vi;
+  }
+
+  // Recalcula el total de un bloque (accordion-item)
+  function totalBloque(block) {
+    let sum = 0;
+    block.querySelectorAll("tbody tr").forEach(tr => {
+      sum += recalcularFila(tr);
     });
 
-    // cálculo inicial de este bloque
-    calcularBloque();
-  });
+    const totalSpan = block.querySelector(".total-incoterm");
+    if (totalSpan) totalSpan.textContent = formateaNumero(sum);
+
+    return sum;
+  }
+
+  // Recalcula todos los bloques y el total general
+  function recalcularTodo() {
+    let general = 0;
+
+    document.querySelectorAll('.accordion-item').forEach(block => {
+      general += totalBloque(block);
+    });
+
+    // Total general
+    const totalGeneralEl = document.getElementById("totalGeneral");
+    if (totalGeneralEl) {
+      totalGeneralEl.textContent = `Total General: $${formateaNumero(general)}`;
+    }
+
+    // Coeficiente si existe data-total-ecu
+    const exwEl = document.getElementById("productoEXW");
+    if (exwEl?.dataset?.totalecu) {
+      const totalECU = normalizaNumero(exwEl.dataset.totalecu);
+      if (totalECU > 0) {
+        const coef = (general / totalECU) * 100;
+        document.getElementById("coeficiente").textContent = formateaNumero(coef) + "%";
+      } else {
+        document.getElementById("coeficiente").textContent = "0%";
+      }
+    }
+  }
+
+  // Adjunta eventos input para recalcular automáticamente
+  function attachEvents() {
+    document.querySelectorAll(".accordion-item tbody tr").forEach(tr => {
+      ["cantidad", "valor-unitario", "impuesto"].forEach(cls => {
+        const input = tr.querySelector(`.${cls}`);
+        if (!input) return;
+        input.addEventListener("input", () => {
+          recalcularFila(tr);
+          recalcularTodo();
+        });
+      });
+    });
+  }
+
+  attachEvents();
+  recalcularTodo();
+
 });
 </script>
-
-
-
-
 <!-- Actualizar datos-->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -543,26 +588,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btn.addEventListener('click', () => {
     const datos = [];
+    let totalGeneral = 0;
 
     document.querySelectorAll('.accordion-item tbody tr').forEach(row => {
       // 1) ID de la fila de pivot
       const idInc = parseInt(row.dataset.itemId, 10);
-
       // 2) Cantidad y Valor Unitario
-      const qtyRaw  = row.querySelector('.cantidad')?.value       .replace(',', '.') || '0';
-      const vuRaw   = row.querySelector('.valor-unitario')?.value
-                       .replace(/\./g,'').replace(',', '.')       || '0';
-      const cantidad      = parseFloat(qtyRaw)      || 0;
-      const valorUnitario = parseFloat(vuRaw)       || 0;
+      const qtyRaw  = row.querySelector('.cantidad')?.value.replace(',', '.') || '0';
+      const vuRaw   = row.querySelector('.valor-unitario')?.value.replace(/\./g, '').replace(',', '.') || '0';
+      const cantidad      = parseFloat(qtyRaw) || 0;
+      const valorUnitario = parseFloat(vuRaw) || 0;
 
       // 3) Recalcular Totales
-      const valorTotal    = cantidad * valorUnitario;
+      const valorTotal = cantidad * valorUnitario;
+      totalGeneral += valorTotal;
 
-      const impRaw        = row.querySelector('.impuesto')?.value .replace(',', '.') || '0';
-      const impuestoPct   = parseFloat(impRaw)       || 0;
+      const impRaw = row.querySelector('.impuesto')?.value.replace(',', '.') || '0';
+      const impuestoPct = parseFloat(impRaw) || 0;
       const valorImpuesto = valorTotal * (impuestoPct / 100);
 
-      const notas         = row.querySelector('.notas')?.value.trim() || '';
+      const notas = row.querySelector('.notas')?.value.trim() || '';
 
       datos.push({
         idIncoterms: idInc,
@@ -575,10 +620,21 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
+    // Obtener el total EXW
+    const totalExwRaw = document.getElementById('productoEXW')?.dataset.totalecu || '0';
+    const totalExw = parseFloat(totalExwRaw.replace(',', '.')) || 0;
+   
+      
+    const idImport = <?= json_encode($idImport) ?>;
+    const coeficiente = totalExw > 0 ? (totalGeneral / totalExw) * 100 : 0;
+    console.log(totalExw)
+    console.log(coeficiente)
+
+
     fetch('../api/imports/actualizarliquidacionimport.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ datos })
+      body: JSON.stringify({ datos, totalExw, totalGeneral, coeficiente, idImport })
     })
     .then(r => r.json())
     .then(json => {
@@ -595,7 +651,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
-
 
 
 
