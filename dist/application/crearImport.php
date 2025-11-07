@@ -363,16 +363,21 @@ while ($inc = $res->fetch_assoc()) {
 
 
       <!-- 2) Select dinámico -->
-      <div class="mb-4">
-        <label for="incotermSelect" class="form-label">Elige Incoterm:</label>
-        <select id="incotermSelect" class="form-select">
+      <div class="mb-4 d-flex align-items-start gap-3">
+        <div style="flex:1">
+          <label for="incotermSelect" class="form-label">Elige Incoterm:</label>
+          <select id="incotermSelect" class="form-select">
           <option value="">-- Selecciona --</option>
           <?php foreach ($incoterms as $inc): ?>
             <option value="<?= $inc['IdTipoIncoterm'] ?>">
               <?= htmlspecialchars($inc['NombreTipoIncoterm']) ?>
             </option>
           <?php endforeach; ?>
-        </select>
+          </select>
+        </div>
+        <div class="d-flex align-items-end">
+          <!-- Botón movido: ahora se muestra debajo del listado -->
+        </div>
       </div>
 
       <!-- 3) Contenedores dinámicos -->
@@ -455,6 +460,11 @@ while ($inc = $res->fetch_assoc()) {
             </h5>
           </div>
         <?php endforeach; ?>
+      </div>
+
+      <!-- Botón global para agregar item (moved here so it's visible under the incoterm list) -->
+      <div class="mt-3 mb-3">
+        <button id="btnAgregarItem" type="button" class="btn btn-outline-primary">+ Agregar item</button>
       </div>
 
       <!-- Botones y Total General -->
@@ -607,6 +617,93 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   attachEvents();
+
+  // Adjunta eventos a una fila nueva (evita re-iterar sobre todas)
+  function attachEventsToRow(tr) {
+    ["cantidad", "valor-unitario", "impuesto"].forEach(cls => {
+      const input = tr.querySelector(`.${cls}`);
+      if (!input) return;
+      input.addEventListener('input', () => {
+        recalcularFila(tr);
+        recalcularTodo();
+      });
+    });
+
+    // Si el campo cantidad es porcentaje, agregar focus/blur (compatibilidad)
+    const qty = tr.querySelector('.cantidad');
+    if (qty && qty.dataset && qty.dataset.isPercent) {
+      qty.addEventListener('focus', () => {
+        let v = String(qty.value || '').trim();
+        if (v.indexOf('%') !== -1) v = v.replace('%', '').replace(',', '.').trim();
+        qty.value = v;
+      });
+      qty.addEventListener('blur', () => {
+        let v = String(qty.value || '').trim().replace(',', '.');
+        let n = parseFloat(v);
+        if (isNaN(n)) n = 0;
+        if (qty.dataset.decimal) {
+          qty.value = (n).toFixed(4).replace('.', ',') + '%';
+        } else {
+          qty.value = (n).toFixed(2).replace('.', ',') + '%';
+        }
+        recalcularFila(tr);
+        recalcularTodo();
+      });
+    }
+
+    // delete button
+    const del = tr.querySelector('.btn-delete-item');
+    if (del) {
+      del.addEventListener('click', () => {
+        tr.remove();
+        recalcularTodo();
+      });
+    }
+  }
+
+  // Crea una fila vacía para el incoterm indicado
+  function crearFilaNueva(incotermId) {
+    const tr = document.createElement('tr');
+    tr.dataset.itemId = '0'; // nuevo item temporal
+
+    // columnas base: descripcion, cantidad, valor unitario, valor total, notas
+    let html = '';
+    html += `<td><input type="text" class="form-control nombre-items" placeholder="Nombre del item"></td>`;
+    html += `<td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>`;
+    html += `<td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control valor-unitario" value="0,00"></div></td>`;
+    html += `<td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control valor-total" value="0,00" readonly></div></td>`;
+    html += `<td><div class="d-flex gap-2"><input type="text" class="form-control form-control-sm notas" placeholder="Notas"><button type="button" class="btn btn-sm btn-outline-danger btn-delete-item">Eliminar</button></div></td>`;
+
+    // si incoterm 3, agregar impuesto y valor impuesto
+    if (Number(incotermId) === 3) {
+      html += `<td><div class="input-group input-group-sm"><input type="number" class="form-control impuesto" value="0" min="0" max="100"><span class="input-group-text">%</span></div></td>`;
+      html += `<td><div class="input-group input-group-sm"><span class="input-group-text">$</span><input type="text" class="form-control valor-impuesto" value="0,00" readonly></div></td>`;
+    }
+
+    tr.innerHTML = html;
+    return tr;
+  }
+
+  // boton agregar item global
+  const btnAgregar = document.getElementById('btnAgregarItem');
+  if (btnAgregar) {
+    btnAgregar.addEventListener('click', () => {
+      const incSel = document.getElementById('incotermSelect');
+      const incId = incSel.value;
+      if (!incId) return Swal.fire('Selecciona un Incoterm', 'Elige primero el incoterm donde agregar el item', 'warning');
+
+      const container = document.querySelector(`.incoterm-item[data-incoterm="${incId}"]`);
+      if (!container) return Swal.fire('Error', 'No se encontró el contenedor del incoterm', 'error');
+      const tbody = container.querySelector('tbody');
+      if (!tbody) return Swal.fire('Error', 'Tabla inválida', 'error');
+
+      const nueva = crearFilaNueva(incId);
+      tbody.appendChild(nueva);
+      attachEventsToRow(nueva);
+      recalcularFila(nueva);
+      recalcularTodo();
+    });
+  }
 
   // Cambiar incoterm (mostrar tabla y recalcular)
   document.getElementById("incotermSelect").addEventListener("change", e => {
@@ -793,8 +890,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const impuesto = parsePercentValue(tr.querySelector('.impuesto')?.value || "0") || 0;
         const valorImpuesto = valorTotal * (impuesto / 100);
 
+        const nombreItem = tr.querySelector('.nombre-items')?.value?.trim() || '';
+
         items.push({
           itemId,
+          nombre: nombreItem,
           cantidad: cantidad.toFixed(6), // mantener precisión si viene en fracciones
           valorUnitario: valorUnit.toFixed(2),
           valorTotal: valorTotal.toFixed(2),
@@ -808,7 +908,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch('../api/imports/guardarliquidacionimport.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ booking, invoice, numOp, costoEXW, coeficiente, items })
+      body: JSON.stringify({ booking, invoice, numOp, costoEXW, coeficiente, incotermId: incotermId, items })
     })
       .then(r => r.json())
       .then(resp => {

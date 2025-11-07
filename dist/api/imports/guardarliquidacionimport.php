@@ -8,6 +8,7 @@ try {
     $booking = $data['booking']   ?? '';
     $invoice = $data['invoice']   ?? '';
     $items   = $data['items']     ?? [];
+    $incotermId = intval($data['incotermId'] ?? 0);
     $numOp = $data['numOp'] ?? '';
     $costoEXW= $data['costoEXW'] ?? 0;
     $coeficiente= $data['coeficiente'] ?? 0;
@@ -18,7 +19,10 @@ try {
     }
     
 
-    // 1) Insert en exports
+    // start transaction
+    $conexion->begin_transaction();
+
+    // 1) Insert en imports
     $stmtImport = $conexion->prepare(
         "INSERT INTO imports (Booking_BK, Number_Commercial_Invoice, num_op, costoEXW, coeficiente,creation_date)
          VALUES (?, ?, ?, ?,?,NOW())"
@@ -37,9 +41,30 @@ try {
         $valorUnitario = floatval($item['valorUnitario']);
         $valorTotal    = floatval($item['valorTotal']);
         $notas         = trim($item['notas'] ?? '');
+        $nombre        = trim($item['nombre'] ?? '');
 
         if ($cantidad < 0 || $valorUnitario < 0 || $valorTotal < 0) {
             throw new Exception("Datos inválidos para el item: " . json_encode($item));
+        }
+
+        // Si es un item nuevo (itemId == 0), crear el item en itemsliquidacionimport
+        if ($idItem === 0) {
+            if ($nombre === '') {
+                throw new Exception("Nombre requerido para nuevo item");
+            }
+            if ($incotermId <= 0) {
+                throw new Exception("IncotermId faltante para nuevo item");
+            }
+
+            $stmtNewItem = $conexion->prepare(
+                "INSERT INTO itemsliquidacionimport (NombreItems, IdTipoIncoterm, posicion) VALUES (?, ?, 9999)"
+            );
+            if (!$stmtNewItem) {
+                throw new Exception("Error preparando INSERT en itemsliquidacionimport: " . $conexion->error);
+            }
+            $stmtNewItem->bind_param("si", $nombre, $incotermId);
+            $stmtNewItem->execute();
+            $idItem = $conexion->insert_id;
         }
 
         // Preparamos INSERT incluyendo la columna Notas
@@ -63,7 +88,7 @@ try {
             $notas      // ← enlazamos la nota aquí
         );
 
-        $stmtItemInc->execute();
+    $stmtItemInc->execute();
         $idItemsIncoterms = $conexion->insert_id;
 
         // 3) Ahora insertamos en incotermsimport
@@ -79,9 +104,15 @@ try {
         $stmtInc->bind_param("ii", $idItemsIncoterms, $idExport);
         $stmtInc->execute();
     }
-
+    $conexion->commit();
     echo json_encode(['success' => true]);
 } catch (Exception $e) {
+    if ($conexion->errno === 0) {
+        // if transaction active, rollback
+        $conexion->rollback();
+    } else {
+        $conexion->rollback();
+    }
     http_response_code(500);
     echo json_encode([
       'success' => false,
