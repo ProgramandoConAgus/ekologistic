@@ -357,6 +357,8 @@ while ($row = $result->fetch_assoc()) {
       <div class="col-md-6 mb-3">
         <label for="coeficiente" class="form-label">COEFICIENTE %</label>
         <h2 id="coeficiente"></h2>
+        <!-- Coeficiente calculado usando Total sin impuestos -->
+        <h6 id="coeficienteSinEditar" class="text-muted mt-2">Coeficiente (sin impuestos): %0,00</h6>
       </div>
     </div>
 
@@ -556,12 +558,22 @@ document.addEventListener('DOMContentLoaded', () => {
     total.textContent= "Total General: $ "+formatNumber(sumaTotal);
 
     // 💡 Calcula coeficiente automático
-    const costoExw = parseFloat(costoExwInput.dataset.totalecu) || 0;
-    console.log('Costo EXW:', costoExw, 'Suma CI:', sumaTotal);
-    
-    const coef = (sumaTotal / costoExw) *100;
+    // Leer EXW desde data attribute (acepta data-totalEcu o data-totalecu) o desde el texto
+    const exwRaw = (costoExwInput && (costoExwInput.dataset.totalEcu ?? costoExwInput.dataset.totalecu)) || (costoExwInput ? costoExwInput.textContent : '0');
+    const costoExw = parseFloat(String(exwRaw).replace(/\s/g,'').replace(',','.')) || 0;
+    console.log('Costo EXW:', exwRaw, '->', costoExw, 'Suma sin impuestos:', sumSin, 'Suma con impuestos:', sumaTotal);
+
+    const coef = costoExw > 0 ? (sumaTotal / costoExw) * 100 : 0;
     coefInput.textContent = formatNumber(coef);
-    coefInput.dataset.coeficiente = coef; // 💡 valor numérico real por si lo usás después
+    coefInput.dataset.coeficiente = coef; // valor numérico real por si lo usás después
+
+    // Coeficiente sin impuestos (usa sumSin)
+    const coefSinEl = document.getElementById('coeficienteSinEditar');
+    if (coefSinEl) {
+      const coefSin = costoExw > 0 ? (sumSin / costoExw) * 100 : 0;
+      coefSinEl.textContent = 'Coeficiente (sin impuestos): ' + formatNumber(coefSin) + '%';
+      coefSinEl.dataset.coeficienteSin = coefSin;
+    }
   }
 
   // Listeners

@@ -342,7 +342,8 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
           </div>
           <div class="col-md-6 mb-3">
             <label for="coeficiente" class="form-label">COEFICIENTE %</label>
-            <h2 id="coeficiente"></h2>
+             <h2 id="coeficiente" class="text-success fw-bold m-0 text-center">%0.00</h2>
+             <h6 id="coeficienteSin" class="text-muted mt-1">Coeficiente (sin impuestos): %0.00</h6>
           </div>
         </div>
 
@@ -469,7 +470,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4">
         <button class="btn btn-primary" onclick="window.location.href = '../admins/exportsPanel.php'">Volver</button>
         <h5 id="totalGeneral" class="text-success fw-bold m-0 text-center">
-          Total General: $0,00
+         Total General: $0,00
         </h5>
         <button type="button" class="btn btn-success">Guardar</button>
       </div>
@@ -546,166 +547,183 @@ document.getElementById('bookingSelect').addEventListener('change', function () 
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  const incotermContainer = document.getElementById('incotermContainer');
+
   function parseCurrency(str) {
-    return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+    if (str === null || str === undefined) return 0;
+    str = String(str).trim();
+    if (str === '') return 0;
+    // Remove currency symbol and whitespace
+    str = str.replace(/\$/g, '').replace(/\s/g, '');
+    // Handle formats like '1.234,56' (es) or '1,234.56' (en) or '1234,56'
+    if (str.indexOf(',') > -1 && str.indexOf('.') > -1 && str.indexOf(',') > str.indexOf('.')) {
+      // '1.234,56' -> remove dots, replace comma with dot
+      str = str.replace(/\./g, '').replace(',', '.');
+    } else if (str.indexOf(',') > -1 && str.indexOf('.') === -1) {
+      // '1234,56' -> '1234.56'
+      str = str.replace(',', '.');
+    } else {
+      // '1,234.56' -> remove commas
+      str = str.replace(/,/g, '');
+    }
+    const v = parseFloat(str);
+    return isNaN(v) ? 0 : v;
   }
 
   function formatCurrency(value) {
-    let parts = value.toFixed(2).split('.');
+    const negative = value < 0;
+    value = Math.abs(Number(value) || 0).toFixed(2);
+    const parts = value.split('.');
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return parts.join(',');
+    return (negative ? '-' : '') + parts.join(',');
   }
 
   function recalculate() {
     let totalGeneral = 0;
+    let totalSinImpuesto = 0;
+    let totalImpuestos = 0;
 
-    document.querySelectorAll('tr[data-item-id]').forEach(tr => {
-      const qty = parseFloat(tr.querySelector('.cantidad').value) || 0;
-      const vu  = parseCurrency(tr.querySelector('.valor-unitario').value);
-      const vt  = qty * vu;
-      tr.querySelector('.valor-total').value = formatCurrency(vt);
-
-      const impInput = tr.querySelector('.impuesto');
-      if (impInput) {
-        const pct      = parseFloat(impInput.value) || 0;
-        const valorImp = vt * pct / 100;
-        const valorCI  = vt + valorImp;
-        tr.querySelector('.valor-impuesto').value      = formatCurrency(valorImp);
-        tr.querySelector('.valor-con-impuestos').value = formatCurrency(valorCI);
-      }
-    });
-
-    // Totales por incoterm
     document.querySelectorAll('.incoterm-item').forEach(container => {
-      const rows = container.querySelectorAll('tr[data-item-id]');
-      const incTot = Array.from(rows).reduce((sum, tr) => {
-        const ciInput = tr.querySelector('.valor-con-impuestos');
-        const val = ciInput
-          ? parseCurrency(ciInput.value)
-          : parseCurrency(tr.querySelector('.valor-total').value);
-        return sum + val;
-      }, 0);
-      container.querySelector('.total-incoterm').textContent = formatCurrency(incTot);
+      let incTot = 0;
+      container.querySelectorAll('tr[data-item-id]').forEach(tr => {
+        const qty = parseFloat(tr.querySelector('.cantidad').value) || 0;
+        const vu = parseCurrency(tr.querySelector('.valor-unitario').value);
+        const vt = qty * vu;
+
+        const vtEl = tr.querySelector('.valor-total');
+        if (vtEl) vtEl.value = formatCurrency(vt);
+
+        totalSinImpuesto += vt;
+
+        const impInput = tr.querySelector('.impuesto');
+        let vi = 0;
+        if (impInput) {
+          const impPct = parseFloat(String(impInput.value).replace(',', '.')) || 0;
+          vi = vt * (impPct / 100);
+          const viEl = tr.querySelector('.valor-impuesto');
+          if (viEl) viEl.value = formatCurrency(vi);
+          const vciEl = tr.querySelector('.valor-con-impuestos');
+          if (vciEl) vciEl.value = formatCurrency(vt + vi);
+          totalImpuestos += vi;
+        }
+
+        incTot += (vt + vi);
+      });
+
+      const incTotEl = container.querySelector('.total-incoterm');
+      if (incTotEl) incTotEl.textContent = formatCurrency(incTot);
       totalGeneral += incTot;
     });
 
-    // Total general
-    document.getElementById('totalGeneral').textContent =
-      'Total General: $' + formatCurrency(totalGeneral);
+    const totalGeneralEl = document.getElementById('totalGeneral');
+    if (totalGeneralEl) totalGeneralEl.textContent = 'Total General: $' + formatCurrency(totalGeneral);
 
-    // Calcular coeficiente
-    console.log(document.getElementById('productoEXW')?.dataset.totalecu);
-    const totalExw = parseFloat(document.getElementById('productoEXW')?.dataset.totalecu || 0);
+    const totalExw = parseCurrency(document.getElementById('productoEXW')?.dataset.totalecu || 0);
     const coef = totalExw > 0 ? (totalGeneral / totalExw) * 100 : 0;
-    document.getElementById('coeficiente').textContent = coef.toFixed(2) + '%';
-    document.getElementById('coeficiente').dataset.coeficiente = coef.toFixed(2);
+    const coefSin = totalExw > 0 ? (totalSinImpuesto / totalExw) * 100 : 0;
+
+    const coefEl = document.getElementById('coeficiente');
+    if (coefEl) coefEl.textContent = coef.toFixed(2) + '%';
+
+    const coefSinEl = document.getElementById('coeficienteSin');
+    if (coefSinEl) coefSinEl.textContent = 'Coeficiente (sin impuestos): ' + coefSin.toFixed(2) + '%';
   }
 
-  // Escuchar cambios en cantidad, valor-unitario e impuesto
-  document.getElementById('incotermContainer').addEventListener('input', e => {
-    if (
-      e.target.matches('.cantidad') ||
-      e.target.matches('.valor-unitario') ||
-      e.target.matches('.impuesto')
-    ) {
+  // Initial calculation
+  recalculate();
+
+  // Delegated input listener
+  incotermContainer?.addEventListener('input', (e) => {
+    if (e.target.matches('.cantidad') || e.target.matches('.valor-unitario') || e.target.matches('.impuesto')) {
       recalculate();
     }
   });
 
-  // Ejecutar al cargar
-  recalculate();
-});
-</script>
+  // Save handler
+  const saveBtn = document.querySelector('button.btn-success');
+  saveBtn?.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    // ensure latest numbers
+    recalculate();
 
-<script>
-function parseCurrency(str) {
-  return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
-}
-document.addEventListener('DOMContentLoaded', () => { 
-  const bookingEl = document.getElementById('bookingSelect'); 
-  const invoiceEl = document.getElementById('invoiceSelect'); 
-  const selectEl = document.getElementById('incotermSelect'); 
-  const btnGuardar = document.querySelector('.btn-success');
+    const booking = document.getElementById('bookingSelect')?.value || null;
+    const invoice = document.getElementById('invoiceSelect')?.value || null;
+    const nOp = document.getElementById('nOpSelect')?.value || null;
+    const totalExw = parseCurrency(document.getElementById('productoEXW')?.dataset.totalecu || 0);
 
-
-  btnGuardar.addEventListener('click', () => {
-    const booking    = bookingEl.value.trim();
-    const invoice    = invoiceEl.value.trim();
-    const incotermId = selectEl.value;
-    const nOp        = document.getElementById('nOpSelect')?.value || '';
-    const totalExw   = parseFloat(document.getElementById('productoEXW')?.dataset.totalecu) || 0;
-    const coeficiente = parseFloat(document.getElementById('coeficiente')?.dataset.coeficiente) || 0;
-    console.log(document.getElementById('productoEXW').dataset.totalecu)
-    console.log(document.getElementById('coeficiente').dataset.coeficiente)
-    if (!booking || !invoice || !incotermId) {
-      return Swal.fire({
-        icon: 'warning',
-        title: 'Faltan datos',
-        text: 'Completa Booking, Invoice e Incoterm antes de guardar.'
-      });
-    }
-    const bloque = document.querySelector(`.incoterm-item[data-incoterm="${incotermId}"]`);
-    if (!bloque) return;
-
-    const items = [];
-    bloque.querySelectorAll('tbody tr').forEach(tr => {
-      const itemId      = parseInt(tr.dataset.itemId, 10);
-      const descripcion = tr.children[0].textContent.trim();
-
-      const rawCant = tr.querySelector('.cantidad').value;
-      const rawVU   = tr.querySelector('.valor-unitario').value;
-
-      const impEl    = tr.querySelector('.impuesto');
-      const rawImp   = impEl    ? impEl.value    : '0';
-      const viEl     = tr.querySelector('.valor-impuesto');
-      const rawVI    = viEl     ? viEl.value     : '0';
-      const notasEl  = tr.querySelector('.notas');
-      const rawNotas = notasEl  ? notasEl.value.trim() : '';
-
-      const cantidad      = rawCant === '' ? null : parseCurrency(rawCant);
-      const valorUnitario = rawVU   === '' ? null : parseCurrency(rawVU);
-      const valorTotal    = (cantidad || 0) * (valorUnitario || 0);
-      const impuestoPct   = rawImp  === '' ? null : parseCurrency(rawImp);
-      const valorImpuesto = rawVI   === '' ? null : parseCurrency(rawVI);
-      const notas         = rawNotas === '' ? null : rawNotas;
-
-      items.push({
-        incotermId,
-        itemId,
-        descripcion,
-        cantidad,
-        valorUnitario,
-        valorTotal,
-        impuestoPct,
-        valorImpuesto,
-        notas
-      });
+    // compute totals
+    let totalGeneral = 0;
+    document.querySelectorAll('.total-incoterm').forEach(el => {
+      totalGeneral += parseCurrency(el.textContent || el.innerText || '0');
     });
 
+    // total sin impuestos: sum of valor-total inputs
+    let totalSinImpuesto = 0;
+    document.querySelectorAll('.valor-total').forEach(inp => {
+      totalSinImpuesto += parseCurrency(inp.value || inp.textContent || '0');
+    });
+
+    const coeficiente = totalExw > 0 ? (totalGeneral / totalExw) * 100 : 0;
+    const coeficienteSin = totalExw > 0 ? (totalSinImpuesto / totalExw) * 100 : 0;
+
+    // collect items only from the selected incoterm (so export contains only that incoterm)
+    const items = [];
+    const selectedIncoterm = document.getElementById('incotermSelect')?.value || null;
+    if (selectedIncoterm) {
+      const container = document.querySelector(`.incoterm-item[data-incoterm="${selectedIncoterm}"]`);
+      if (container) {
+        const incotermId = parseInt(container.dataset.incoterm, 10) || null;
+        container.querySelectorAll('tbody tr').forEach(tr => {
+          const itemId = parseInt(tr.dataset.itemId, 10) || null;
+          const descripcion = tr.children[0]?.textContent.trim() || null;
+          const rawCant = tr.querySelector('.cantidad')?.value || '';
+          const rawVU = tr.querySelector('.valor-unitario')?.value || '';
+          const rawImp = tr.querySelector('.impuesto')?.value || '';
+          const rawVI = tr.querySelector('.valor-impuesto')?.value || '';
+          const rawNotas = tr.querySelector('.notas')?.value || '';
+
+          const cantidad = rawCant === '' ? null : parseFloat(rawCant);
+          const valorUnitario = rawVU === '' ? null : parseCurrency(rawVU);
+          const valorTotal = (cantidad || 0) * (valorUnitario || 0);
+          const impuestoPct = rawImp === '' ? null : parseFloat(String(rawImp).replace(',', '.'));
+          const valorImpuesto = rawVI === '' ? null : parseCurrency(rawVI);
+
+          items.push({
+            incotermId,
+            itemId,
+            descripcion,
+            cantidad,
+            valorUnitario,
+            valorTotal,
+            impuestoPct,
+            valorImpuesto,
+            notas: rawNotas || null
+          });
+        });
+      }
+    }
+
+    // disable button while saving
+    saveBtn.disabled = true;
     fetch('../api/exports/guardarliquidacionexport.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        booking, 
-        invoice, 
-        nOp, 
-        totalExw, 
-        coeficiente, 
-        items 
-      })
+      body: JSON.stringify({ booking, invoice, nOp, totalExw, coeficiente: Number(coeficiente.toFixed(2)), coeficienteSin: Number(coeficienteSin.toFixed(2)), items })
     })
     .then(r => r.json())
     .then(resp => {
       if (resp.success) {
-        Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Correcto.' })
-          .then(() => window.location.href = '../admins/exportsPanel.php');
+        Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'La liquidación se guardó correctamente.' })
+        .then(() => { window.location.href = '../admins/exportsPanel.php'; });
       } else {
-        Swal.fire({ icon: 'error', title: 'Error', text: resp.message });
+        Swal.fire({ icon: 'error', title: 'Error', text: resp.message || 'Error al guardar.' });
       }
     })
-    .catch(() => {
+    .catch(err => {
+      console.error(err);
       Swal.fire({ icon: 'error', title: 'Error', text: 'Error del servidor.' });
-    });
+    })
+    .finally(() => { saveBtn.disabled = false; });
   });
 });
 </script>

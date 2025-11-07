@@ -435,9 +435,10 @@ while ($row = $result->fetch_assoc()) {
 
   <div class="mt-4 p-3 border-top">
     <h5 class="fw-bold">Total General</h5>
-    <p>Total sin impuestos: $<?= number_format($totalGeneralSinImpuesto, 2, ',', '.') ?></p>
-    <p>Total impuestos: $<?= number_format($totalGeneralImpuestos, 2, ',', '.') ?></p>
+    <p id="totalSin">Total sin impuestos: $<?= number_format($totalGeneralSinImpuesto, 2, ',', '.') ?></p>
+    <p id="totalImp">Total impuestos: $<?= number_format($totalGeneralImpuestos, 2, ',', '.') ?></p>
     <p class="fw-bold">Total con impuestos: $<?= number_format($totalGeneralSinImpuesto + $totalGeneralImpuestos, 2, ',', '.') ?></p>
+    <h6 id="coeficienteSinDetalle" class="text-muted mt-2">Coeficiente (sin impuestos): %0.00</h6>
   </div>
 </div>
 
@@ -483,14 +484,35 @@ while ($row = $result->fetch_assoc()) {
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script>
 function parseARS(str) {
-  if (!str) return 0;
-  return parseFloat(
-    str
-      .toString()
-      .replace(/[^0-9,.-]/g, '') // dejar solo números , . -
-      .replace(/\./g, '')       // eliminar miles
-      .replace(',', '.')        // reemplazar decimal
-  ) || 0;
+  if (!str && str !== 0) return 0;
+  let s = String(str).trim();
+  // quitar cualquier carácter que no sea dígito, punto, coma o signo menos
+  s = s.replace(/[^0-9,\.\-]/g, '');
+
+  if (s === '') return 0;
+
+  const hasComma = s.indexOf(',') !== -1;
+  const hasDot = s.indexOf('.') !== -1;
+
+  if (hasDot && hasComma) {
+    // formato tipo 1.234.567,89 -> quitar puntos (miles) y reemplazar coma por punto (decimal)
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (hasComma && !hasDot) {
+    // formato tipo 1234,56 -> reemplazar coma por punto
+    s = s.replace(',', '.');
+  } else if (hasDot && !hasComma) {
+    // formato tipo 0.7 o 1234.56 -> puede ser decimal con punto
+    // pero si hay múltiples puntos, tratar los anteriores como separadores de miles
+    const parts = s.split('.');
+    if (parts.length > 2) {
+      const last = parts.pop();
+      s = parts.join('') + '.' + last; // eliminar puntos de miles
+    }
+    // si sólo hay un punto, lo conservamos como separador decimal
+  }
+
+  const val = parseFloat(s);
+  return isNaN(val) ? 0 : val;
 }
 
   document.addEventListener('DOMContentLoaded', () => {});
@@ -514,6 +536,17 @@ function parseARS(str) {
   const total = totalEl;
   const coef  = coefEl.dataset.coeficiente;
 
+  // calcular coeficiente sin impuestos leyendo el Total sin impuestos en la página
+  const totalSinEl = document.getElementById('totalSin');
+  let coefSin = '';
+  if (totalSinEl) {
+    const txt = totalSinEl.textContent || '';
+    const m = txt.match(/\$?\s*([0-9\.,-]+)/);
+    const totalSinNum = m ? parseARS(m[1]) : 0;
+    const exwNum = parseARS(exw);
+    coefSin = exwNum > 0 ? (totalSinNum / exwNum) * 100 : 0;
+  }
+
   const wb      = XLSX.utils.book_new();
   const ws_data = [];
 
@@ -526,6 +559,8 @@ function parseARS(str) {
   ws_data.push(['Costo EXW', exw.toLocaleString('es-AR', { minimumFractionDigits: 2 })]);
   ws_data.push(['Total Liquidación', total.toLocaleString('es-AR', { minimumFractionDigits: 2 })]);
   ws_data.push(['Coeficiente (%)', "%"+coef]);
+  // Coeficiente usando total SIN impuestos
+  ws_data.push(['Coeficiente (sin impuestos) (%)', "%" + (typeof coefSin === 'number' ? coefSin.toFixed(2) : '')]);
   ws_data.push([]);
 
   // ============================
@@ -595,6 +630,31 @@ function parseARS(str) {
 
   XLSX.writeFile(wb, `ExportID_<?= $idExport ?>.xlsx`);
 }
+</script>
+
+<script>
+// Calcular y mostrar coeficiente (sin impuestos) en detalle
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const exwEl = document.getElementById('productoEXW');
+    const totalSinEl = document.getElementById('totalSin');
+    const coefEl = document.getElementById('coeficiente');
+    const coefSinEl = document.getElementById('coeficienteSinDetalle');
+
+    if (!exwEl || !totalSinEl || !coefSinEl) return;
+
+    const exw = parseARS(exwEl.dataset.totalecu || exwEl.textContent || '0');
+    // totalSinEl contiene texto 'Total sin impuestos: $1.234,56'
+    const txt = totalSinEl.textContent || '';
+    const matches = txt.match(/\$?\s*([0-9\.,-]+)/);
+    const totalSin = matches ? parseARS(matches[1]) : 0;
+
+    const coefSin = exw > 0 ? (totalSin / exw) * 100 : 0;
+    coefSinEl.textContent = 'Coeficiente (sin impuestos): ' + coefSin.toFixed(2) + '%';
+  } catch (e) {
+    console.warn('No se pudo calcular coeficiente sin impuestos', e);
+  }
+});
 </script>
 
 
