@@ -12,7 +12,8 @@ try {
 
     // 1) Traigo las liquidaciones asociadas a ese num_op
     $sql = "
-      SELECT 'exports' AS origen, e.ExportsID AS id, e.Booking_BK, e.Number_Commercial_Invoice, DATE_FORMAT(e.creation_date, '%d/%m/%Y') AS fecha
+      SELECT 'exports' AS origen, e.ExportsID AS id, e.Booking_BK, e.Number_Commercial_Invoice, DATE_FORMAT(e.creation_date, '%d/%m/%Y') AS fecha,
+        IFNULL(e.costoEXW, 0) AS costoEXW, IFNULL(e.coeficiente, 0) AS coeficiente, IFNULL(e.num_op, '') AS num_op
       FROM exports e
       JOIN items i ON e.Number_Commercial_Invoice = i.Number_Commercial_Invoice
       JOIN container c ON i.idContainer = c.IdContainer
@@ -20,7 +21,8 @@ try {
 
       UNION ALL
 
-      SELECT 'imports' AS origen, i2.ImportsID AS id, i2.Booking_BK, i2.Number_Commercial_Invoice, DATE_FORMAT(i2.creation_date, '%d/%m/%Y') AS fecha
+      SELECT 'imports' AS origen, i2.ImportsID AS id, i2.Booking_BK, i2.Number_Commercial_Invoice, DATE_FORMAT(i2.creation_date, '%d/%m/%Y') AS fecha,
+        IFNULL(i2.costoEXW, 0) AS costoEXW, IFNULL(i2.coeficiente, 0) AS coeficiente, IFNULL(i2.num_op, '') AS num_op
       FROM imports i2
       JOIN items i ON i2.Number_Commercial_Invoice = i.Number_Commercial_Invoice
       JOIN container c ON i.idContainer = c.IdContainer
@@ -28,7 +30,8 @@ try {
 
       UNION ALL
 
-      SELECT 'despacho' AS origen, d.DespachoID AS id, d.Booking_BK, d.Number_Commercial_Invoice, DATE_FORMAT(d.creation_date, '%d/%m/%Y') AS fecha
+      SELECT 'despacho' AS origen, d.DespachoID AS id, d.Booking_BK, d.Number_Commercial_Invoice, DATE_FORMAT(d.creation_date, '%d/%m/%Y') AS fecha,
+        IFNULL(d.costoEXW, 0) AS costoEXW, IFNULL(d.coeficiente, 0) AS coeficiente, IFNULL(d.num_op, '') AS num_op
       FROM despacho d
       JOIN items i ON d.Number_Commercial_Invoice = i.Number_Commercial_Invoice
       JOIN container c ON i.idContainer = c.IdContainer

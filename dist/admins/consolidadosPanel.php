@@ -683,7 +683,7 @@ document.getElementById('btnGenerarExcel').addEventListener('click', async () =>
     // Guardamos los subtotales por tipo para luego calcular el total general
     const subtotales = {};
 
-    // 1️⃣ Hojas individuales
+    // 1️⃣ Hojas individuales (formato igual que en detalle de liquidación)
     tipos.forEach(tipo => {
       const arr = liquidaciones.filter(l => l.origen === tipo);
       if (!arr.length) return;
@@ -693,26 +693,85 @@ document.getElementById('btnGenerarExcel').addEventListener('click', async () =>
       const fecha   = liq.fecha;
       const id      = liq.id;
 
-      const datos = [];
-      datos.push([`${tipo.toUpperCase()} • ID ${id}`]);
-      datos.push([`Booking:`, booking, `Invoice:`, invoice, `Fecha:`, fecha]);
-      datos.push([]);
-      datos.push(['Descripción','Cantidad','Valor Unitario','Valor Total']);
+      const ws_data = [];
 
-      let subtotal = 0;
+      // Cabeceras generales
+  ws_data.push([`N° Booking`, booking]);
+  ws_data.push([`N° Operación`, liq.num_op || '']);
+      ws_data.push([`Commercial Invoice`, invoice]);
+      const exwNum = Number(liq.costoEXW) || 0;
+      ws_data.push([`Costo EXW`, exwNum ? exwNum.toLocaleString('es-AR',{minimumFractionDigits:2}) : '']);
+
+      // Totales generales (sumamos ValorTotal y ValorImpuesto si existe)
+      let totalSin = 0;
+      let totalImp = 0;
       liq.items.forEach(it => {
-        const total = Number(it.ValorTotal) || 0;
-        subtotal += total;
-        datos.push([it.NombreItems, it.Cantidad, it.ValorUnitario, total]);
+        totalSin += Number(it.ValorTotal) || 0;
+        totalImp += Number(it.ValorImpuesto) || 0;
+      });
+      const totalCon = totalSin + totalImp;
+
+      ws_data.push([`Total Liquidación`, totalCon.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+      ws_data.push([`Coeficiente (%)`, liq.coeficiente !== undefined ? (`%` + Number(liq.coeficiente).toFixed(2)) : '']);
+      const coefSinCalc = exwNum > 0 ? (totalSin / exwNum) * 100 : 0;
+      ws_data.push([`Coeficiente (sin impuestos) (%)`, exwNum ? ('%'+coefSinCalc.toFixed(2)) : '']);
+      ws_data.push([]);
+
+      // Agrupar items por Incoterm (si el API devuelve NombreTipoIncoterm / idTipo)
+      const groups = {};
+      liq.items.forEach(it => {
+        const inc = (it.NombreTipoIncoterm || it.incotermNombre || 'GENERAL').toString();
+        if (!groups[inc]) groups[inc] = [];
+        groups[inc].push(it);
       });
 
-      datos.push([]);
-      datos.push(['Subtotal','','', subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+      Object.keys(groups).forEach(incName => {
+        const rows = groups[incName];
+        ws_data.push([`Incoterm: ${incName}`]);
 
-      subtotales[tipo] = subtotal;
+        const isCIF = rows.some(r => Number(r.IdTipoIncoterm || r.idTipo) === 3 || (r.NombreTipoIncoterm && r.NombreTipoIncoterm.toLowerCase().includes('cif')));
 
-      const ws = XLSX.utils.aoa_to_sheet(datos);
-      XLSX.utils.book_append_sheet(wb, ws, tipo.slice(0,31));
+        const headers = isCIF
+          ? ['Descripción','Cantidad','Valor U.','Valor T.','% Impuesto','Valor Impuesto','Notas']
+          : ['Descripción','Cantidad','Valor U.','Valor T.'];
+
+        ws_data.push(headers);
+
+        let subtotalSin = 0;
+        let subtotalImp = 0;
+
+        rows.forEach(r => {
+          const valorT = Number(r.ValorTotal) || 0;
+          subtotalSin += valorT;
+          if (isCIF) {
+            const valorImp = Number(r.ValorImpuesto) || 0;
+            subtotalImp += valorImp;
+            ws_data.push([
+              r.NombreItems, r.Cantidad, r.ValorUnitario.toString(), valorT.toLocaleString('es-AR',{minimumFractionDigits:2}),
+              (r.Impuesto !== undefined ? Number(r.Impuesto).toFixed(2)+'%' : ''),
+              valorImp.toLocaleString('es-AR',{minimumFractionDigits:2}),
+              r.Notas || ''
+            ]);
+          } else {
+            ws_data.push([r.NombreItems, r.Cantidad, r.ValorUnitario.toString(), valorT.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+          }
+        });
+
+        if (isCIF) {
+          ws_data.push(['Total sin impuestos','','','','','', subtotalSin.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+          ws_data.push(['Total impuestos','','','','','', subtotalImp.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+          ws_data.push(['Total con impuestos','','','','','', (subtotalSin + subtotalImp).toLocaleString('es-AR',{minimumFractionDigits:2})]);
+        } else {
+          ws_data.push(['Total','','','', subtotalSin.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+        }
+
+        ws_data.push([]);
+      });
+
+      subtotales[tipo] = totalCon;
+
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      XLSX.utils.book_append_sheet(wb, ws, `${tipo}`.slice(0,31));
     });
 
     // 2️⃣ Hoja “Resumen” con los 3 bloques
@@ -741,7 +800,16 @@ document.getElementById('btnGenerarExcel').addEventListener('click', async () =>
         resumen.push([it.NombreItems, it.Cantidad, it.ValorUnitario, total]);
       });
 
-      resumen.push(['Subtotal','','', subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})], []);
+      resumen.push(['Subtotal','','', subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+
+      // Agregamos Costo EXW y coeficientes al resumen por liquidación
+      const costoExwNum = Number(liq.costoEXW) || 0;
+      resumen.push(['Costo EXW','','', costoExwNum ? costoExwNum.toLocaleString('es-AR',{minimumFractionDigits:2}) : '']);
+      resumen.push(['Total Liquidación','','', subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+      resumen.push(['Coeficiente (%)','','', (liq.coeficiente !== undefined ? ('%'+Number(liq.coeficiente).toFixed(2)) : '')]);
+      const coefSin = costoExwNum > 0 ? (subtotal / costoExwNum) * 100 : 0;
+      resumen.push(['Coeficiente (sin impuestos) (%)','','', costoExwNum ? ('%'+coefSin.toFixed(2)) : '']);
+      resumen.push([]);
       totalGeneral += subtotal;
     });
 

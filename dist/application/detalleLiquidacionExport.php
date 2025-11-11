@@ -555,6 +555,10 @@ function parseARS(str) {
   // ============================
   console.log(coef);
   ws_data.push(['N° Booking', booking]);
+  // N° Operación (si está presente en la página)
+  const numOpEl = document.querySelector('input[value][readonly]');
+  const numOp = numOpEl?.value?.trim() || '';
+  ws_data.push(['N° Operación', numOp]);
   ws_data.push(['Commercial Invoice', invoice]);
   ws_data.push(['Costo EXW', exw.toLocaleString('es-AR', { minimumFractionDigits: 2 })]);
   ws_data.push(['Total Liquidación', total.toLocaleString('es-AR', { minimumFractionDigits: 2 })]);
@@ -568,15 +572,16 @@ function parseARS(str) {
   // ============================
   document.querySelectorAll('.incoterm-item').forEach(block => {
     const incName = block.querySelector('h5')?.textContent.trim();
-    const filas   = Array.from(block.querySelectorAll('tbody tr'));
-    if (!incName || filas.length === 0) return;
+  const rows   = Array.from(block.querySelectorAll('tbody tr'));
+    if (!incName || rows.length === 0) return;
 
     const isCIF = incName.toLowerCase().includes('cif');
 
     ws_data.push([`Incoterm: ${incName}`]);
 
     const headers = isCIF
-      ? ['Descripción','Cantidad','Valor U.','Valor T.','% Impuesto','Valor Impuesto','Notas']
+      // NOTE: order adjusted to match requested layout: Valor T. after Valor Impuesto
+      ? ['Descripción','Cantidad','Valor U.','% Impuesto','Valor Impuesto','Valor T.','Notas']
       : ['Descripción','Cantidad','Valor U.','Valor T.'];
 
     ws_data.push(headers);
@@ -584,38 +589,51 @@ function parseARS(str) {
     let subtotalSin = 0;
     let subtotalImp = 0;
 
-    filas.forEach(tr => {
-      const cols = Array.from(tr.children).map(td => td.textContent.trim());
+        rows.forEach(tr => {
+          // extraer columnas de la fila DOM
+          const cols = Array.from(tr.children).map(td => td.textContent.trim());
+          const desc = cols[0] || '';
+          const qty  = parseARS(cols[1]) || 0;
+          const vu   = parseARS(cols[2]) || 0;
+          // % impuesto suele estar en cols[4] (p. ej. '15%' o '15,00%')
+          const pctRaw = (cols[4] || '').toString().replace('%','').replace(/\./g,'').replace(',','.');
+          const pct = parseFloat(pctRaw) || 0;
 
-      const valorT = parseARS(cols[3]);
-      subtotalSin += valorT;
+          const valorSinTotal = vu * qty; // valor sin impuestos total para la línea
+          const valorImpTotal = (vu * (pct / 100)) * qty; // impuesto total para la línea
+          const valorTTotal   = valorSinTotal + valorImpTotal; // total con impuestos para la línea
 
-      if (isCIF) {
-        const valorImp = parseARS(cols[5]);
-        subtotalImp += valorImp;
+          subtotalSin += valorSinTotal;
+          subtotalImp += valorImpTotal;
 
-        ws_data.push([
-          cols[0], cols[1], cols[2], cols[3], cols[4], cols[5], cols[6]
-        ]);
-      } else {
-        ws_data.push([cols[0], cols[1], cols[2], cols[3]]);
-      }
-    });
+          if (isCIF) {
+            ws_data.push([
+              desc,
+              qty,
+              vu.toLocaleString('es-AR',{minimumFractionDigits:2}),
+              (isNaN(pct) ? '' : Number(pct).toFixed(2) + '%'),
+              valorImpTotal.toLocaleString('es-AR',{minimumFractionDigits:2}),
+              valorTTotal.toLocaleString('es-AR',{minimumFractionDigits:2}),
+              cols[6] || ''
+            ]);
+          } else {
+            // Non-CIF: Valor T. is the total without taxes
+            ws_data.push([desc, qty, vu.toLocaleString('es-AR',{minimumFractionDigits:2}), valorTTotal.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+          }
+        });
 
     if (isCIF) {
-      ws_data.push(['Total sin impuestos','','','','','',
-        subtotalSin.toLocaleString('es-AR',{minimumFractionDigits:2})
-      ]);
-      ws_data.push(['Total impuestos','','','','','',
-        subtotalImp.toLocaleString('es-AR',{minimumFractionDigits:2})
-      ]);
-      ws_data.push(['Total con impuestos','','','','','',
-        (subtotalSin + subtotalImp).toLocaleString('es-AR',{minimumFractionDigits:2})
-      ]);
+      // Place totals under the 'Valor T.' column (6th column index 5)
+      ws_data.push(['Total sin impuestos','','','','',
+        subtotalSin.toLocaleString('es-AR',{minimumFractionDigits:2}), '']);
+      ws_data.push(['Total impuestos','','','','',
+        subtotalImp.toLocaleString('es-AR',{minimumFractionDigits:2}), '']);
+      ws_data.push(['Total con impuestos','','','','',
+        (subtotalSin + subtotalImp).toLocaleString('es-AR',{minimumFractionDigits:2}), '']);
     } else {
-      ws_data.push(['Total','','','',
-        subtotalSin.toLocaleString('es-AR',{minimumFractionDigits:2})
-      ]);
+      // Non-CIF totals under the 4th column (Valor T.)
+      ws_data.push(['Total','','',
+        subtotalSin.toLocaleString('es-AR',{minimumFractionDigits:2})]);
     }
 
     ws_data.push([]);
