@@ -10,32 +10,42 @@ try {
         throw new Exception("Número de operación no recibido");
     }
 
-    // 1) Traigo las liquidaciones asociadas a ese num_op
+    // 1) Traigo las liquidaciones asociadas a ese num_op (no usamos Number_Commercial_Invoice directo)
+    // Buscamos por Booking_BK que tenga items con ese num_op
     $sql = "
-      SELECT 'exports' AS origen, e.ExportsID AS id, e.Booking_BK, e.Number_Commercial_Invoice, DATE_FORMAT(e.creation_date, '%d/%m/%Y') AS fecha,
+      SELECT 'exports' AS origen, e.ExportsID AS id, e.Booking_BK, DATE_FORMAT(e.creation_date, '%d/%m/%Y') AS fecha,
         IFNULL(e.costoEXW, 0) AS costoEXW, IFNULL(e.coeficiente, 0) AS coeficiente, IFNULL(e.num_op, '') AS num_op
       FROM exports e
-      JOIN items i ON e.Number_Commercial_Invoice = i.Number_Commercial_Invoice
-      JOIN container c ON i.idContainer = c.IdContainer
-      WHERE c.num_op = ? AND e.status = 2
+      WHERE e.Booking_BK IN (
+         SELECT DISTINCT c.Booking_BK
+         FROM items it
+         JOIN container c ON it.idContainer = c.IdContainer
+         WHERE c.num_op = ?
+      ) AND e.status = 2
 
       UNION ALL
 
-      SELECT 'imports' AS origen, i2.ImportsID AS id, i2.Booking_BK, i2.Number_Commercial_Invoice, DATE_FORMAT(i2.creation_date, '%d/%m/%Y') AS fecha,
+      SELECT 'imports' AS origen, i2.ImportsID AS id, i2.Booking_BK, DATE_FORMAT(i2.creation_date, '%d/%m/%Y') AS fecha,
         IFNULL(i2.costoEXW, 0) AS costoEXW, IFNULL(i2.coeficiente, 0) AS coeficiente, IFNULL(i2.num_op, '') AS num_op
       FROM imports i2
-      JOIN items i ON i2.Number_Commercial_Invoice = i.Number_Commercial_Invoice
-      JOIN container c ON i.idContainer = c.IdContainer
-      WHERE c.num_op = ? AND i2.status = 2
+      WHERE i2.Booking_BK IN (
+         SELECT DISTINCT c.Booking_BK
+         FROM items it
+         JOIN container c ON it.idContainer = c.IdContainer
+         WHERE c.num_op = ?
+      ) AND i2.status = 2
 
       UNION ALL
 
-      SELECT 'despacho' AS origen, d.DespachoID AS id, d.Booking_BK, d.Number_Commercial_Invoice, DATE_FORMAT(d.creation_date, '%d/%m/%Y') AS fecha,
+      SELECT 'despacho' AS origen, d.DespachoID AS id, d.Booking_BK, DATE_FORMAT(d.creation_date, '%d/%m/%Y') AS fecha,
         IFNULL(d.costoEXW, 0) AS costoEXW, IFNULL(d.coeficiente, 0) AS coeficiente, IFNULL(d.num_op, '') AS num_op
       FROM despacho d
-      JOIN items i ON d.Number_Commercial_Invoice = i.Number_Commercial_Invoice
-      JOIN container c ON i.idContainer = c.IdContainer
-      WHERE c.num_op = ? AND d.status = 2
+      WHERE d.Booking_BK IN (
+         SELECT DISTINCT c.Booking_BK
+         FROM items it
+         JOIN container c ON it.idContainer = c.IdContainer
+         WHERE c.num_op = ?
+      ) AND d.status = 2
     ";
 
 
@@ -58,6 +68,8 @@ try {
     }
 
     // 2) Por cada liquidación, traigo sus items según el origen
+  include_once __DIR__ . '/../helpers/mapping.php';
+
     foreach ($liquidaciones as &$liq) {
         switch ($liq['origen']) {
             case 'exports':
@@ -126,6 +138,13 @@ try {
         $st->close();
     }
     unset($liq);
+
+  // 3) Adjuntar facturas mapeadas (Number_Commercial_Invoice) para cada liquidación
+  foreach ($liquidaciones as &$l) {
+    $invs = fetch_mapped_invoices($conexion, $l['origen'], intval($l['id']));
+    $l['Number_Commercial_Invoice'] = !empty($invs) ? implode(', ', $invs) : '';
+  }
+  unset($l);
 
     echo json_encode([
       'success'       => true,

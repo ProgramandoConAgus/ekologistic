@@ -16,37 +16,46 @@ try {
     // Arrancamos transacción
     $conexion->begin_transaction();
 
-    // 1) Exports
+    // 1) Exports - update by Booking_BK derived from containers with the given num_op
     $sql = "
       UPDATE exports e
-      JOIN items i ON e.Number_Commercial_Invoice = i.Number_Commercial_Invoice
-      JOIN container c ON i.idContainer = c.IdContainer
       SET e.status = 3
-      WHERE c.num_op = ? AND e.status = 2
+      WHERE e.Booking_BK IN (
+         SELECT DISTINCT c.Booking_BK
+         FROM items it
+         JOIN container c ON it.idContainer = c.IdContainer
+         WHERE c.num_op = ?
+      ) AND e.status = 2
     ";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("s", $num_op);
     $stmt->execute();
 
-    // 2) Imports
+    // 2) Imports - update by Booking_BK derived from containers with the given num_op
     $sql = "
       UPDATE imports i2
-      JOIN items i ON i2.Number_Commercial_Invoice = i.Number_Commercial_Invoice
-      JOIN container c ON i.idContainer = c.IdContainer
       SET i2.status = 3
-      WHERE c.num_op = ? AND i2.status = 2
+      WHERE i2.Booking_BK IN (
+         SELECT DISTINCT c.Booking_BK
+         FROM items it
+         JOIN container c ON it.idContainer = c.IdContainer
+         WHERE c.num_op = ?
+      ) AND i2.status = 2
     ";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("s", $num_op);
     $stmt->execute();
 
-    // 3) Despacho
+    // 3) Despacho - update by Booking_BK derived from containers with the given num_op
     $sql = "
       UPDATE despacho d
-      JOIN items i ON d.Number_Commercial_Invoice = i.Number_Commercial_Invoice
-      JOIN container c ON i.idContainer = c.IdContainer
       SET d.status = 3
-      WHERE c.num_op = ? AND d.status = 2
+      WHERE d.Booking_BK IN (
+         SELECT DISTINCT c.Booking_BK
+         FROM items it
+         JOIN container c ON it.idContainer = c.IdContainer
+         WHERE c.num_op = ?
+      ) AND d.status = 2
     ";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("s", $num_op);

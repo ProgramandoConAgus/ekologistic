@@ -9,10 +9,31 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 $idExport = $_GET["ExportID"] ?? 0;
 
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice, costoEXW, num_op, coeficiente FROM exports WHERE ExportsID = ?");
+$stmt = $conexion->prepare("SELECT Booking_BK, costoEXW, num_op, coeficiente FROM exports WHERE ExportsID = ?");
 $stmt->bind_param("i", $idExport);
 $stmt->execute();
 $exportData = $stmt->get_result()->fetch_assoc();
+
+$invoicesStmt = $conexion->prepare("SELECT Invoice FROM export_invoices WHERE idExport = ? ORDER BY id");
+$invoices = [];
+// detect mapping column for export_invoices
+$mappingCol = 'idExport';
+$h = $conexion->query("SHOW COLUMNS FROM export_invoices LIKE 'idExport'");
+if (!($h && $h->num_rows > 0)) {
+  $h2 = $conexion->query("SHOW COLUMNS FROM export_invoices LIKE 'ExportID'");
+  if ($h2 && $h2->num_rows > 0) $mappingCol = 'ExportID';
+}
+$invoicesStmt = $conexion->prepare("SELECT Invoice FROM export_invoices WHERE {$mappingCol} = ? ORDER BY id");
+if ($invoicesStmt) {
+  $invoicesStmt->bind_param('i', $idExport);
+  $invoicesStmt->execute();
+  $res = $invoicesStmt->get_result();
+  while ($r = $res->fetch_assoc()) {
+    $invoices[] = $r['Invoice'];
+  }
+  $invoicesStmt->close();
+
+}
 
 // Consulta para los incoterms y sus ítems
 $query = "
@@ -346,10 +367,18 @@ while ($row = $result->fetch_assoc()) {
         <label class="form-label fw-bold">N° Booking</label>
         <div id="booking" class="form-control bg-light"><?= htmlspecialchars($exportData['Booking_BK']) ?></div>
       </div>
-      <div class="col-md-6">
-        <label class="form-label fw-bold">Commercial Invoice</label>
-        <div id="commercial_Invoice" class="form-control bg-light"><?= htmlspecialchars($exportData['Number_Commercial_Invoice']) ?></div>
-      </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Commercial Invoice(s)</label>
+          <!-- Added id so exporter can find the invoice(s) -->
+          <div id="commercial_Invoice" class="form-control bg-light">
+            <?php if (!empty($invoices)): ?>
+              <?= htmlspecialchars(implode(', ', $invoices)) ?>
+            <?php else: ?>
+              <!-- no mapped invoices found -->
+              <?= '' ?>
+            <?php endif; ?>
+          </div>
+        </div>
       <div class="col-md-6 mb-3">
         <label class="form-label fw-bold">N° Operación</label>
         <input type="text" class="form-control bg-light" value="<?= htmlspecialchars($exportData['num_op']) ?>" readonly>
@@ -360,6 +389,11 @@ while ($row = $result->fetch_assoc()) {
         <label for="productoEXW" class="form-label" >Costo del producto EXW</label>
         <h2 id="productoEXW" data-totalEcu="<?=$exportData['costoEXW']?>">$<?= $exportData['costoEXW'] ?></h2>
       </div>
+        <div class="col-md-6 mb-3">
+          <label for="productoEXW" class="form-label" >Costo del producto EXW</label>
+          <!-- use lowercase data-totalecu so dataset.totalecu works predictably -->
+          <h2 id="productoEXW" data-totalecu="<?=$exportData['costoEXW']?>">$<?= $exportData['costoEXW'] ?></h2>
+        </div>
       <div class="col-md-6 mb-3">
         <label for="coeficiente" class="form-label">COEFICIENTE %</label>
         <h2 id="coeficiente" data-coeficiente="<?= $exportData['coeficiente'] ?>">%<?= $exportData['coeficiente'] ?></h2>
@@ -464,10 +498,7 @@ while ($row = $result->fetch_assoc()) {
             <p class="m-0">Software <a style="color:#afc97c"> EKO LOGISTIC</a></p>
           </div>
           <div class="col-sm-6 ms-auto my-1">
-            <ul class="list-inline footer-link mb-0 justify-content-sm-end d-flex">
-              <li class="list-inline-item"><a>Inicio</a></li>
-              <li class="list-inline-item"><a>Documentación</a></li>
-              <li class="list-inline-item"><a>Soporte</a></li>
+      
             </ul>
           </div>
         </div>
@@ -521,7 +552,6 @@ function parseARS(str) {
   const bookingEl = document.getElementById('booking');
   const invoiceEl = document.getElementById('commercial_Invoice');
   const exwEl     = document.getElementById('productoEXW');
-  const totalEl   = <?= $totalGeneralSinImpuesto + $totalGeneralImpuestos ?>;
   const coefEl    = document.getElementById('coeficiente');
 
   if (!bookingEl || !invoiceEl) {
@@ -532,8 +562,10 @@ function parseARS(str) {
   const invoice = invoiceEl.textContent.trim();
 
   // ✅ Leer valores con dataset si existen
-  const exw   = exwEl.dataset.totalecu ;
-  const total = totalEl;
+  // read EXW robustly (support different data-* casing)
+  const exwRaw = (exwEl.dataset && (exwEl.dataset.totalecu || exwEl.dataset.totalEcu)) || exwEl.textContent || '';
+  const exwNum = parseARS(exwRaw);
+  const total = Number(<?= $totalGeneralSinImpuesto + $totalGeneralImpuestos ?>);
   const coef  = coefEl.dataset.coeficiente;
 
   // calcular coeficiente sin impuestos leyendo el Total sin impuestos en la página
@@ -542,9 +574,9 @@ function parseARS(str) {
   if (totalSinEl) {
     const txt = totalSinEl.textContent || '';
     const m = txt.match(/\$?\s*([0-9\.,-]+)/);
-    const totalSinNum = m ? parseARS(m[1]) : 0;
-    const exwNum = parseARS(exw);
-    coefSin = exwNum > 0 ? (totalSinNum / exwNum) * 100 : 0;
+  const totalSinNum = m ? parseARS(m[1]) : 0;
+  // reuse previously parsed exwNum
+  coefSin = exwNum > 0 ? (totalSinNum / exwNum) * 100 : 0;
   }
 
   const wb      = XLSX.utils.book_new();
@@ -560,7 +592,7 @@ function parseARS(str) {
   const numOp = numOpEl?.value?.trim() || '';
   ws_data.push(['N° Operación', numOp]);
   ws_data.push(['Commercial Invoice', invoice]);
-  ws_data.push(['Costo EXW', exw.toLocaleString('es-AR', { minimumFractionDigits: 2 })]);
+  ws_data.push(['Costo EXW', exwNum.toLocaleString('es-AR', { minimumFractionDigits: 2 })]);
   ws_data.push(['Total Liquidación', total.toLocaleString('es-AR', { minimumFractionDigits: 2 })]);
   ws_data.push(['Coeficiente (%)', "%"+coef]);
   // Coeficiente usando total SIN impuestos

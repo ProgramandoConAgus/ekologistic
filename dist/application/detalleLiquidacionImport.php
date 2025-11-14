@@ -11,7 +11,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 $idImport = $_GET["ImportID"] ?? 0;
 
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice, costoEXW, num_op, coeficiente FROM imports WHERE ImportsID = ?");
+$stmt = $conexion->prepare("SELECT Booking_BK, costoEXW, num_op, coeficiente FROM imports WHERE ImportsID = ?");
 if (!$stmt) {
   die("Error en prepare: " . $conexion->error);
 }
@@ -19,6 +19,33 @@ if (!$stmt) {
 $stmt->bind_param("i", $idImport);
 $stmt->execute();
 $importsData = $stmt->get_result()->fetch_assoc();
+
+// Fetch mapped invoices from import_invoices mapping table (if present)
+$invoicesList = [];
+$mappingCol = 'ImportsID';
+$has = $conexion->query("SHOW COLUMNS FROM import_invoices LIKE 'ImportsID'");
+if (!($has && $has->num_rows > 0)) {
+  $try = $conexion->query("SHOW COLUMNS FROM import_invoices LIKE 'ImportID'");
+  if ($try && $try->num_rows > 0) $mappingCol = 'ImportID';
+  else {
+    $try2 = $conexion->query("SHOW COLUMNS FROM import_invoices LIKE 'idImport'");
+    if ($try2 && $try2->num_rows > 0) $mappingCol = 'idImport';
+  }
+}
+
+$mapSql = "SELECT Invoice FROM import_invoices WHERE {$mappingCol} = ? ORDER BY id ASC";
+$mapStmt = $conexion->prepare($mapSql);
+if ($mapStmt) {
+  $mapStmt->bind_param('i', $idImport);
+  $mapStmt->execute();
+  $resMap = $mapStmt->get_result();
+  while ($r = $resMap->fetch_assoc()) {
+    $invoicesList[] = $r['Invoice'];
+  }
+  $mapStmt->close();
+}
+
+$invoicesDisplay = !empty($invoicesList) ? implode(', ', $invoicesList) : ($importsData['Number_Commercial_Invoice'] ?? '');
 
 // Consulta para los incoterms y sus ítems
 $query = "
@@ -356,8 +383,8 @@ while ($row = $result->fetch_assoc()) {
         <div id="booking" class="form-control bg-light"><?= htmlspecialchars($importsData['Booking_BK']) ?></div>
       </div>
       <div class="col-md-6">
-        <label class="form-label fw-bold">Commercial Invoice</label>
-        <div id="commercial_Invoice" class="form-control bg-light"><?= htmlspecialchars($importsData['Number_Commercial_Invoice']) ?></div>
+  <label class="form-label fw-bold">Commercial Invoice</label>
+  <div id="commercial_Invoice" class="form-control bg-light" data-invoices='<?= json_encode($invoicesList, JSON_HEX_APOS|JSON_HEX_QUOT) ?>'><?= htmlspecialchars($invoicesDisplay) ?></div>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label fw-bold">N° Operación</label>
@@ -367,11 +394,12 @@ while ($row = $result->fetch_assoc()) {
       </div>
       <div class="col-md-6 mb-3">
         <label for="productoEXW" class="form-label" >Costo del producto EXW</label>
-        <h2 id="productoEXW" data-totalEcu="<?=$importsData['costoEXW']?>">$<?= $importsData['costoEXW'] ?></h2>
+        <h2 id="productoEXW" data-totalecu="<?=$importsData['costoEXW']?>">$<?= $importsData['costoEXW'] ?></h2>
       </div>
+      
       <div class="col-md-6 mb-3">
         <label for="coeficiente" class="form-label">COEFICIENTE %</label>
-        <h2 id="coeficiente">%<?= $importsData['coeficiente'] ?></h2>
+        <h2 id="coeficiente" data-coeficiente="<?= $importsData['coeficiente'] ?>">%<?= $importsData['coeficiente'] ?></h2>
       </div>
     
     </div>
@@ -487,109 +515,106 @@ while ($row = $result->fetch_assoc()) {
 <script src="../assets/js/plugins/feather.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script>
+function parseARS(str) {
+  if (!str && str !== 0) return 0;
+  let s = String(str).trim();
+  s = s.replace(/[^0-9,\.\-]/g, '');
+  if (s === '') return 0;
+  const hasComma = s.indexOf(',') !== -1;
+  const hasDot = s.indexOf('.') !== -1;
+  if (hasDot && hasComma) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (hasComma && !hasDot) {
+    s = s.replace(',', '.');
+  } else if (hasDot && !hasComma) {
+    const parts = s.split('.');
+    if (parts.length > 2) {
+      const last = parts.pop();
+      s = parts.join('') + '.' + last;
+    }
+  }
+  const val = parseFloat(s);
+  return isNaN(val) ? 0 : val;
+}
+
 function descargarExcel() {
-  const wb      = XLSX.utils.book_new();
+  const wb = XLSX.utils.book_new();
   const ws_data = [];
 
-  // Booking e Invoice
   const bookingEl = document.getElementById('booking');
   const invoiceEl = document.getElementById('commercial_Invoice');
-  const booking   = bookingEl?.textContent.trim() || '';
-  const invoice   = invoiceEl?.textContent.trim() || '';
+  const exwEl = document.getElementById('productoEXW');
+  const coefEl = document.getElementById('coeficiente');
+
+  const booking = bookingEl?.textContent.trim() || '';
+  const invoice = invoiceEl?.textContent.trim() || '';
+  const numOpEl = document.querySelector('input[readonly]');
+  const numOp = numOpEl?.value?.trim() || '';
+
+  const exwRaw = (exwEl && (exwEl.dataset?.totalecu || exwEl.dataset?.totalEcu)) || exwEl?.textContent || '';
+  const exwNum = parseARS(exwRaw);
+  const coef = coefEl?.dataset?.coeficiente || '';
 
   ws_data.push(['N° Booking', booking]);
-  ws_data.push(['Commercial Invoice', invoice]);
-
-  // N° Operación
-  const numOpEl = document.querySelector('input[value][readonly]');
-  const numOp   = numOpEl?.value.trim() || '';
   ws_data.push(['N° Operación', numOp]);
+  ws_data.push(['Commercial Invoice', invoice]);
+  ws_data.push(['Costo EXW', exwNum.toLocaleString('es-AR', {minimumFractionDigits:2})]);
+  ws_data.push(['Coeficiente (%)', '%' + coef]);
+  ws_data.push(['Coeficiente (sin impuestos) (%)', '']);
+  ws_data.push([]);
 
-  // Costo EXW
-  const exwEl = document.getElementById('productoEXW');
-  const costoEXW = exwEl?.textContent.trim() || '';
-  ws_data.push(['Costo del producto EXW', costoEXW]);
-
-  // Coeficiente %
-  const coefEl = document.getElementById('coeficiente');
-  const coef = coefEl?.textContent.trim() || '';
-  ws_data.push(['COEFICIENTE %', coef]);
-
-  ws_data.push([]); // fila en blanco antes de los incoterms
-
-  let totalGeneral = 0;
-
-  // Recorrer Incoterms
   document.querySelectorAll('.incoterm-item').forEach(block => {
     const incName = block.querySelector('h5')?.textContent.trim();
-    if (!incName) return;
+    const rows = Array.from(block.querySelectorAll('tbody tr'));
+    if (!incName || rows.length === 0) return;
 
+    const isCIF = incName.toLowerCase().includes('cif');
     ws_data.push([`Incoterm: ${incName}`]);
-    ws_data.push(['Descripción','Cantidad','Valor U.','Valor T.','Notas']);
+    const headers = isCIF ? ['Descripción','Cantidad','Valor U.','% Impuesto','Valor Impuesto','Valor T.','Notas'] : ['Descripción','Cantidad','Valor U.','Valor T.','Notas'];
+    ws_data.push(headers);
 
-    let subtotal = 0;
+    let subtotalSin = 0;
+    let subtotalImp = 0;
 
-    block.querySelectorAll('tbody tr').forEach(tr => {
-      const cells = tr.children;
-      const desc = cells[0].textContent.trim();
-      const cant = cells[1].textContent.trim();
-      const rawU = cells[2].textContent.replace(/[^0-9,\.]/g,'').trim();
-      const rawT = cells[3].textContent.replace(/[^0-9,\.]/g,'').trim();
-      const notas = cells[4].textContent.trim();
+    rows.forEach(tr => {
+      const cols = Array.from(tr.children).map(td => td.textContent.trim());
+      const desc = cols[0] || '';
+      const qty = parseARS(cols[1]) || 0;
+      const vu = parseARS(cols[2]) || 0;
+      const pctRaw = (cols[4] || '').toString().replace('%','').replace(/\./g,'').replace(',','.');
+      const pct = parseFloat(pctRaw) || 0;
 
-      const numT = parseFloat(rawT.replace(/\./g,'').replace(',','.')) || 0;
+      const valorSinTotal = vu * qty;
+      const valorImpTotal = (vu * (pct / 100)) * qty;
+      const valorTTotal = valorSinTotal + valorImpTotal;
 
-      subtotal += numT;
-      totalGeneral += numT;
+      subtotalSin += valorSinTotal;
+      subtotalImp += valorImpTotal;
 
-      ws_data.push([desc, cant, rawU, rawT, notas]);
+      if (isCIF) {
+        ws_data.push([desc, qty, vu, (isNaN(pct) ? '' : Number(pct).toFixed(2) + '%'), valorImpTotal.toLocaleString('es-AR',{minimumFractionDigits:2}), valorTTotal.toLocaleString('es-AR',{minimumFractionDigits:2}), cols[6] || '']);
+      } else {
+        ws_data.push([desc, qty, vu, valorTTotal.toLocaleString('es-AR',{minimumFractionDigits:2}), cols[4] || '']);
+      }
     });
 
-    ws_data.push([`Total ${incName}`, '', '', subtotal.toLocaleString('es-AR',{minimumFractionDigits:2}), '']);
+    if (isCIF) {
+      ws_data.push(['Total sin impuestos', '', '', '', '', subtotalSin.toLocaleString('es-AR',{minimumFractionDigits:2}), '']);
+      ws_data.push(['Total impuestos', '', '', '', '', subtotalImp.toLocaleString('es-AR',{minimumFractionDigits:2}), '']);
+      ws_data.push(['Total con impuestos', '', '', '', '', (subtotalSin + subtotalImp).toLocaleString('es-AR',{minimumFractionDigits:2}), '']);
+    } else {
+      ws_data.push(['Total', '', '', subtotalSin.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+    }
+
     ws_data.push([]);
   });
 
-  if (ws_data.length <= 6) {
-    return alert('No hay datos para exportar.');
-  }
+  if (ws_data.length <= 3) return alert('No hay datos para exportar.');
 
-  // Total General al final
-  ws_data.push(['']);
-  ws_data.push(['Total General', '', '', totalGeneral.toLocaleString('es-AR',{minimumFractionDigits:2}), '']);
-
-  // Crear hoja Excel
-  const ws    = XLSX.utils.aoa_to_sheet(ws_data);
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  const colCount = range.e.c - range.s.c + 1;
-
-  // Estilos
-  for (let R = range.s.r; R <= range.e.r; ++R) {
-    const A = ws[`A${R+1}`];
-    if (A && typeof A.v === 'string') {
-      if (A.v.startsWith('Incoterm:')) {
-        A.s = { fill:{fgColor:{rgb:'C6EFCE'}}, font:{bold:true} };
-      }
-      if (A.v === 'Descripción') {
-        for (let C = 0; C < colCount; ++C) {
-          const cell = ws[`${String.fromCharCode(65+C)}${R+1}`];
-          if (cell) cell.s = { fill:{fgColor:{rgb:'FFF2CC'}}, font:{bold:true} };
-        }
-      }
-      if (A.v.startsWith('Total')) {
-        A.s = { font:{bold:true} };
-      }
-    }
-  }
-
-  // Ajuste de ancho de columnas
-  ws['!cols'] = [
-    {wch:35}, {wch:12}, {wch:15}, {wch:15}, {wch:30}
-  ];
-
-  XLSX.utils.book_append_sheet(wb, ws, 'Liquidación');
-  XLSX.writeFile(wb, 'detalle_importacion.xlsx');
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  XLSX.utils.book_append_sheet(wb, ws, 'DetalleImport');
+  XLSX.writeFile(wb, `ImportID_<?= $idImport ?>.xlsx`);
 }
 </script>
 

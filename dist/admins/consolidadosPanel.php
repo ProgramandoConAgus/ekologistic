@@ -327,7 +327,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
               <th>Origen</th>
                 <th>Num_OP</th>
               <th>Booking</th>
-              <th>Number Commercial Invoice</th>
+              <th>Commercial Invoice(s)</th>
               <th>Creation Date</th>
               <th>Status</th>
               <th>Action</th>
@@ -339,19 +339,18 @@ $query = "
 SELECT 
   e.ExportsID AS ID,
   e.Booking_BK,
-  e.Number_Commercial_Invoice,
   e.status,
   e.creation_date,
   c.num_op,
   'exports' AS origen
 FROM exports e
 LEFT JOIN (
-  SELECT i.Number_Commercial_Invoice, ct.Booking_BK, MIN(ct.num_op) AS num_op
+  -- get num_op aggregated by booking (mapped invoices are stored separately now)
+  SELECT ct.Booking_BK, MIN(ct.num_op) AS num_op
   FROM items i
   INNER JOIN container ct ON i.idContainer = ct.IdContainer
-  GROUP BY i.Number_Commercial_Invoice, ct.Booking_BK
-) c ON e.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-   AND e.Booking_BK = c.Booking_BK
+  GROUP BY ct.Booking_BK
+) c ON e.Booking_BK = c.Booking_BK
 WHERE e.status IN (2,3)
 
 UNION ALL
@@ -359,19 +358,17 @@ UNION ALL
 SELECT 
   i.ImportsID AS ID,
   i.Booking_BK,
-  i.Number_Commercial_Invoice,
   i.status,
   i.creation_date,
   c.num_op,
   'imports' AS origen
 FROM imports i
 LEFT JOIN (
-  SELECT i.Number_Commercial_Invoice, ct.Booking_BK, MIN(ct.num_op) AS num_op
+  SELECT ct.Booking_BK, MIN(ct.num_op) AS num_op
   FROM items i
   INNER JOIN container ct ON i.idContainer = ct.IdContainer
-  GROUP BY i.Number_Commercial_Invoice, ct.Booking_BK
-) c ON i.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-   AND i.Booking_BK = c.Booking_BK
+  GROUP BY ct.Booking_BK
+) c ON i.Booking_BK = c.Booking_BK
 WHERE i.status IN (2,3)
 
 UNION ALL
@@ -379,19 +376,17 @@ UNION ALL
 SELECT 
   d.DespachoID AS ID,
   d.Booking_BK,
-  d.Number_Commercial_Invoice,
   d.status,
   d.creation_date,
   c.num_op,
   'despacho' AS origen
 FROM despacho d
 LEFT JOIN (
-  SELECT i.Number_Commercial_Invoice, ct.Booking_BK, MIN(ct.num_op) AS num_op
+  SELECT ct.Booking_BK, MIN(ct.num_op) AS num_op
   FROM items i
   INNER JOIN container ct ON i.idContainer = ct.IdContainer
-  GROUP BY i.Number_Commercial_Invoice, ct.Booking_BK
-) c ON d.Number_Commercial_Invoice = c.Number_Commercial_Invoice
-   AND d.Booking_BK = c.Booking_BK
+  GROUP BY ct.Booking_BK
+) c ON d.Booking_BK = c.Booking_BK
 WHERE d.status IN (2,3)
 
 ORDER BY creation_date DESC;
@@ -401,6 +396,39 @@ ORDER BY creation_date DESC;
 
 
 $result = $conexion->query($query);
+
+// Prepare mapping detection and statements for invoices per origin
+$mappingColExport = 'idExport';
+$h = $conexion->query("SHOW COLUMNS FROM export_invoices LIKE 'idExport'");
+if (!($h && $h->num_rows > 0)) {
+  $h2 = $conexion->query("SHOW COLUMNS FROM export_invoices LIKE 'ExportID'");
+  if ($h2 && $h2->num_rows > 0) $mappingColExport = 'ExportID';
+}
+$mapStmtExport = $conexion->prepare("SELECT Invoice FROM export_invoices WHERE {$mappingColExport} = ? ORDER BY id ASC");
+
+$mappingColImport = 'ImportsID';
+$hi = $conexion->query("SHOW COLUMNS FROM import_invoices LIKE 'ImportsID'");
+if (!($hi && $hi->num_rows > 0)) {
+  $h2i = $conexion->query("SHOW COLUMNS FROM import_invoices LIKE 'ImportID'");
+  if ($h2i && $h2i->num_rows > 0) $mappingColImport = 'ImportID';
+  else {
+    $h3i = $conexion->query("SHOW COLUMNS FROM import_invoices LIKE 'idImport'");
+    if ($h3i && $h3i->num_rows > 0) $mappingColImport = 'idImport';
+  }
+}
+$mapStmtImport = $conexion->prepare("SELECT Invoice FROM import_invoices WHERE {$mappingColImport} = ? ORDER BY id ASC");
+
+$mappingColDesp = 'DespachoID';
+$hd = $conexion->query("SHOW COLUMNS FROM despacho_invoices LIKE 'DespachoID'");
+if (!($hd && $hd->num_rows > 0)) {
+  $h2d = $conexion->query("SHOW COLUMNS FROM despacho_invoices LIKE 'idDespacho'");
+  if ($h2d && $h2d->num_rows > 0) $mappingColDesp = 'idDespacho';
+  else {
+    $h3d = $conexion->query("SHOW COLUMNS FROM despacho_invoices LIKE 'IdDespacho'");
+    if ($h3d && $h3d->num_rows > 0) $mappingColDesp = 'IdDespacho';
+  }
+}
+$mapStmtDesp = $conexion->prepare("SELECT Invoice FROM despacho_invoices WHERE {$mappingColDesp} = ? ORDER BY id ASC");
 
 if ($result && $result->num_rows > 0) {
   while($row = $result->fetch_assoc()) { 
@@ -413,7 +441,33 @@ if ($result && $result->num_rows > 0) {
     <td><?= htmlspecialchars($row['origen']) ?></td> <!-- origen exports/imports -->
       <td><?= htmlspecialchars($row['num_op']) ?></td>
   <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-  <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
+  <?php
+    // Fetch mapped invoices for this row according to origin
+    $invoicesDisplay = '';
+    if ($row['origen'] === 'exports' && $mapStmtExport) {
+      $invs = [];
+      $mapStmtExport->bind_param('i', $row['ID']);
+      $mapStmtExport->execute();
+      $resMap = $mapStmtExport->get_result();
+      while ($r = $resMap->fetch_assoc()) $invs[] = $r['Invoice'];
+      if (!empty($invs)) $invoicesDisplay = implode(', ', $invs);
+    } elseif ($row['origen'] === 'imports' && $mapStmtImport) {
+      $invs = [];
+      $mapStmtImport->bind_param('i', $row['ID']);
+      $mapStmtImport->execute();
+      $resMap = $mapStmtImport->get_result();
+      while ($r = $resMap->fetch_assoc()) $invs[] = $r['Invoice'];
+      if (!empty($invs)) $invoicesDisplay = implode(', ', $invs);
+    } elseif ($row['origen'] === 'despacho' && $mapStmtDesp) {
+      $invs = [];
+      $mapStmtDesp->bind_param('i', $row['ID']);
+      $mapStmtDesp->execute();
+      $resMap = $mapStmtDesp->get_result();
+      while ($r = $resMap->fetch_assoc()) $invs[] = $r['Invoice'];
+      if (!empty($invs)) $invoicesDisplay = implode(', ', $invs);
+    }
+  ?>
+  <td><?= htmlspecialchars($invoicesDisplay ?: '') ?></td>
   <td><?= $fecha ?> <span class="text-muted text-sm d-block"><?= $hora ?></span></td>
 
 
@@ -481,7 +535,7 @@ if ($result && $result->num_rows > 0) {
 
   <!-- Modal para generar consolidado -->
    <div class="modal fade" id="consolidadoModal" tabindex="-1" aria-labelledby="consolidadoModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="consolidadoModalLabel">Seleccionar Número de Operación</h5>
@@ -548,9 +602,10 @@ document.getElementById('num_op').addEventListener('change', function() {
   })
   .then(res => res.json())
   .then(data => {
-    if (data.success) {
+      if (data.success) {
       let html = `<h5 class="fw-bold mb-3">Liquidaciones Involucradas</h5>
-      <table class="table table-bordered table-hover">
+      <div class="table-responsive">
+      <table class="table table-bordered table-hover w-100">
         <thead>
           <tr>
             <th>Tipo</th>
@@ -577,7 +632,7 @@ document.getElementById('num_op').addEventListener('change', function() {
           </tr>`;
       });
 
-      html += `</tbody></table>`;
+  html += `</tbody></table></div>`;
       contenedor.innerHTML = html;
 
     } else {

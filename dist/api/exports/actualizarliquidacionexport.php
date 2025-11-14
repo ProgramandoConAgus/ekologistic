@@ -40,6 +40,56 @@ try {
         $stmtCoef->close();
     }
 
+    // Si el payload incluye 'invoices', actualizamos la tabla export_invoices
+    if (isset($input['invoices'])) {
+        $invoicesPayload = $input['invoices'];
+        // normalizar a array
+        if (!is_array($invoicesPayload)) {
+            // si viene como string con comas
+            $invoicesPayload = array_filter(array_map('trim', explode(',', (string)$invoicesPayload)));
+        }
+
+        // Iniciamos transacción para mantener consistencia
+        $conexion->begin_transaction();
+        try {
+            // Eliminamos mappings previos
+            $del = $conexion->prepare("DELETE FROM export_invoices WHERE idExport = ?");
+            $del->bind_param("i", $idExport);
+            $del->execute();
+            $del->close();
+
+            // Insertamos los nuevos
+            $ins = $conexion->prepare("INSERT INTO export_invoices (Invoice, idExport) VALUES (?, ?)");
+            foreach ($invoicesPayload as $inv) {
+                $invStr = (string)$inv;
+                $ins->bind_param("si", $invStr, $idExport);
+                $ins->execute();
+            }
+            $ins->close();
+
+            // Actualizamos campo Number_Commercial_Invoice en exports con la primera factura (por compatibilidad)
+            if (!empty($invoicesPayload)) {
+                $first = (string)$invoicesPayload[0];
+                $colRes = $conexion->query("SHOW COLUMNS FROM exports LIKE 'Number_Commercial_Invoice'");
+                if ($colRes && $colRes->num_rows > 0) {
+                    $u = $conexion->prepare("UPDATE exports SET Number_Commercial_Invoice = ? WHERE ExportsID = ?");
+                    if ($u) {
+                        $u->bind_param("si", $first, $idExport);
+                        $u->execute();
+                        $u->close();
+                    }
+                }
+            }
+
+            $conexion->commit();
+        } catch (Exception $ee) {
+            $conexion->rollback();
+            // no bloquear el resto de la actualización: reportamos pero seguimos
+            // agregamos un error al array de errores para informar al cliente
+            $errores[] = 'Error actualizando facturas: ' . $ee->getMessage();
+        }
+    }
+
     $errores = [];
     foreach ($datos as $i => $d) {
         // Leemos del payload

@@ -328,7 +328,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                   <thead>
                     <tr>
                       <th>Booking</th>
-                      <th>Number Commercial Invoice</th>
+                      <th>Commercial Invoice(s)</th>
                       <th>Creation Date</th>
                       <th>Status</th>
                       <th>Action</th>
@@ -336,27 +336,45 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                   </thead>
                   <tbody>
                     <?php
-                    $query = "SELECT DespachoID, Booking_BK, Number_Commercial_Invoice, status, creation_date 
-          FROM despacho 
-          WHERE status = 1 
-          ORDER BY creation_date";
+                    // Detect mapping column in despacho_invoices
+                    $mappingCol = 'DespachoID';
+                    $has = $conexion->query("SHOW COLUMNS FROM despacho_invoices LIKE 'DespachoID'");
+                    if (!($has && $has->num_rows > 0)) {
+                      $has2 = $conexion->query("SHOW COLUMNS FROM despacho_invoices LIKE 'idDespacho'");
+                      if ($has2 && $has2->num_rows > 0) $mappingCol = 'idDespacho';
+                      else {
+                        $has3 = $conexion->query("SHOW COLUMNS FROM despacho_invoices LIKE 'IdDespacho'");
+                        if ($has3 && $has3->num_rows > 0) $mappingCol = 'IdDespacho';
+                      }
+                    }
+
+                    $query = "SELECT DespachoID, Booking_BK, status, creation_date FROM despacho WHERE status = 1 ORDER BY creation_date";
                     $result = $conexion->query($query);
 
-                    // Verificar error en consulta
                     if (!$result) {
                       die("Error en la consulta: " . $conexion->error);
                     }
 
-                    // Verificar si hay registros
                     if ($result->num_rows > 0) {
+                      $mapStmt = $conexion->prepare("SELECT Invoice FROM despacho_invoices WHERE {$mappingCol} = ? ORDER BY id ASC");
                       while ($row = $result->fetch_assoc()) {
                         $fechaOriginal = $row['creation_date'];
                         $fecha = date('d/m/Y', strtotime($fechaOriginal));
                         $hora  = date('h:i A', strtotime($fechaOriginal));
+                        // fetch mapped invoices
+                        $invoicesDisplay = '';
+                        if ($mapStmt) {
+                          $invoices = [];
+                          $mapStmt->bind_param('i', $row['DespachoID']);
+                          $mapStmt->execute();
+                          $resMap = $mapStmt->get_result();
+                          while ($r = $resMap->fetch_assoc()) $invoices[] = $r['Invoice'];
+                          if (!empty($invoices)) $invoicesDisplay = implode(', ', $invoices);
+                        }
                     ?>
                         <tr>
                           <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-                          <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
+                          <td><?= htmlspecialchars($invoicesDisplay ?: '') ?></td>
                           <td><?= $fecha ?> <span class="text-muted text-sm d-block"><?= $hora ?></span></td>
                           <td>
                             <select

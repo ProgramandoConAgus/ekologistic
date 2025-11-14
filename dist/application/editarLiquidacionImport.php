@@ -10,10 +10,37 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 $idImport = $_GET["ImportID"] ?? 0;
 
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice, num_op, costoEXW FROM imports WHERE ImportsID = ?");
+$stmt = $conexion->prepare("SELECT Booking_BK, num_op, costoEXW FROM imports WHERE ImportsID = ?");
 $stmt->bind_param("i", $idImport);
 $stmt->execute();
 $importsData = $stmt->get_result()->fetch_assoc();
+
+// Fetch mapped invoices (detect mapping column name for compatibility)
+$invoicesList = [];
+$mappingCol = 'ImportsID';
+$has = $conexion->query("SHOW COLUMNS FROM import_invoices LIKE 'ImportsID'");
+if (!($has && $has->num_rows > 0)) {
+  $try = $conexion->query("SHOW COLUMNS FROM import_invoices LIKE 'ImportID'");
+  if ($try && $try->num_rows > 0) $mappingCol = 'ImportID';
+  else {
+    $try2 = $conexion->query("SHOW COLUMNS FROM import_invoices LIKE 'idImport'");
+    if ($try2 && $try2->num_rows > 0) $mappingCol = 'idImport';
+  }
+}
+
+$mapSql = "SELECT Invoice FROM import_invoices WHERE {$mappingCol} = ? ORDER BY id ASC";
+$mapStmt = $conexion->prepare($mapSql);
+if ($mapStmt) {
+  $mapStmt->bind_param('i', $idImport);
+  $mapStmt->execute();
+  $resMap = $mapStmt->get_result();
+  while ($r = $resMap->fetch_assoc()) {
+    $invoicesList[] = $r['Invoice'];
+  }
+  $mapStmt->close();
+}
+
+$invoicesDisplay = !empty($invoicesList) ? implode(', ', $invoicesList) : ($importsData['Number_Commercial_Invoice'] ?? '');
 
 
 
@@ -344,7 +371,15 @@ while ($row = $result->fetch_assoc()) {
       </div>
       <div class="col-md-6">
         <label class="form-label fw-bold">Commercial Invoice</label>
-        <div class="form-control bg-light"><?= $importsData['Number_Commercial_Invoice'] ?></div>
+        <!-- Editable multiselect (Tom Select). Falls back to a readonly display when JS is disabled -->
+        <select id="invoiceSelect" class="form-control" multiple>
+          <?php foreach ($invoicesList as $inv): ?>
+            <option value="<?= htmlspecialchars($inv) ?>" selected><?= htmlspecialchars($inv) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <noscript>
+          <div class="form-control bg-light" id="commercial_Invoice" data-invoices='<?= json_encode($invoicesList, JSON_HEX_APOS|JSON_HEX_QUOT) ?>'><?= htmlspecialchars($invoicesDisplay) ?></div>
+        </noscript>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label fw-bold">N° Operación</label>
@@ -399,7 +434,7 @@ while ($row = $result->fetch_assoc()) {
                   $vt   = floatval($item['ValorTotal']);
                   $tipo = intval($item['idTipo']);  // <-- aquí
                 ?>
-                <tr data-item-id="<?= intval($item['IdItemsLiquidacionImport'] ?? $item['IdIncotermsImport']) ?>">
+                <tr data-item-id="<?= intval($item['IdIncotermsImport'] ?? $item['IdItemsLiquidacionImport']) ?>">
                   <td><?= htmlspecialchars($item['NombreItems']) ?></td>
                   <td>
                     <input type="number" class="form-control form-control-sm cantidad" value="<?= $cant ?>" min="0">
@@ -481,6 +516,27 @@ while ($row = $result->fetch_assoc()) {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <!-- Calcular totales automaticamente-->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Tom Select (vanilla) for editable multi-select on edit page -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const invoiceSel = document.getElementById('invoiceSelect');
+  if (invoiceSel) {
+    try {
+      window.invoiceTomSelect = new TomSelect('#invoiceSelect', {
+        plugins: ['remove_button'],
+        maxItems: null,
+        dropdownParent: 'body',
+        placeholder: 'Seleccione facturas...'
+      });
+    } catch(e) {
+      console.warn('TomSelect init failed', e);
+    }
+  }
+});
+</script>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -713,14 +769,21 @@ document.addEventListener('DOMContentLoaded', () => {
       
     const idImport = <?= json_encode($idImport) ?>;
     const coeficiente = totalExw > 0 ? (totalGeneral / totalExw) * 100 : 0;
-    console.log(totalExw)
-    console.log(coeficiente)
 
+    // Collect invoices (supports Tom Select)
+    let invoices = [];
+    const invoiceEl = document.getElementById('invoiceSelect');
+    if (window.invoiceTomSelect) {
+      invoices = window.invoiceTomSelect.getValue();
+      if (!Array.isArray(invoices)) invoices = [invoices];
+    } else if (invoiceEl) {
+      invoices = Array.from(invoiceEl.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'Seleccionar...');
+    }
 
     fetch('../api/imports/actualizarliquidacionimport.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ datos, totalExw, totalGeneral, coeficiente, idImport })
+      body: JSON.stringify({ datos, totalExw, totalGeneral, coeficiente, idImport, invoices })
     })
     .then(r => r.json())
     .then(json => {

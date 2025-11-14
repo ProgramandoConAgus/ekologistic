@@ -321,8 +321,8 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
           <!-- Select Invoice -->
           <div class="col-md-6 mb-3">
             <label for="invoiceSelect" class="form-label">Commercial Invoice</label>
-            <select id="invoiceSelect" class="form-select" disabled>
-              <option selected>Seleccionar...</option>
+            <select id="invoiceSelect" class="form-select tom-select" multiple size="4" disabled>
+              <option>Seleccionar...</option>
               <!-- Se autocompleta con Javascript (buscar comentario de "Completador de select")  -->
             </select>
           </div>
@@ -514,6 +514,26 @@ while ($inc = $res->fetch_assoc()) {
       b.style.display = (b.dataset.incoterm === sel.value) ? 'block' : 'none';
     });
   });
+</script>
+<!-- Tom Select (vanilla, no jQuery) for improved multiselect UX -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const invoiceSel = document.getElementById('invoiceSelect');
+  if (invoiceSel) {
+    try {
+      window.invoiceTomSelect = new TomSelect('#invoiceSelect', {
+        plugins: ['remove_button'],
+        maxItems: null,
+        dropdownParent: 'body',
+        placeholder: 'Seleccione facturas...'
+      });
+    } catch(e) {
+      console.warn('TomSelect init failed', e);
+    }
+  }
+});
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -732,9 +752,17 @@ document.addEventListener("DOMContentLoaded", function () {
         invoice.innerHTML = "<option>Seleccionar...</option>";
         nops.innerHTML = "<option>Seleccionar...</option>";
 
-        data.invoices?.forEach(i => invoice.insertAdjacentHTML("beforeend", `<option>${i}</option>`));
+        data.invoices?.forEach(invoiceVal => {
+          if (window.invoiceTomSelect) {
+            window.invoiceTomSelect.addOption({ value: invoiceVal, text: invoiceVal });
+            window.invoiceTomSelect.addItem(invoiceVal);
+          } else {
+            invoice.insertAdjacentHTML("beforeend", `<option value="${invoiceVal}" selected>${invoiceVal}</option>`);
+          }
+        });
         data.nops?.forEach(n => nops.insertAdjacentHTML("beforeend", `<option>${n}</option>`));
-        invoice.disabled = false;
+  invoice.disabled = false;
+  if (window.invoiceTomSelect) window.invoiceTomSelect.enable();
         nops.disabled = false;
 
         // Set automáticos segun IDs
@@ -831,12 +859,19 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('✔ Click en Guardar');
     const numOp = nOpEl.value.trim();
     const booking = bookingEl.value.trim();
-    const invoice = invoiceEl.value.trim();
+    // collect invoices as array (supports Tom Select)
+    let invoices = [];
+    if (window.invoiceTomSelect) {
+      invoices = window.invoiceTomSelect.getValue();
+      if (!Array.isArray(invoices)) invoices = [invoices];
+    } else if (invoiceEl) {
+      invoices = Array.from(invoiceEl.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'Seleccionar...');
+    }
     const incotermId = selectEl.value;
     const costoEXW = parseFloat(exwEl.dataset.totalEcu || "0");
     const coeficiente = parseFloat(coeficienteEl.textContent.replace('%', '').trim() || "0");
 
-    if (!booking || !invoice || !incotermId || !numOp) {
+    if (!booking || invoices.length === 0 || !incotermId || !numOp) {
       return Swal.fire({
         icon: 'warning',
         title: 'Faltan datos',
@@ -904,11 +939,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
 
-    console.log({ booking, invoice, incotermId, costoEXW, coeficiente, items });
+    console.log({ booking, invoices, incotermId, costoEXW, coeficiente, items });
     fetch('../api/imports/guardarliquidacionimport.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ booking, invoice, numOp, costoEXW, coeficiente, incotermId: incotermId, items })
+      body: JSON.stringify({ booking, invoice: invoices, numOp, costoEXW, coeficiente, incotermId: incotermId, items })
     })
       .then(r => r.json())
       .then(resp => {

@@ -328,8 +328,8 @@ while($row = $result->fetch_assoc()) {
           <!-- Select Invoice -->
           <div class="col-md-6 mb-3">
             <label for="invoiceSelect" class="form-label">Commercial Invoice</label>
-            <select id="invoiceSelect" class="form-select" disabled>
-              <option selected>Seleccionar...</option>
+            <select id="invoiceSelect" class="form-select tom-select" multiple size="4" disabled>
+              <option>Seleccionar...</option>
               <!-- Se autocompleta con Javascript (buscar comentario de "Completador de select")  -->
             </select>
           </div>
@@ -512,19 +512,27 @@ document.getElementById('bookingSelect').addEventListener('change', function () 
   nOpSelect.disabled = true;
   productoEXW.textContent = '';
 
-  if (booking && booking !== 'Seleccionar...') {
+
+        if (booking && booking !== 'Seleccionar...') {
     fetch(`../api/despacho/get_invoices.php?booking=${encodeURIComponent(booking)}`)
       .then(response => response.json())
       .then(data => {
-        // Llenar select de facturas
+        // Llenar select de facturas (soporta Tom Select)
         if (data.invoices.length > 0) {
-          data.invoices.forEach(invoice => {
-            const option = document.createElement('option');
-            option.value = invoice;
-            option.textContent = invoice;
-            invoiceSelect.appendChild(option);
+          data.invoices.forEach(invoiceVal => {
+            if (window.invoiceTomSelect) {
+              window.invoiceTomSelect.addOption({ value: invoiceVal, text: invoiceVal });
+              window.invoiceTomSelect.addItem(invoiceVal);
+            } else {
+              const option = document.createElement('option');
+              option.value = invoiceVal;
+              option.textContent = invoiceVal;
+              option.selected = true;
+              invoiceSelect.appendChild(option);
+            }
           });
           invoiceSelect.disabled = false;
+          if (window.invoiceTomSelect) window.invoiceTomSelect.enable();
         } else {
           const opt = document.createElement('option');
           opt.text = 'Sin facturas disponibles';
@@ -634,6 +642,27 @@ document.getElementById('bookingSelect').addEventListener('change', function () 
   });
 </script>
 
+<!-- Tom Select (vanilla, no jQuery) for improved multiselect UX -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const invoiceSel = document.getElementById('invoiceSelect');
+  if (invoiceSel) {
+    try {
+      window.invoiceTomSelect = new TomSelect('#invoiceSelect', {
+        plugins: ['remove_button'],
+        maxItems: null,
+        dropdownParent: 'body',
+        placeholder: 'Seleccione facturas...'
+      });
+    } catch(e) {
+      console.warn('TomSelect init failed', e);
+    }
+  }
+});
+</script>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const bookingEl   = document.getElementById('bookingSelect');
@@ -643,10 +672,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnGuardar.addEventListener('click', () => {
     const booking    = bookingEl.value.trim();
-    const invoice    = invoiceEl.value.trim();
+    // collect invoices as array (supports Tom Select)
+    let invoices = [];
+    if (window.invoiceTomSelect) {
+      invoices = window.invoiceTomSelect.getValue();
+      if (!Array.isArray(invoices)) invoices = [invoices];
+    } else if (invoiceEl) {
+      invoices = Array.from(invoiceEl.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'Seleccionar...');
+    }
     const incotermId = selectEl.value;
 
-    if (!booking || !invoice || !incotermId) {
+    if (!booking || invoices.length === 0 || !incotermId) {
       return Swal.fire({
         icon: 'warning',
         title: 'Faltan datos',
@@ -694,7 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         booking,
-        invoice,
+        invoice: invoices,
         items,
         costoEXW,
         num_op,

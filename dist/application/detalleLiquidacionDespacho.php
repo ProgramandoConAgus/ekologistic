@@ -11,7 +11,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 $idDespacho = $_GET["DespachoID"] ?? 0;
 
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice, costoEXW, num_op, coeficiente FROM despacho WHERE DespachoID = ?");
+$stmt = $conexion->prepare("SELECT Booking_BK, costoEXW, num_op, coeficiente FROM despacho WHERE DespachoID = ?");
 if (!$stmt) {
   die("Error en prepare: " . $conexion->error);
 }
@@ -19,6 +19,33 @@ if (!$stmt) {
 $stmt->bind_param("i", $idDespacho);
 $stmt->execute();
 $importsData = $stmt->get_result()->fetch_assoc();
+
+// Fetch mapped invoices from despacho_invoices
+$invoicesList = [];
+$mappingCol = 'DespachoID';
+$has = $conexion->query("SHOW COLUMNS FROM despacho_invoices LIKE 'DespachoID'");
+if (!($has && $has->num_rows > 0)) {
+  $has2 = $conexion->query("SHOW COLUMNS FROM despacho_invoices LIKE 'idDespacho'");
+  if ($has2 && $has2->num_rows > 0) $mappingCol = 'idDespacho';
+  else {
+    $has3 = $conexion->query("SHOW COLUMNS FROM despacho_invoices LIKE 'IdDespacho'");
+    if ($has3 && $has3->num_rows > 0) $mappingCol = 'IdDespacho';
+  }
+}
+
+$mapSql = "SELECT Invoice FROM despacho_invoices WHERE {$mappingCol} = ? ORDER BY id ASC";
+$mapStmt = $conexion->prepare($mapSql);
+if ($mapStmt) {
+  $mapStmt->bind_param('i', $idDespacho);
+  $mapStmt->execute();
+  $resMap = $mapStmt->get_result();
+  while ($r = $resMap->fetch_assoc()) {
+    $invoicesList[] = $r['Invoice'];
+  }
+  $mapStmt->close();
+}
+
+$invoicesDisplay = !empty($invoicesList) ? implode(', ', $invoicesList) : ($importsData['Number_Commercial_Invoice'] ?? '');
 
 // Consulta para los incoterms y sus ítems
 $query = "
@@ -358,7 +385,7 @@ while ($row = $result->fetch_assoc()) {
       </div>
       <div class="col-md-6">
         <label class="form-label fw-bold">Commercial Invoice</label>
-        <div id="commercial_Invoice" class="form-control bg-light"><?= htmlspecialchars($importsData['Number_Commercial_Invoice']) ?></div>
+        <div id="commercial_Invoice" class="form-control bg-light" data-invoices='<?= json_encode($invoicesList, JSON_HEX_APOS|JSON_HEX_QUOT) ?>'><?= htmlspecialchars($invoicesDisplay) ?></div>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label fw-bold">N° Operación</label>

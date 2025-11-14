@@ -12,22 +12,58 @@ try {
     $totalExw    = floatval($data['totalExw']    ?? 0);
     $coeficiente = floatval($data['coeficiente'] ?? 0);
 
-    if (!$booking || !$invoice || empty($items)) {
+    // Validate incoming data: invoice can be a string or an array of strings
+    $invoiceIsArray = is_array($invoice);
+    $invoiceCount = $invoiceIsArray ? count($invoice) : ($invoice !== '' ? 1 : 0);
+
+    if (!$booking || $invoiceCount === 0 || empty($items)) {
         echo json_encode(['success' => false, 'message' => 'Datos incompletos']);
         exit;
     }
 
-    // 1️⃣ Insertar el export
-    $stmtExport = $conexion->prepare(
-        "INSERT INTO exports (Booking_BK, Number_Commercial_Invoice, num_op, costoEXW, coeficiente, creation_date)
-         VALUES (?, ?, ?, ?, ?, NOW())"
-    );
-    $stmtExport->bind_param("ssidd", $booking, $invoice, $nOp, $totalExw, $coeficiente);
+    // Normalize to array for easier processing
+    $invoices = $invoiceIsArray ? $invoice : [$invoice];
+
+    // 1️⃣ Crear UNA sola fila en exports
+    $firstInvoice = $invoices[0] ?? null;
+    // Detect if legacy Number_Commercial_Invoice column exists
+    $hasInvoiceCol = false;
+    $colRes = $conexion->query("SHOW COLUMNS FROM exports LIKE 'Number_Commercial_Invoice'");
+    if ($colRes && $colRes->num_rows > 0) $hasInvoiceCol = true;
+
+    if ($hasInvoiceCol) {
+        $stmtExport = $conexion->prepare(
+            "INSERT INTO exports (Booking_BK, Number_Commercial_Invoice, num_op, costoEXW, coeficiente, creation_date)
+             VALUES (?, ?, ?, ?, ?, NOW())"
+        );
+        if (!$stmtExport) throw new Exception('Error preparando INSERT exports: ' . $conexion->error);
+        $stmtExport->bind_param("ssidd", $booking, $firstInvoice, $nOp, $totalExw, $coeficiente);
+    } else {
+        // Insert without legacy invoice column
+        $stmtExport = $conexion->prepare(
+            "INSERT INTO exports (Booking_BK, num_op, costoEXW, coeficiente, creation_date)
+             VALUES (?, ?, ?, ?, NOW())"
+        );
+        if (!$stmtExport) throw new Exception('Error preparando INSERT exports (no invoice col): ' . $conexion->error);
+        $stmtExport->bind_param("sidd", $booking, $nOp, $totalExw, $coeficiente);
+    }
     $stmtExport->execute();
     $idExport = $conexion->insert_id;
     $stmtExport->close();
 
-    // 2️⃣ Recorrer items y guardar
+    // 2️⃣ Insertar mappings en export_invoices (tabla creada por el usuario)
+    $insertInvoiceStmt = $conexion->prepare(
+        "INSERT INTO export_invoices (Invoice, idExport) VALUES (?, ?)"
+    );
+    $insertedInvoices = [];
+    foreach ($invoices as $inv) {
+        $insertInvoiceStmt->bind_param("si", $inv, $idExport);
+        $insertInvoiceStmt->execute();
+        $insertedInvoices[] = $inv;
+    }
+    $insertInvoiceStmt->close();
+
+    // 3️⃣ Recorrer items y guardar (vincularlos a este export)
     foreach ($items as $item) {
         $idItem         = intval($item['itemId']);
         $cantidad       = floatval($item['cantidad']);
@@ -66,7 +102,7 @@ try {
         $stmtLinkInc->close();
     }
 
-    echo json_encode(['success' => true, 'idExport' => $idExport]);
+    echo json_encode(['success' => true, 'idExport' => $idExport, 'invoices' => $insertedInvoices]);
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([

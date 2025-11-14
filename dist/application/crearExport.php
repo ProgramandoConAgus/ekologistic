@@ -322,10 +322,11 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
           <!-- Select Invoice -->
           <div class="col-md-6 mb-3">
             <label for="invoiceSelect" class="form-label">Commercial Invoice</label>
-            <select id="invoiceSelect" class="form-select" disabled>
-              <option selected>Seleccionar...</option>
-              <!-- Se autocompleta con Javascript (buscar comentario de "Completador de select")  -->
+            <!-- allow multiple selection so booking can pre-select many invoices -->
+            <select id="invoiceSelect" class="form-select tom-select" multiple size="4" disabled>
+              <!-- Se autocompleta con Javascript -->
             </select>
+            <div class="form-text">Se pueden seleccionar varias facturas. Al elegir un booking se seleccionan automáticamente las facturas relacionadas.</div>
           </div>
           <div class="col-md-6 mb-3">
             <label for="nOpSelect" class="form-label">Nº Operacion</label>
@@ -496,25 +497,40 @@ document.getElementById('bookingSelect').addEventListener('change', function () 
   const productoEXW = document.getElementById('productoEXW');
 
   // Limpiar y desactivar los selects y el costo del producto EXW
-  invoiceSelect.innerHTML = '<option selected>Seleccionar...</option>';
   invoiceSelect.disabled = true;
   nOpSelect.innerHTML = '<option selected>Seleccionar...</option>';
   nOpSelect.disabled = true;
   productoEXW.textContent = '';
 
   if (booking && booking !== 'Seleccionar...') {
+    // Clear previous options
+    invoiceSelect.innerHTML = '';
+    if (window.invoiceTomSelect) {
+      window.invoiceTomSelect.clearOptions();
+      window.invoiceTomSelect.clear(true);
+      window.invoiceTomSelect.disable();
+    }
+
     fetch(`../api/exports/get_invoices.php?booking=${encodeURIComponent(booking)}`)
       .then(response => response.json())
       .then(data => {
         // Llenar select de facturas
         if (data.invoices.length > 0) {
+          // Añadimos todas las facturas y las marcamos seleccionadas por defecto
           data.invoices.forEach(invoice => {
-            const option = document.createElement('option');
-            option.value = invoice;
-            option.textContent = invoice;
-            invoiceSelect.appendChild(option);
+            if (window.invoiceTomSelect) {
+              window.invoiceTomSelect.addOption({value: invoice, text: invoice});
+              window.invoiceTomSelect.addItem(invoice);
+            } else {
+              const option = document.createElement('option');
+              option.value = invoice;
+              option.textContent = invoice;
+              option.selected = true; // seleccionar por defecto
+              invoiceSelect.appendChild(option);
+            }
           });
           invoiceSelect.disabled = false;
+          if (window.invoiceTomSelect) window.invoiceTomSelect.enable();
         } else {
           const opt = document.createElement('option');
           opt.text = 'Sin facturas disponibles';
@@ -533,9 +549,9 @@ document.getElementById('bookingSelect').addEventListener('change', function () 
           nOpSelect.disabled = false;
         }
 
-        // Mostrar el costo del producto EXW
-        productoEXW.textContent = `$${data.total_ec.toFixed(2)}`;
-        productoEXW.dataset.totalecu = data.total_ec.toFixed(2);
+  // Mostrar el costo del producto EXW
+  productoEXW.textContent = `$${data.total_ec.toFixed(2)}`;
+  productoEXW.dataset.totalecu = data.total_ec.toFixed(2);
       })
       .catch(error => {
         console.error('Error al cargar datos:', error);
@@ -543,6 +559,27 @@ document.getElementById('bookingSelect').addEventListener('change', function () 
   }
 });
 
+</script>
+
+<!-- Tom Select (vanilla, no jQuery) for improved multiselect UX -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const invoiceSel = document.getElementById('invoiceSelect');
+  if (invoiceSel) {
+    try {
+      window.invoiceTomSelect = new TomSelect('#invoiceSelect', {
+        plugins: ['remove_button'],
+        maxItems: null,
+        dropdownParent: 'body',
+        placeholder: 'Seleccione facturas...'
+      });
+    } catch(e) {
+      console.warn('TomSelect init failed', e);
+    }
+  }
+});
 </script>
 
 <script>
@@ -646,8 +683,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // ensure latest numbers
     recalculate();
 
-    const booking = document.getElementById('bookingSelect')?.value || null;
-    const invoice = document.getElementById('invoiceSelect')?.value || null;
+  const booking = document.getElementById('bookingSelect')?.value || null;
+  // invoiceSelect puede ser multiple: recoger todas las facturas seleccionadas
+  const invoiceSelectEl = document.getElementById('invoiceSelect');
+  const invoice = invoiceSelectEl ? Array.from(invoiceSelectEl.selectedOptions).map(o => o.value) : [];
     const nOp = document.getElementById('nOpSelect')?.value || null;
     const totalExw = parseCurrency(document.getElementById('productoEXW')?.dataset.totalecu || 0);
 

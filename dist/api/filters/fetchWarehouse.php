@@ -6,6 +6,7 @@ try {
     // 1) Recuperar filtros
     $container = $_GET['container']  ?? '';
     $op        = $_GET['op']         ?? '';
+    $description = $_GET['description'] ?? '';
     $lot       = $_GET['lot']        ?? '';
     $from      = $_GET['dateFrom']   ?? '';
     $to        = $_GET['dateTo']     ?? '';
@@ -57,6 +58,11 @@ try {
     if ($op !== '') {
         $conds[]  = "c.num_op LIKE ?";
         $params[] = "%{$op}%";
+        $types   .= 's';
+    }
+    if ($description !== '') {
+        $conds[]  = "d.descripcion LIKE ?";
+        $params[] = "%{$description}%";
         $types   .= 's';
     }
     if ($lot !== '') {

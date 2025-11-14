@@ -322,7 +322,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
           <thead>
             <tr>
               <th>Booking</th>
-              <th>Number Commercial Invoice</th>
+              <th>Commercial Invoice(s)</th>
               <th>Creation Date</th>
               <th>Status</th>
               <th>Action</th>
@@ -330,16 +330,35 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
           </thead>
           <tbody>
             <?php 
-            $query = "SELECT ExportsID, Booking_BK,Number_Commercial_Invoice,status ,creation_date FROM exports WHERE status = 1 ORDER BY creation_date";
+            // detect mapping column for export_invoices
+            $mappingCol = 'idExport';
+            $h = $conexion->query("SHOW COLUMNS FROM export_invoices LIKE 'idExport'");
+            if (!($h && $h->num_rows > 0)) {
+              $h2 = $conexion->query("SHOW COLUMNS FROM export_invoices LIKE 'ExportID'");
+              if ($h2 && $h2->num_rows > 0) $mappingCol = 'ExportID';
+            }
+
+            $query = "SELECT ExportsID, Booking_BK, status, creation_date FROM exports WHERE status = 1 ORDER BY creation_date";
             $result = $conexion->query($query);
+            $mapStmt = $conexion->prepare("SELECT Invoice FROM export_invoices WHERE {$mappingCol} = ? ORDER BY id ASC");
             while($row = $result->fetch_assoc()) { 
               $fechaOriginal = $row['creation_date'];
               $fecha = date('d/m/Y', strtotime($fechaOriginal));
               $hora = date('h:i A', strtotime($fechaOriginal));
+              // fetch mapped invoices
+              $invoicesDisplay = '';
+              if ($mapStmt) {
+                $invs = [];
+                $mapStmt->bind_param('i', $row['ExportsID']);
+                $mapStmt->execute();
+                $resMap = $mapStmt->get_result();
+                while ($r = $resMap->fetch_assoc()) $invs[] = $r['Invoice'];
+                if (!empty($invs)) $invoicesDisplay = implode(', ', $invs);
+              }
             ?>
             <tr>
               <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-              <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
+              <td><?= htmlspecialchars($invoicesDisplay ?: '') ?></td>
               <td><?= $fecha ?> <span class="text-muted text-sm d-block"><?= $hora ?></span></td>
               <td>
               <select 

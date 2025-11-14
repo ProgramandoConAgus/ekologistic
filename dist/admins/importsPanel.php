@@ -328,7 +328,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                   <thead>
                     <tr>
                       <th>Booking</th>
-                      <th>Number Commercial Invoice</th>
+                      <th>Commercial Invoices</th>
                       <th>Creation Date</th>
                       <th>Status</th>
                       <th>Action</th>
@@ -336,7 +336,7 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                   </thead>
                   <tbody>
                     <?php
-                    $query = "SELECT ImportsID, Booking_BK, Number_Commercial_Invoice, status, creation_date 
+                    $query = "SELECT ImportsID, Booking_BK, status, creation_date 
           FROM imports 
           WHERE status = 1 
           ORDER BY creation_date";
@@ -353,10 +353,39 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
                         $fechaOriginal = $row['creation_date'];
                         $fecha = date('d/m/Y', strtotime($fechaOriginal));
                         $hora  = date('h:i A', strtotime($fechaOriginal));
+
+                        // Obtener facturas mapeadas desde import_invoices (detectamos la columna real para evitar errores)
+                        $invoicesArr = [];
+                        $id = intval($row['ImportsID']);
+                        $mappingCol = null;
+                        $colCheck = $conexion->query("SHOW COLUMNS FROM import_invoices");
+                        if ($colCheck) {
+                          while ($c = $colCheck->fetch_assoc()) {
+                            $colName = $c['Field'];
+                            if (in_array($colName, ['ImportsID','ImportID','idImport'])) {
+                              $mappingCol = $colName;
+                              break;
+                            }
+                          }
+                        }
+                        if ($mappingCol) {
+                          $mapSql = sprintf("SELECT Invoice FROM import_invoices WHERE `%s` = ? ORDER BY id ASC", $mappingCol);
+                          $mapQ = $conexion->prepare($mapSql);
+                          if ($mapQ) {
+                            $mapQ->bind_param('i', $id);
+                            $mapQ->execute();
+                            $mres = $mapQ->get_result();
+                            while ($mrow = $mres->fetch_assoc()) {
+                              $invoicesArr[] = $mrow['Invoice'];
+                            }
+                            $mapQ->close();
+                          }
+                        }
+                        $invoicesDisplay = !empty($invoicesArr) ? htmlspecialchars(implode(', ', $invoicesArr)) : '-';
                     ?>
                         <tr>
                           <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-                          <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
+                          <td><?= $invoicesDisplay ?></td>
                           <td><?= $fecha ?> <span class="text-muted text-sm d-block"><?= $hora ?></span></td>
                           <td>
                             <select

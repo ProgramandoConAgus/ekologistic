@@ -15,62 +15,60 @@ try {
     }
 
     $query = "
-       SELECT 
-  e.ExportsID AS ID,
-  e.Booking_BK,
-  e.Number_Commercial_Invoice,
-  e.status,
-  e.creation_date,
-  c.num_op,
-  'exports' AS origen
+             SELECT 
+    e.ExportsID AS ID,
+    e.Booking_BK,
+    e.status,
+    e.creation_date,
+    c.num_op,
+    'exports' AS origen
 FROM exports e
 LEFT JOIN (
-  SELECT i.Number_Commercial_Invoice, MIN(ct.num_op) AS num_op
-  FROM items i
-  INNER JOIN container ct ON i.idContainer = ct.IdContainer
-  WHERE ct.num_op = ?
-  GROUP BY i.Number_Commercial_Invoice
-) c ON e.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+    -- aggregate by booking (mapping moved to invoice tables)
+    SELECT ct.Booking_BK, MIN(ct.num_op) AS num_op
+    FROM items i
+    INNER JOIN container ct ON i.idContainer = ct.IdContainer
+    WHERE ct.num_op = ?
+    GROUP BY ct.Booking_BK
+) c ON e.Booking_BK = c.Booking_BK
 WHERE e.status = 2 AND c.num_op IS NOT NULL
 
 UNION ALL
 
 SELECT 
-  i.ImportsID AS ID,
-  i.Booking_BK,
-  i.Number_Commercial_Invoice,
-  i.status,
-  i.creation_date,
-  c.num_op,
-  'imports' AS origen
+    i.ImportsID AS ID,
+    i.Booking_BK,
+    i.status,
+    i.creation_date,
+    c.num_op,
+    'imports' AS origen
 FROM imports i
 LEFT JOIN (
-  SELECT i.Number_Commercial_Invoice, MIN(ct.num_op) AS num_op
-  FROM items i
-  INNER JOIN container ct ON i.idContainer = ct.IdContainer
-  WHERE ct.num_op = ?
-  GROUP BY i.Number_Commercial_Invoice
-) c ON i.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+    SELECT ct.Booking_BK, MIN(ct.num_op) AS num_op
+    FROM items i
+    INNER JOIN container ct ON i.idContainer = ct.IdContainer
+    WHERE ct.num_op = ?
+    GROUP BY ct.Booking_BK
+) c ON i.Booking_BK = c.Booking_BK
 WHERE i.status = 2 AND c.num_op IS NOT NULL
 
 UNION ALL
 
 SELECT 
-  d.DespachoID AS ID,
-  d.Booking_BK,
-  d.Number_Commercial_Invoice,
-  d.status,
-  d.creation_date,
-  c.num_op,
-  'despacho' AS origen
+    d.DespachoID AS ID,
+    d.Booking_BK,
+    d.status,
+    d.creation_date,
+    c.num_op,
+    'despacho' AS origen
 FROM despacho d
 LEFT JOIN (
-  SELECT i.Number_Commercial_Invoice, MIN(ct.num_op) AS num_op
-  FROM items i
-  INNER JOIN container ct ON i.idContainer = ct.IdContainer
-  WHERE ct.num_op = ?
-  GROUP BY i.Number_Commercial_Invoice
-) c ON d.Number_Commercial_Invoice = c.Number_Commercial_Invoice
+    SELECT ct.Booking_BK, MIN(ct.num_op) AS num_op
+    FROM items i
+    INNER JOIN container ct ON i.idContainer = ct.IdContainer
+    WHERE ct.num_op = ?
+    GROUP BY ct.Booking_BK
+) c ON d.Booking_BK = c.Booking_BK
 WHERE d.status = 2 AND c.num_op IS NOT NULL
 
 ORDER BY creation_date DESC
@@ -95,6 +93,16 @@ ORDER BY creation_date DESC
     while ($row = $result->fetch_assoc()) {
         $registros[] = $row;
     }
+
+    // Attach mapped invoices per record (Number_Commercial_Invoice) using helper
+    include_once __DIR__ . '/../helpers/mapping.php';
+    foreach ($registros as &$r) {
+        $origin = $r['origen'] ?? '';
+        $id = intval($r['ID'] ?? 0);
+        $invs = fetch_mapped_invoices($conexion, $origin, $id);
+        $r['Number_Commercial_Invoice'] = !empty($invs) ? implode(', ', $invs) : '';
+    }
+    unset($r);
 
     if (empty($registros)) {
         echo json_encode([

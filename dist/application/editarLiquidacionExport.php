@@ -9,10 +9,21 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 
 $idExport = $_GET["ExportID"] ?? 0;
 
-$stmt = $conexion->prepare("SELECT Booking_BK, Number_Commercial_Invoice, num_op, costoEXW FROM exports WHERE ExportsID = ?");
+$stmt = $conexion->prepare("SELECT Booking_BK, num_op, costoEXW FROM exports WHERE ExportsID = ?");
 $stmt->bind_param("i", $idExport);
 $stmt->execute();
 $exportData = $stmt->get_result()->fetch_assoc();
+
+// Obtener facturas relacionadas desde export_invoices
+$invStmt = $conexion->prepare("SELECT Invoice FROM export_invoices WHERE idExport = ? ORDER BY id");
+$invStmt->bind_param("i", $idExport);
+$invStmt->execute();
+$invRes = $invStmt->get_result();
+$linkedInvoices = [];
+while ($r = $invRes->fetch_assoc()) {
+  $linkedInvoices[] = $r['Invoice'];
+}
+$invStmt->close();
 
 // Consulta para los incoterms y sus ítems
 $query = "
@@ -340,8 +351,9 @@ while ($row = $result->fetch_assoc()) {
         <div class="form-control bg-light"><?= $exportData['Booking_BK'] ?></div>
       </div>
       <div class="col-md-6">
-        <label class="form-label fw-bold">Commercial Invoice</label>
-        <div class="form-control bg-light"><?= $exportData['Number_Commercial_Invoice'] ?></div>
+        <label class="form-label fw-bold">Commercial Invoice(s)</label>
+        <!-- editable list of invoices (comma-separated) -->
+        <textarea id="invoiceList" class="form-control" rows="2" disabled><?= htmlspecialchars(implode(', ', $linkedInvoices)) ?></textarea>
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label fw-bold">N° Operación</label>
@@ -685,10 +697,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
+    // additionally send invoices (comma-separated list parsed into array)
+    const invoiceText = document.getElementById('invoiceList')?.value || '';
+    const invoices = invoiceText.split(',').map(s => s.trim()).filter(Boolean);
+
     fetch('../api/exports/actualizarliquidacionexport.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ datos, coeficiente, idExport })
+      body: JSON.stringify({ datos, coeficiente, idExport, invoices })
     })
     .then(r => r.json())
     .then(json => {

@@ -512,6 +512,12 @@ try {
                   <input type="text" class="form-control" id="OpFilter" placeholder="Ingrese Op Number">
                 </div>
 
+                <!-- Filtro por Description -->
+                <div class="mb-3">
+                  <label for="descriptionFilter" class="form-label">Description</label>
+                  <input type="text" class="form-control" id="descriptionFilter" placeholder="Ingrese descripción (ej: Warehouse USA 1)">
+                </div>
+
                 <!-- Filtro por ETA Date -->
                 <div class="mb-3">
                   <label for="rangoFechas" class="form-label">Entry Date</label><br>
@@ -685,21 +691,10 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- ACTUALIZAR STATUS -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  // Atacha listener a TODOS los selects
-  document.querySelectorAll('.status-select').forEach(sel => {
-    sel.addEventListener('change', function () {
-      const id    = this.dataset.id;
-      const value = this.value;
-      actualizarStatus(id, value);
-    });
-  });
-  // inputs de PO
-  document.querySelectorAll('.po-input').forEach(inp => {
-    inp.addEventListener('change', handlePoChange);
-  });
-  document.querySelectorAll('.codigo-despacho-input').forEach(inp => {
-  inp.addEventListener('change', handleCodigoDespachoChange);
-});
+  // Reusable init functions attach listeners to current DOM nodes
+  initStatusListeners();
+  initPoListeners();
+  initCodigoDespachoListeners();
 
 });
 
@@ -819,6 +814,43 @@ async function handlePoChange() {
   } catch {
     Swal.fire('Error de red','','error');
   }
+}
+
+// Re-attach listeners after AJAX table refresh
+function initStatusListeners() {
+  document.querySelectorAll('.status-select').forEach(sel => {
+    // remove previous to avoid duplicate handlers
+    sel.removeEventListener('change', statusSelectHandler);
+    sel.addEventListener('change', statusSelectHandler);
+  });
+}
+
+function statusSelectHandler() {
+  const id = this.dataset.id;
+  const value = this.value;
+  actualizarStatus(id, value);
+}
+
+function initPoListeners() {
+  document.querySelectorAll('.po-input').forEach(inp => {
+    inp.removeEventListener('change', poInputHandler);
+    inp.addEventListener('change', poInputHandler);
+  });
+}
+
+function poInputHandler() {
+  handlePoChange.call(this);
+}
+
+function initCodigoDespachoListeners() {
+  document.querySelectorAll('.codigo-despacho-input').forEach(inp => {
+    inp.removeEventListener('change', codigoDespachoHandler);
+    inp.addEventListener('change', codigoDespachoHandler);
+  });
+}
+
+function codigoDespachoHandler() {
+  handleCodigoDespachoChange.call(this);
 }
 
 async function handleCodigoDespachoChange() {
@@ -973,11 +1005,13 @@ $(document).ready(function(){
 async function aplicarFiltrosAvanzados() {
   const container = $('#containerFilter').val().trim();
   const op        = $('#OpFilter').val().trim();
+  const description = $('#descriptionFilter').val().trim();
   const rango     = $('#rangoFechas').val().trim();
   const params    = new URLSearchParams();
 
   if (container) params.append('container', container);
   if (op)        params.append('op', op);
+  if (description) params.append('description', description);
   if (rango) {
     const [f,t] = rango.split(' a ').map(s => s.trim());
     params.append('dateFrom', toISODate(f));
@@ -993,62 +1027,71 @@ async function aplicarFiltrosAvanzados() {
     table.clear();
 
     rows.forEach(r => {
+      // Build a row that matches the original table's 25 columns exactly.
       table.row.add([
-        r.NUM_OP,
-        r.Number_Container,
-        r.Entry_Date,
-        r.Receive,  // antes r.recibo_almacen
-        r.Lot_Number,
-        r.Booking_BK,
-        // input de PO usa r.idItem y r.Number_PO
-        `<input
-          type="text"
-          class="form-control form-control-sm po-input"
-          data-id="${r.idItem}"
-          value="${r.Number_PO || ''}"
-        >`,
-        r.Number_Commercial_Invoice,
-        r.Code_Product_EC,
-        r.Description,
-        r.palets,
-        r.cantidad,
-        r.total_despachado,
-        r.Qty_Item_Packing,  // si este es el nombre correcto para Qty Item
-        r.Unit_Value,
-        r.Value,
-        r.Unit,
-        r.Length_in,
-        r.Broad_in,
-        r.Height_in,
-        r.Weight_lb,
-
-        // Inputs para palets de carga y cantidad a cargar (nuevas columnas)
+        // 0 Dispatch Code (input)
+        `<input type="text" class="form-control form-control-sm codigo-despacho-input" data-id="${r.id}" value="${r.codigo_despacho || ''}" placeholder="Código despacho">`,
+        // 1 OP Num
+        r.NUM_OP || '',
+        // 2 Container Num
+        r.Number_Container || '',
+        // 3 Entry Date
+        r.Entry_Date || '',
+        // 4 Warehouse Rec.
+        r.Receive || '',
+        // 5 Lot Num
+        r.Lot_Number || '',
+        // 6 Booking BK
+        r.Booking_BK || '',
+        // 7 PO Num (input)
+        `<input type="text" class="form-control form-control-sm po-input" data-id="${r.idItem || ''}" value="${r.Number_PO || ''}">`,
+        // 8 Comm. Invoice Num
+        r.Number_Commercial_Invoice || '',
+        // 9 EC Product Code
+        r.Code_Product_EC || '',
+        // 10 Description
+        r.Description || '',
+        // 11 Palets
+        r.palets || '',
+        // 12 Qty/Pallet
+        r.cantidad || r.Qty || '',
+        // 13 Total
+        r.total_despachado || '',
+        // 14 Qty Item
+        r.Qty_Item_Packing || r.Qty || '',
+        // 15 Unit Value
+        (r.Unit_Value ? ('$' + r.Unit_Value) : ''),
+        // 16 Value
+        (r.Value ? ('$' + r.Value) : ''),
+        // 17 Unit
+        r.Unit || '',
+        // 18 Length (in)
+        r.Length_in || '',
+        // 19 Width (in)
+        r.Broad_in || '',
+        // 20 Height (in)
+        r.Height_in || '',
+        // 21 Weight (lb)
+        r.Weight_lb || '',
+        // 22 Load Pallets (input)
         `<input type="number" min="0" class="form-control form-control-sm palets-carga-input" data-id="${r.id}" placeholder="0">`,
+        // 23 Load Qty (input)
         `<input type="number" min="0" class="form-control form-control-sm cantidad-carga-input" data-id="${r.id}" placeholder="0">`,
-
-        // select de status usa r.id
-        `<select 
-          class="form-select form-select-sm status-select" 
-          data-id="${r.id}" 
-          data-container="${r.Number_Container}" 
-          data-invoice="${r.Number_Commercial_Invoice}"
-        >
-          <option value="Cargado"${r.Status === 'Cargado' ? ' selected' : ''}>
-            Cargado
-          </option>
-          <option value="En Almacén"${r.Status === 'En Almacén' ? ' selected' : ''}>
-            En Almacén
-          </option>
-        </select>`
+        // 24 Status (select)
+        `<select class="form-select form-select-sm status-select" data-id="${r.id}" data-container="${r.Number_Container || ''}" data-invoice="${r.Number_Commercial_Invoice || ''}">
+           <option value="Cargado"${r.Status === 'Cargado' ? ' selected' : ''}>Cargado</option>
+           <option value="En Almacén"${r.Status === 'En Almacén' ? ' selected' : ''}>En Almacén</option>
+         </select>`
       ]);
     });
 
-    table.draw();
+  table.draw();
 
-    // cierra modal y re-atacha listeners
-    bootstrap.Modal.getInstance($('#filterModal')[0])?.hide();
-    initStatusListeners();
-    initPoListeners();
+  // cierra modal y re-atacha listeners (necesario para los inputs/selects añadidos dinámicamente)
+  bootstrap.Modal.getInstance($('#filterModal')[0])?.hide();
+  initStatusListeners();
+  initPoListeners();
+  initCodigoDespachoListeners();
 
   } catch (err) {
     console.error(err);
@@ -1059,7 +1102,7 @@ async function aplicarFiltrosAvanzados() {
 
   // 6) Función para limpiar filtros
   async function limpiarFiltrosAvanzados() {
-    $('#containerFilter, #OpFilter').val('');
+    $('#containerFilter, #OpFilter, #descriptionFilter').val('');
     const fp = document.getElementById('rangoFechas')._flatpickr;
     if (fp) fp.clear();
     await aplicarFiltrosAvanzados();
