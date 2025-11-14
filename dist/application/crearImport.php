@@ -362,7 +362,7 @@ while ($inc = $res->fetch_assoc()) {
 ?>
 
 
-      <!-- 2) Select dinámico -->
+  <!-- 2) Select dinámico -->
       <div class="mb-4 d-flex align-items-start gap-3">
         <div style="flex:1">
           <label for="incotermSelect" class="form-label">Elige Incoterm:</label>
@@ -463,8 +463,9 @@ while ($inc = $res->fetch_assoc()) {
       </div>
 
       <!-- Botón global para agregar item (moved here so it's visible under the incoterm list) -->
-      <div class="mt-3 mb-3">
+      <div class="mt-3 mb-3 d-flex gap-2">
         <button id="btnAgregarItem" type="button" class="btn btn-outline-primary">+ Agregar item</button>
+        <button id="btnAgregarExtras" type="button" class="btn btn-outline-secondary">+ Agregar Extras</button>
       </div>
 
       <!-- Botones y Total General -->
@@ -718,6 +719,35 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!tbody) return Swal.fire('Error', 'Tabla inválida', 'error');
 
       const nueva = crearFilaNueva(incId);
+      tbody.appendChild(nueva);
+      attachEventsToRow(nueva);
+      recalcularFila(nueva);
+      recalcularTodo();
+    });
+  }
+
+  // boton agregar extras (pre-fill nombre = 'Extras')
+  const btnAgregarExtras = document.getElementById('btnAgregarExtras');
+  if (btnAgregarExtras) {
+    btnAgregarExtras.addEventListener('click', () => {
+      const incSel = document.getElementById('incotermSelect');
+      const incId = incSel.value;
+      if (!incId) return Swal.fire('Selecciona un Incoterm', 'Elige primero el incoterm donde agregar Extras', 'warning');
+
+      const container = document.querySelector(`.incoterm-item[data-incoterm="${incId}"]`);
+      if (!container) return Swal.fire('Error', 'No se encontró el contenedor del incoterm', 'error');
+      const tbody = container.querySelector('tbody');
+      if (!tbody) return Swal.fire('Error', 'Tabla inválida', 'error');
+
+      const nueva = crearFilaNueva(incId);
+      // prefill name and make it readonly to indicate it's an Extras template (optional)
+      const nombreInput = nueva.querySelector('.nombre-items');
+      if (nombreInput) {
+        nombreInput.value = 'Extras';
+        // allow editing if user wants, so don't set readonly by default
+        // nombreInput.readOnly = true;
+      }
+
       tbody.appendChild(nueva);
       attachEventsToRow(nueva);
       recalcularFila(nueva);

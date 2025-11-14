@@ -19,6 +19,7 @@ $sql = "SELECT
   i.IdItem,
   c.num_op AS 'Num OP',
   c.Number_Container AS 'Container Number',
+  c.Destinity_POD AS 'Destinity POD',
   i.Number_PO,
   i.Customer,
   i.Description,
@@ -40,6 +41,8 @@ $total_inventory_boxes = 0; // pongo boxes por si despues los quieren ver
 $total_transit_boxes = 0; // pongo boxes por si despues los quieren ver
 $total_inventory_price = 0;
 $total_transit_price = 0;
+// Monto USA total (nuevo)
+$total_price_usa = 0;
 
 // Guardo en array
 $items = [];
@@ -51,10 +54,12 @@ while ($row = $result->fetch_assoc()) {
         $status = "Inventory";
         $total_inventory_boxes += $row['Qty_Box'];
         $total_inventory_price += $row['TOTAL PRICE EC'];
+    $total_price_usa += $row['TOTAL PRICE USA'];
     } else {
         $status = "Transit";
         $total_transit_boxes += $row['Qty_Box'];
         $total_transit_price += $row['TOTAL PRICE EC'];
+    $total_price_usa += $row['TOTAL PRICE USA'];
     }
 }
 
@@ -461,6 +466,26 @@ $result->data_seek(0);
                 </div>
               </div>
             </div>
+            
+            <!-- Tarjeta Monto Total USA (nuevo) -->
+            <div class="card prod-p-card bg-info mb-0">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="prod-icon">
+                    <i class="ti ti-package text-white f-36"></i>
+                  </div>
+                  <div class="ms-auto text-end text-white">
+                    
+                      <h3 class="mb-0 text-white">
+                          $<?= number_format($total_price_usa, 2) ?>
+                    </h3>
+                    
+                    <span>Monto Total USA</span>
+                   
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -549,6 +574,7 @@ $result->data_seek(0);
                       <tr>
                           <th>Num OP</th>
                           <th>Container Num</th>
+                          <th>Destinity POD</th>
                           <th>Number_PO</th>
                           <th>Customer</th>
                           <th>Description</th>
@@ -579,6 +605,7 @@ $result->data_seek(0);
                       <tr>
                           <td><?= $row['Num OP'] ?></td>
                           <td><?= $row['Container Number'] ?></td>
+                          <td><?= htmlspecialchars($row['Destinity POD']) ?></td>
                           <td><?= $row['Number_PO'] ?></td>
                           <td><?= $row['Customer'] ?></td>
                           <td><?= $row['Description'] ?></td>

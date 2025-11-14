@@ -20,6 +20,7 @@ $sql = "SELECT
   i.IdItem,
   c.num_op AS 'Num OP',
   c.Booking_BK,
+  c.Destinity_POD AS 'Destinity POD',
   c.Number_Container,
   i.Number_Lot AS 'Number LOT',
   i.Number_PO,
@@ -522,6 +523,7 @@ $result->data_seek(0);
                         <tr>
                             <th>Num OP</th>
                             <th>Booking_BK</th>
+                            <th>Destinity POD</th>
                             <th>Number_Container</th>
                             <th>Number LOT</th>
                             <th>Number_PO</th>
@@ -544,6 +546,7 @@ $result->data_seek(0);
                         <tr>
                             <td><?= $row['Num OP'] ?></td>
                             <td><?= $row['Booking_BK'] ?></td>
+                            <td><?= htmlspecialchars($row['Destinity POD']) ?></td>
                             <td><?= $row['Number_Container'] ?></td>
                             <td><?= $row['Number LOT']?></td>
                             <td><?= $row['Number_PO'] ?></td>
