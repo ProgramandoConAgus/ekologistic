@@ -41,7 +41,8 @@ SELECT
 
   (SELECT i.Packing_Unit FROM items i 
    WHERE i.Number_Commercial_Invoice = d.numero_factura 
-     AND i.Code_Product_EC = d.numero_parte) AS Qty_Item_Packing,
+     AND i.Code_Product_EC = d.numero_parte
+   ORDER BY i.Number_PO LIMIT 1) AS Qty_Item_Packing,
 
   d.palets AS palets,
   d.codigo_despacho,
@@ -70,6 +71,8 @@ LEFT JOIN container c
 WHERE d.estado = 'Cargado'
 
 ORDER BY c.num_op, d.descripcion, d.modelo;
+
+;
 
 
 
@@ -798,10 +801,17 @@ document.getElementById('btnConfirmarDespacho').addEventListener('click', async 
 // Forzar redimensionamiento al cambiar tamaño de ventana
 
 window.addEventListener('resize', function() {
-    if (hot) {
-        hot.render();
+  // hot puede no existir si no se inicializó Handsontable en esta página
+  if (typeof hot !== 'undefined' && hot) {
+    try {
+      hot.render();
+      if (hot.view && typeof hot.view.adjustElementsSize === 'function') {
         hot.view.adjustElementsSize();
+      }
+    } catch (e) {
+      console.warn('Error al redimensionar Handsontable:', e);
     }
+  }
 });
 </script>
 

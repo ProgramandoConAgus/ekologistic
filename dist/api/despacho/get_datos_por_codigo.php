@@ -47,10 +47,12 @@ try {
              ORDER BY i.Number_PO
              LIMIT 1) AS Number_PO,
 
-            (SELECT i.Packing_Unit
-             FROM items i
-             WHERE i.Number_Commercial_Invoice = d.numero_factura
-               AND i.Code_Product_EC = d.numero_parte) AS Qty_Item_Packing,
+                        (SELECT i.Packing_Unit
+                         FROM items i
+                         WHERE i.Number_Commercial_Invoice = d.numero_factura
+                             AND i.Code_Product_EC = d.numero_parte
+                         ORDER BY i.Number_PO
+                         LIMIT 1) AS Qty_Item_Packing,
 
             d.palets AS palets,
             d.cantidad AS cantidad,
