@@ -778,9 +778,14 @@ document.getElementById('btnGenerarExcel').addEventListener('click', async () =>
     const resumen = [];
     resumen.push([`RESUMEN CONSOLIDADO • Operación ${num_op}`], []);
 
-    let totalGeneral = 0;
+  let totalGeneral = 0;
 
-    tipos.forEach(tipo => {
+  // Acumuladores para toda la operación
+  let opCostoEXW = 0;
+  let opTotalSin = 0; // suma de totales sin impuestos
+  let opTotalImp = 0; // suma de impuestos
+
+  tipos.forEach(tipo => {
       const arr = liquidaciones.filter(l => l.origen === tipo);
       if (!arr.length) return;
       const liq     = arr[0];
@@ -794,9 +799,12 @@ document.getElementById('btnGenerarExcel').addEventListener('click', async () =>
       resumen.push(['Descripción','Cantidad','Valor Unitario','Valor Total']);
 
       let subtotal = 0;
+      let subtotalImp = 0;
       liq.items.forEach(it => {
         const total = Number(it.ValorTotal) || 0;
+        const valorImp = Number(it.ValorImpuesto) || 0;
         subtotal += total;
+        subtotalImp += valorImp;
         resumen.push([it.NombreItems, it.Cantidad, it.ValorUnitario, total]);
       });
 
@@ -805,17 +813,37 @@ document.getElementById('btnGenerarExcel').addEventListener('click', async () =>
       // Agregamos Costo EXW y coeficientes al resumen por liquidación
       const costoExwNum = Number(liq.costoEXW) || 0;
       resumen.push(['Costo EXW','','', costoExwNum ? costoExwNum.toLocaleString('es-AR',{minimumFractionDigits:2}) : '']);
-      resumen.push(['Total Liquidación','','', subtotal.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+      // Total de la liquidación (sin impuestos + impuestos si hay)
+      const totalConLiq = subtotal + subtotalImp;
+      resumen.push(['Total Liquidación','','', totalConLiq.toLocaleString('es-AR',{minimumFractionDigits:2})]);
       resumen.push(['Coeficiente (%)','','', (liq.coeficiente !== undefined ? ('%'+Number(liq.coeficiente).toFixed(2)) : '')]);
       const coefSin = costoExwNum > 0 ? (subtotal / costoExwNum) * 100 : 0;
       resumen.push(['Coeficiente (sin impuestos) (%)','','', costoExwNum ? ('%'+coefSin.toFixed(2)) : '']);
       resumen.push([]);
+
+  // Costo EXW de la operación: tomar el primer valor no nulo (no sumar)
+  if (!opCostoEXW && costoExwNum) opCostoEXW = costoExwNum;
+  opTotalSin += subtotal;
+  opTotalImp += subtotalImp;
+
       totalGeneral += subtotal;
     });
 
-    // ➕ Agregamos total general
-    resumen.push([]);
-    resumen.push(['TOTAL GENERAL','','', totalGeneral.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+  // ➕ Agregamos totales de la operación y coeficientes globales
+  resumen.push([]);
+  resumen.push(['TOTAL GENERAL (sin impuestos)','','', opTotalSin.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+  resumen.push(['TOTAL IMPUESTOS OPERACIÓN','','', opTotalImp.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+  const totalOperacionCon = opTotalSin + opTotalImp;
+  resumen.push(['TOTAL GENERAL (con impuestos)','','', totalOperacionCon.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+
+  // Costo EXW total de la operación
+  resumen.push(['Costo EXW Operación','','', opCostoEXW.toLocaleString('es-AR',{minimumFractionDigits:2})]);
+
+  // Coeficientes de la operación
+  const coefOperacion = opCostoEXW > 0 ? (totalOperacionCon / opCostoEXW) * 100 : 0;
+  const coefOperacionSin = opCostoEXW > 0 ? (opTotalSin / opCostoEXW) * 100 : 0;
+  resumen.push(['Coeficiente Operación (%)','','', opCostoEXW ? ('%'+coefOperacion.toFixed(2)) : '']);
+  resumen.push(['Coeficiente Operación (sin impuestos) (%)','','', opCostoEXW ? ('%'+coefOperacionSin.toFixed(2)) : '']);
 
     const wsRes = XLSX.utils.aoa_to_sheet(resumen);
     XLSX.utils.book_append_sheet(wb, wsRes, 'Resumen');
