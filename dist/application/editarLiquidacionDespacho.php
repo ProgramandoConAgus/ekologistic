@@ -429,6 +429,14 @@ while ($row = $result->fetch_assoc()) {
                 </tr>
               <?php endforeach; ?>
             </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="5" class="text-center">
+                  <button type="button" class="btn btn-primary me-2 addNewDeliveryBtn">Agregar New Delivery</button>
+                  <button type="button" class="btn btn-primary addStorageBtn">Agregar Storage</button>
+                </td>
+              </tr>
+            </tfoot>
           </table>
 
           
@@ -555,6 +563,100 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // cálculo inicial de este bloque
     calcularBloque();
+  });
+
+  // Añadir filas dinámicas para New Delivery / Storage (similar a crearDespacho)
+  function createRowHTML(label) {
+    return `
+      <td>${label}</td>
+      <td><input type="number" class="form-control form-control-sm cantidad" value="0" min="0"></td>
+      <td>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text">$</span>
+          <input type="text" class="form-control valor-unitario" value="0,00">
+        </div>
+      </td>
+      <td>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text">$</span>
+          <input type="text" class="form-control valor-total" value="0,00" readonly>
+        </div>
+      </td>
+      <td>
+        <input type="text" class="form-control form-control-sm notas" placeholder="Notas">
+      </td>
+    `;
+  }
+
+  // Delegación: manejar clicks en botones Add dentro de cada tabla
+  document.querySelectorAll('.addNewDeliveryBtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const table = btn.closest('table');
+      if (!table) return;
+      const tbody = table.querySelector('tbody');
+      const tr = document.createElement('tr');
+      tr.setAttribute('data-item-id', '9');
+      tr.innerHTML = createRowHTML('New delivery') + `<td><button type="button" class="btn btn-danger btn-sm btn-delete-row">Eliminar</button></td>`;
+      const addButtonRow = tbody.querySelector('tr:last-child');
+      tbody.insertBefore(tr, addButtonRow);
+    });
+  });
+
+  document.querySelectorAll('.addStorageBtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const table = btn.closest('table');
+      if (!table) return;
+      const tbody = table.querySelector('tbody');
+      const tr = document.createElement('tr');
+      tr.setAttribute('data-item-id', '2');
+      tr.innerHTML = createRowHTML('Storage about 30 days off price x pallet') + `<td><button type="button" class="btn btn-danger btn-sm btn-delete-row">Eliminar</button></td>`;
+      const addButtonRow = tbody.querySelector('tr:last-child');
+      tbody.insertBefore(tr, addButtonRow);
+    });
+  });
+
+  // Delegación para eliminar filas con botón "Eliminar"
+  document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('btn-delete-row')) {
+      const row = e.target.closest('tr');
+      if (row) row.remove();
+      // Recalcular totales cuando se elimina una fila
+      actualizarTotalGeneral();
+    }
+  });
+
+  // Delegación para inputs dinámicos: recalcula el bloque correspondiente cuando cambian inputs nuevos
+  document.addEventListener('input', (e) => {
+    if (!e.target.matches('.cantidad, .valor-unitario, .impuesto')) return;
+    const accordion = e.target.closest('.accordion-item');
+    if (!accordion) return;
+
+    // recalcular ese bloque (similar a calcularBloque)
+    const rows = Array.from(accordion.querySelectorAll('tbody tr'));
+    let subtotal = 0;
+    rows.forEach(row => {
+      const qtyRaw = row.querySelector('.cantidad')?.value.replace(',', '.') || '0';
+      const vuRaw  = row.querySelector('.valor-unitario')?.value.replace(/\./g,'').replace(',', '.') || '0';
+      const impRaw = row.querySelector('.impuesto')?.value.replace(',', '.') || '0';
+
+      const cantidad     = parseFloat(qtyRaw) || 0;
+      const valorUnitario= parseFloat(vuRaw)  || 0;
+      const impuestoPct  = parseFloat(impRaw) || 0;
+
+      const vt = cantidad * valorUnitario;
+      const vi = vt * (impuestoPct / 100);
+
+      const vtEl = row.querySelector('.valor-total');
+      if (vtEl) vtEl.value = vt.toFixed(2).replace('.', ',');
+      const viEl = row.querySelector('.valor-impuesto');
+      if (viEl) viEl.value = vi.toFixed(2).replace('.', ',');
+
+      subtotal += vt + vi;
+    });
+
+    const totalIncotermSpan = accordion.querySelector('.total-incoterm');
+    if (totalIncotermSpan) totalIncotermSpan.textContent = subtotal.toFixed(2).replace('.', ',');
+    actualizarTotalGeneral();
   });
 });
 </script>

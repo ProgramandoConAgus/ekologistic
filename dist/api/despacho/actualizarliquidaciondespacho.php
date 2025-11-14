@@ -23,8 +23,8 @@ try {
     $stmtCoef->execute();
     $stmtCoef->close();
 
-    // 2) Actualizamos los items
-    $sql = "
+    // 2) Actualizamos o insertamos los items según corresponda
+    $sqlUpdate = "
     UPDATE itemsliquidaciondespachoincoterms ii
     JOIN incotermsDespacho ic 
         ON ic.IdItemsLiquidacionDespachoIncoterm = ii.IdItemsLiquidacionDespachoIncoterms
@@ -35,8 +35,27 @@ try {
         ii.Notas         = ?
     WHERE ic.IdIncotermsDespacho = ?
     ";
-    $stmt = $conexion->prepare($sql);
-    if (!$stmt) throw new Exception("Error preparando UPDATE: " . $conexion->error);
+    $stmtUpdate = $conexion->prepare($sqlUpdate);
+    if (!$stmtUpdate) throw new Exception("Error preparando UPDATE: " . $conexion->error);
+
+    // Prepared statements for INSERT (nuevo item) -> mirror guardarliquidaciondespacho.php
+    $stmtInsertItem = $conexion->prepare(
+      "INSERT INTO itemsliquidaciondespachoincoterms
+       (IdItemsLiquidacionDespacho, Cantidad, ValorUnitario, ValorTotal, Notas)
+       VALUES (?, ?, ?, ?, ?)"
+    );
+    if (!$stmtInsertItem) throw new Exception("Error preparando INSERT items: " . $conexion->error);
+
+    $stmtInsertInc = $conexion->prepare(
+      "INSERT INTO incotermsdespacho
+       (IdItemsLiquidacionDespachoIncoterm, IdDespacho)
+       VALUES (?, ?)"
+    );
+    if (!$stmtInsertInc) throw new Exception("Error preparando INSERT incoterms: " . $conexion->error);
+
+    // Comprobar existencia de IdIncotermsDespacho (si existe -> UPDATE, si no -> INSERT)
+    $stmtExists = $conexion->prepare("SELECT COUNT(*) AS c FROM incotermsdespacho WHERE IdIncotermsDespacho = ?");
+    if (!$stmtExists) throw new Exception("Error preparando EXISTS: " . $conexion->error);
 
     $errores = [];
     foreach ($datos as $d) {
@@ -46,13 +65,41 @@ try {
         $notas         = $d['notas'] ?? '';
         $idIncoterms   = intval($d['idIncoterms']);
 
-        $stmt->bind_param("dddsi", $cantidad, $valorUnitario, $valorTotal, $notas, $idIncoterms);
-        if (!$stmt->execute()) {
-            $errores[] = "Id {$idIncoterms}: " . $stmt->error;
+        // ¿Existe como IdIncotermsDespacho (pivot)?
+        $stmtExists->bind_param('i', $idIncoterms);
+        $stmtExists->execute();
+        $resEx = $stmtExists->get_result()->fetch_assoc();
+        $count = intval($resEx['c'] ?? 0);
+
+        if ($count > 0) {
+            // Hacer UPDATE
+            $stmtUpdate->bind_param("dddsi", $cantidad, $valorUnitario, $valorTotal, $notas, $idIncoterms);
+            if (!$stmtUpdate->execute()) {
+                $errores[] = "IdIncoterms {$idIncoterms}: " . $stmtUpdate->error;
+            }
+        } else {
+            // Interpretamos $idIncoterms como IdItemsLiquidacionDespacho (plantilla) y hacemos INSERT
+            $idItemPlantilla = $idIncoterms;
+            $stmtInsertItem->bind_param("iddds", $idItemPlantilla, $cantidad, $valorUnitario, $valorTotal, $notas);
+            if (!$stmtInsertItem->execute()) {
+                $errores[] = "Insert Item plantilla {$idItemPlantilla}: " . $stmtInsertItem->error;
+                continue;
+            }
+            $newItemIncId = $conexion->insert_id;
+
+            // Insertar registro en incotermsdespacho apuntando al despacho
+            $stmtInsertInc->bind_param("ii", $newItemIncId, $idDespacho);
+            if (!$stmtInsertInc->execute()) {
+                $errores[] = "Insert Incoterm para item {$newItemIncId}: " . $stmtInsertInc->error;
+            }
         }
     }
 
-    $stmt->close();
+    // Cerrar statements
+    $stmtUpdate->close();
+    $stmtInsertItem->close();
+    $stmtInsertInc->close();
+    $stmtExists->close();
 
     // 3) Respuesta
     if (empty($errores)) {
