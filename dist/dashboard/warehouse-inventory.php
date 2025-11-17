@@ -14,6 +14,7 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 $sql = "
 SELECT
+  i.IdItem,
   d.id,
   c.num_op AS NUM_OP,
   c.Number_Container,
@@ -615,7 +616,11 @@ if (isset($result) && $result->num_rows > 0) {
     <td><?= htmlspecialchars($row['Receive']) ?></td>
     <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
     <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
-    <td><input type="text" class="form-control form-control-sm po-input" data-id="<?= htmlspecialchars($row['idItem'] ?? '') ?>" value="<?= htmlspecialchars($row['First_Number_PO'] ?? '') ?>"> </td>
+  <td>
+    <input type="text" class="form-control form-control-sm po-input"
+           data-id="<?= htmlspecialchars($row['idItem'] ?? $row['IdItem'] ?? $row['id'] ?? '') ?>"
+           value="<?= htmlspecialchars($row['First_Number_PO'] ?? '') ?>">
+  </td>
     <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
     <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
     <td><?= htmlspecialchars($row['First_Description_Item']) ?></td>
@@ -811,7 +816,8 @@ async function handlePoChange() {
       json.success ? (json.message || 'Actualizado') : json.error,
       json.success ? 'success' : 'error'
     );
-  } catch {
+  } catch (err) {
+    console.error(err);
     Swal.fire('Error de red','','error');
   }
 }
@@ -1044,7 +1050,7 @@ async function aplicarFiltrosAvanzados() {
         // 6 Booking BK
         r.Booking_BK || '',
         // 7 PO Num (input)
-        `<input type="text" class="form-control form-control-sm po-input" data-id="${r.idItem || ''}" value="${r.Number_PO || ''}">`,
+  `<input type="text" class="form-control form-control-sm po-input" data-id="${r.idItem || r.IdItem || r.id || ''}" value="${r.Number_PO || ''}">`,
         // 8 Comm. Invoice Num
         r.Number_Commercial_Invoice || '',
         // 9 EC Product Code
