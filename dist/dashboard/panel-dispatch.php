@@ -611,6 +611,7 @@ try {
       data-invoice="<?= htmlspecialchars($row['Number_Commercial_Invoice']) ?>"
       data-id="<?= $row['id'] ?>">
       <option value="Cargado" <?= $row['Status'] == 'Cargado' ? 'selected' : '' ?>>Cargado</option>
+      <option value="En Almacén">En Almacén</option>
     </select>
   </td>
 </tr>
@@ -884,10 +885,33 @@ $(document).ready(function(){
     
     async function handleStatusChange() {
       try {
+        const id = this.dataset.id;
+        const value = this.value;
+
+        // Si el usuario selecciona "En Almacén" desde el panel de despachos,
+        // revertimos el palet cargado hacia la tabla dispatch (operación inversa a la carga).
+        if (value === 'En Almacén') {
+          const res = await fetch('../api/return_palets.php', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify({ id })
+          });
+          const json = await res.json();
+          Swal.fire(
+            json.success ? 'Éxito' : 'Error',
+            json.success ? json.message : json.error,
+            json.success ? 'success' : 'error'
+          );
+          // refrescar la página para actualizar tablas
+          if (json.success) location.reload();
+          return;
+        }
+
+        // Comportamiento por defecto (por compatibilidad)
         const res  = await fetch('../api/actualizar_status_dispatch.php', {
           method: 'POST',
           headers: { 'Content-Type':'application/json' },
-          body: JSON.stringify({ id:this.dataset.id, value:this.value })
+          body: JSON.stringify({ id, value })
         });
         const json = await res.json();
         Swal.fire(
