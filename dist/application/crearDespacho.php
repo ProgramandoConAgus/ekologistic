@@ -311,7 +311,10 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 $query = "
   SELECT DISTINCT c.Booking_BK 
   FROM container c
-  
+  WHERE NOT EXISTS (
+    SELECT 1 FROM despacho d
+    WHERE d.Booking_BK = c.Booking_BK AND d.status = 3
+  )
 ";
 
 $result = $conexion->query($query);

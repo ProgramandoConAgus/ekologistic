@@ -307,7 +307,11 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
               <option selected>Seleccionar...</option>
               <?php
                 $query = "SELECT DISTINCT c.Booking_BK 
-                          FROM container c ";
+                          FROM container c 
+                          WHERE NOT EXISTS (
+                            SELECT 1 FROM imports i
+                            WHERE i.Booking_BK = c.Booking_BK AND i.status = 3
+                          )";
                 $result = $conexion->query($query);
                 while($row = $result->fetch_assoc()) { 
               ?>
