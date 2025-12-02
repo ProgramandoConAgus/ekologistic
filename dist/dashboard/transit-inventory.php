@@ -29,6 +29,8 @@ $sql = "SELECT
   i.Qty_Box,
   i.Price_Box_EC AS 'PRICE BOX EC',
   i.Total_Price_EC AS 'TOTAL PRICE EC',
+  i.valor_logistico_comex AS 'VALOR LOGISTICO COMEX',
+  (i.valor_logistico_comex * i.Qty_Box) AS 'COMEX TOTAL',
   i.Price_Box_USA AS 'PRICE BOX USA',
   i.Total_Price_USA AS 'TOTAL PRICE USA',
   c.ETA_Date AS 'ETA Date',
@@ -51,6 +53,8 @@ $total_inventory_boxes = 0; // pongo boxes por si despues los quieren ver
 $total_transit_boxes = 0; // pongo boxes por si despues los quieren ver
 $total_price_ec = 0;
 $total_price_usa = 0;
+// Comex total
+$total_comex = 0;
 // Guardo en array
 $items = [];
 while ($row = $result->fetch_assoc()) {
@@ -58,6 +62,7 @@ while ($row = $result->fetch_assoc()) {
     
     $total_price_ec += $row['TOTAL PRICE EC'];
     $total_price_usa += $row['TOTAL PRICE USA'];
+  $total_comex += $row['COMEX TOTAL'] ?? 0;
     
 }
 
@@ -435,6 +440,22 @@ $result->data_seek(0);
                 </div>
               </div>
             </div>
+            <!-- Tarjeta Comex Total -->
+            <div class="card prod-p-card bg-success mb-0">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="prod-icon">
+                    <i class="ti ti-chart-line text-white f-36"></i>
+                  </div>
+                  <div class="ms-auto text-end text-white">
+                    <h3 class="mb-0 text-white">
+                        $<?= number_format($total_comex, 2) ?>
+                    </h3>
+                    <span>Comex Total</span>
+                  </div>
+                </div>
+              </div>
+            </div>
             
           </div>
         </div>
@@ -532,6 +553,7 @@ $result->data_seek(0);
                             <th>Qty_Box</th>
                             <th>Price Box Ec</th>
                             <th>TOTAL PRICE EC</th>
+                            <th>COMEX TOTAL</th>
                             <th>Price Box USA</th>
                             <th>TOTAL PRICE USA</th>
                             <th>ETA Date</th>
@@ -555,6 +577,7 @@ $result->data_seek(0);
                             <td><?= $row['Qty_Box'] ?></td>
                             <td>$<?= number_format($row['PRICE BOX EC'], 2) ?></td>
                             <td>$<?= number_format($row['TOTAL PRICE EC'], 2) ?></td>
+                            <td>$<?= number_format($row['COMEX TOTAL'] ?? 0, 2) ?></td>
                             <td>$<?= number_format($row['PRICE BOX USA'], 2) ?></td>
                             <td>$<?= number_format($row['TOTAL PRICE USA'], 2) ?></td>
                             <td><?= date('d/m/Y', strtotime($row['ETA Date'])) ?></td>
@@ -951,21 +974,25 @@ function limpiarFiltro() {
                 formatPHPDate(row['NEW ETA DATE']) :
                 'No cargado';
 
-            const tr = `
-            <tr>
-                <td>${row['Num OP'] || ''}</td>
-                <td>${row['Booking_BK'] || ''}</td>
-                <td>${row['Number_Container'] || ''}</td>
-                <td>${row['Number LOT'] || ''}</td>
-                <td>${row['Number_PO'] || ''}</td>
-                <td>${row['Customer'] || ''}</td>
-                <td>${row['Description'] || ''}</td>
-                <td>${row['Qty_Box'] || 0}</td>
-                <td>$${Number(row['PRICE BOX EC'] || 0).toFixed(2)}</td>
-                <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
-                <td>${formatPHPDate(row['ETA Date'])}</td>
-                <td>${newEtaDate}</td>
-            </tr>`;
+      const tr = `
+      <tr>
+        <td>${row['Num OP'] || ''}</td>
+        <td>${row['Booking_BK'] || ''}</td>
+        <td>${row['Destinity POD'] || ''}</td>
+        <td>${row['Number_Container'] || ''}</td>
+        <td>${row['Number LOT'] || ''}</td>
+        <td>${row['Number_PO'] || ''}</td>
+        <td>${row['Customer'] || ''}</td>
+        <td>${row['Description'] || ''}</td>
+        <td>${row['Qty_Box'] || 0}</td>
+        <td>$${Number(row['PRICE BOX EC'] || 0).toFixed(2)}</td>
+        <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
+        <td>$${Number(row['COMEX TOTAL'] || 0).toFixed(2)}</td>
+        <td>$${Number(row['PRICE BOX USA'] || 0).toFixed(2)}</td>
+        <td>$${Number(row['TOTAL PRICE USA'] || 0).toFixed(2)}</td>
+        <td>${formatPHPDate(row['ETA Date'])}</td>
+        <td>${newEtaDate}</td>
+      </tr>`;
             tbody.insertAdjacentHTML('beforeend', tr);
         });
         initDataTable();

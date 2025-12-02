@@ -52,12 +52,23 @@ try {
     $rows = $sheet->toArray();
     if (count($rows) < 2) throw new Exception("El archivo no contiene datos");
 
+    // Construir mapa de columnas basado en el encabezado (fila 0)
+    $header = array_map(function($h){
+        $k = strtolower(trim((string)$h));
+        $k = preg_replace('/[^a-z0-9]+/','_', $k);
+        $k = trim($k, '_');
+        return $k;
+    }, $rows[0]);
+    $colIndex = [];
+    foreach ($header as $i => $h) {
+        if ($h !== '') $colIndex[$h] = $i;
+    }
+
     // --------------------------------------------------
     // 6) INSERT en packing_list
     // --------------------------------------------------
     $first = $rows[1];
     $numPL = $first[0];  // columna 0
-
     $stmtPL = $conexion->prepare("
         INSERT INTO packing_list
             (IdPackingList, IdUsuario, Date_Created, path_file, status)
@@ -73,41 +84,155 @@ try {
     // --------------------------------------------------
     // 7) INSERT en container (ahora con Num OP en columna 1)
     // --------------------------------------------------
-    $num_op           = trim((string)$first[1]);        // **columna 1** = Num OP
-    $num_dae          = trim((string)$first[2]);        // columna 2
-    $destiny_pod      = trim((string)$first[3]);        // columna 3
-    $forwarder        = trim((string)$first[4]);        // columna 4
-    $shipping_line    = trim((string)$first[5]);        // columna 5
-    $incoterm         = trim((string)$first[6]);        // columna 6
-    $dispatchDateVal  = convertirFecha($first[7]);      // columna 7
-    $rawDeparture     = trim((string)$first[8]);        // columna 8
-    $dObj             = DateTime::createFromFormat('d/m/Y', $rawDeparture);
-    $departureDateVal = ($dObj && $dObj->format('d/m/Y') === $rawDeparture)
-                          ? $dObj->format('Y-m-d')
-                          : $dispatchDateVal;
-    $booking_bl       = trim((string)$first[9]);        // columna 9
-    $number_container = trim((string)$first[10]);       // columna 10
-    $etaDateVal       = convertirFecha($first[22]);     // columna 22 (antes 21)
+    // Obtener valores del primer renglón con soporte por nombre de columna (si existe)
+    $get = function($row, $name, $fallbackIndex = null) use ($colIndex) {
+        if (isset($colIndex[$name])) return trim((string)($row[$colIndex[$name]] ?? ''));
+        if ($fallbackIndex !== null) return trim((string)($row[$fallbackIndex] ?? ''));
+        return '';
+    };
 
-    $stmtC = $conexion->prepare("
-        INSERT INTO container (
-            idPackingList,
-            num_op,
-            num_dae,
-            Destinity_POD,
-            Forwarder,
-            Shipping_Line,
-            Incoterm,
-            Dispatch_Date_Warehouse_EC,
-            Departure_Date_Port_Origin_EC,
-            Booking_BK,
-            Number_Container,
-            ETA_Date
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ");
+    // Mapeo usando los índices que coinciden con el archivo que cargaste
+    // Columna: 0=IdContainer,1=idPackingList,2=num_op,3=num_dae,4=Forwarder,5=Shipping_Line,
+    // 6=Booking_BK,7=Number_Container,8=Destinity_POD,9=Incoterm,10=Dispatch_Date...,11=Departure...,12=ETA_Date
+    // Fallback indices aligned con el Excel que compartiste
+    $num_op           = $get($first, 'num_op', 1);
+    // Si no existe 'num_op', intentar con 'dae' (índice 1)
+    if ($num_op === '') $num_op = $get($first, 'dae', 1);
+    $num_dae          = $get($first, 'num_dae', 1);
+    $destiny_pod      = $get($first, 'destiny_pod', 2);
+    $forwarder        = $get($first, 'forwarder', 3);
+    $shipping_line    = $get($first, 'shipping_line', 4);
+    $incoterm         = $get($first, 'incoterm', 5);
+    $booking_bl       = $get($first, 'booking_bl', 8);
+    $number_container = $get($first, 'number_container', 9);
+    // Extraer campos de fecha / booking / container / tipo de carga (por nombre o por posición)
+    // Helper: buscar índice de columna por lista de aliases o por patrón en los headers
+    $findHeaderIndex = function(array $aliases, array $patterns = []) use ($colIndex) {
+        // chequear aliases exactos
+        foreach ($aliases as $a) {
+            if (isset($colIndex[$a])) return $colIndex[$a];
+        }
+        // buscar por patrones dentro de las keys
+        foreach ($colIndex as $k => $idx) {
+            foreach ($patterns as $pat) {
+                if (strpos($k, $pat) !== false) return $idx;
+            }
+        }
+        return null;
+    };
+
+    // aliases comunes / typos
+    $dispatchIdx = $findHeaderIndex(
+        ['dispatch_date_warehouse_ec','dispatch_date_warenhouse_ec','dispatch_date','dispatch_date_warehouse','dispatch_date_warenhouse'],
+        ['dispatch','warehouse','warenhouse']
+    );
+    $departureIdx = $findHeaderIndex(
+        ['departure_date_port_origin_ec','departure_port_origin_ec','departure_date','departure_port_origin'],
+        ['departure','port_origin','port']
+    );
+    $etaIdx = $findHeaderIndex(['eta_date','eta'], ['eta']);
+
+    // Si no encontramos por header, intentar detectar una celda con formato fecha en las primeras 15 columnas
+    $detectDateInRow = function($row) use (&$convertirFecha) {
+        for ($i = 0; $i < min(15, count($row)); $i++) {
+            $v = trim((string)$row[$i]);
+            if ($v === '') continue;
+            // ignorar tokens claramente no-fecha (como alfanumériques sin / o -)
+            $conv = convertirFecha($v);
+            if ($conv !== '') return [$i, $v];
+        }
+        return [null, ''];
+    };
+
+    // resolver valores raw usando índices detectados o por escaneo
+    if ($dispatchIdx !== null) {
+        $dispatchDateRaw = $first[$dispatchIdx] ?? '';
+    } else {
+        list($found, $val) = $detectDateInRow($first);
+        if ($found !== null) {
+            $dispatchDateRaw = $val;
+        } else {
+            $dispatchDateRaw = '';
+        }
+    }
+
+    if ($departureIdx !== null) {
+        $departureDateRaw = $first[$departureIdx] ?? '';
+    } else {
+        // prefer next date-like cell after dispatch index
+        list($found2, $val2) = $detectDateInRow($first);
+        if ($found2 !== null) {
+            $departureDateRaw = $val2;
+        } else {
+            $departureDateRaw = '';
+        }
+    }
+
+    $etaRaw = ($etaIdx !== null) ? ($first[$etaIdx] ?? '') : '';
+
+    // Tipo de carga: varios posibles encabezados
+    $tipoDeCargaRaw = '';
+    foreach (['tipodecarga','tipo_de_carga','tipode_carga','tipo_carga'] as $k) {
+        if (isset($colIndex[$k])) { $tipoDeCargaRaw = $first[$colIndex[$k]] ?? ''; break; }
+    }
+
+    // Normalizar casos explícitos que normalmente vienen como '0000-00-00' y tratar como vacío
+    $dRaw = trim((string)$dispatchDateRaw);
+    $depRaw = trim((string)$departureDateRaw);
+    if ($dRaw === '0000-00-00' || $dRaw === '0000/00/00' || $dRaw === '0') $dispatchDateRaw = '';
+    if ($depRaw === '0000-00-00' || $depRaw === '0000/00/00' || $depRaw === '0') $departureDateRaw = '';
+
+    // Convertir fechas con la función helper
+    $dispatchDateVal  = convertirFecha($dispatchDateRaw);
+    $departureDateVal = convertirFecha($departureDateRaw);
+    $etaDateVal       = convertirFecha($etaRaw);
+
+    // Aceptar que al menos una de las dos (dispatch o departure) exista; usar una como fallback
+    if (($dispatchDateVal === '' || $dispatchDateVal === null) && ($departureDateVal === '' || $departureDateVal === null)) {
+        $hdrs = array_keys($colIndex);
+        $msg = "Dispatch_Date_Warehouse_EC vacío o formato inválido. " .
+               "dispatchRaw='" . addslashes($dispatchDateRaw) . "' dispatchConverted='" . addslashes($dispatchDateVal) . "' " .
+               "departureRaw='" . addslashes($departureDateRaw) . "' departureConverted='" . addslashes($departureDateVal) . "' ";
+        $msg .= "| header_keys=" . implode(',', $hdrs) . " | first_row_sample=" . json_encode(array_slice($first,0,15));
+
+        // También registrar en el log de debug para inspección incluso cuando fallamos aquí
+        $errorDebug = [
+            'timestamp' => date('c'),
+            'file' => basename($targetPath),
+            'dispatchRaw' => (string)$dispatchDateRaw,
+            'dispatchConverted' => (string)$dispatchDateVal,
+            'departureRaw' => (string)$departureDateRaw,
+            'departureConverted' => (string)$departureDateVal,
+            'header_keys' => $hdrs,
+            'first_row_sample' => array_slice($first,0,15),
+        ];
+        $logPath = __DIR__ . '/../uploads/packinglists/debug_log.txt';
+        @file_put_contents($logPath, json_encode($errorDebug, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);
+        if (isset($_GET['debug']) && $_GET['debug'] == '1') {
+            echo "DEBUG_ERROR: " . htmlentities(json_encode($errorDebug, JSON_UNESCAPED_UNICODE)) . "<br>";
+        }
+
+        throw new Exception($msg);
+    }
+    // Si falta dispatch pero sí hay departure, usar departure como dispatch
+    if (($dispatchDateVal === '' || $dispatchDateVal === null) && ($departureDateVal !== '' && $departureDateVal !== null)) {
+        $dispatchDateVal = $departureDateVal;
+    }
+    // Si falta departure pero hay dispatch, usar dispatch
+    if (($departureDateVal === '' || $departureDateVal === null) && ($dispatchDateVal !== '' && $dispatchDateVal !== null)) {
+        $departureDateVal = $dispatchDateVal;
+    }
+
+    // Determinar status del contenedor: DIRECTA => Despachado
+    $statusContainer = 'pendiente';
+    if (strtoupper(trim($tipoDeCargaRaw)) === 'DIRECTA') {
+        $statusContainer = 'Despachado';
+    }
+
+    $stmtC = $conexion->prepare("\n        INSERT INTO container (\n            idPackingList,\n            num_op,\n            num_dae,\n            Destinity_POD,\n            Forwarder,\n            Shipping_Line,\n            Incoterm,\n            Dispatch_Date_Warehouse_EC,\n            Departure_Date_Port_Origin_EC,\n            Booking_BK,\n            Number_Container,\n            ETA_Date,\n            status\n        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n    ");
     if (!$stmtC) throw new Exception($conexion->error);
     $stmtC->bind_param(
-        "isssssssssss",
+        "issssssssssss",
         $numPL,
         $num_op,
         $num_dae,
@@ -119,8 +244,38 @@ try {
         $departureDateVal,
         $booking_bl,
         $number_container,
-        $etaDateVal
+        $etaDateVal,
+        $statusContainer
     );
+    // --- Debug: registrar y opcionalmente mostrar los valores antes de ejecutar INSERT ---
+    $debugInfo = [
+        'timestamp' => date('c'),
+        'file' => basename($targetPath),
+        'colIndex_keys' => array_keys($colIndex),
+        'numPL' => $numPL,
+        'num_op' => $num_op,
+        'num_dae' => $num_dae,
+        'destiny_pod' => $destiny_pod,
+        'forwarder' => $forwarder,
+        'shipping_line' => $shipping_line,
+        'incoterm' => $incoterm,
+        'dispatchRaw' => (string)$dispatchDateRaw,
+        'dispatchConverted' => (string)$dispatchDateVal,
+        'departureRaw' => (string)$departureDateRaw,
+        'departureConverted' => (string)$departureDateVal,
+        'booking_bl' => $booking_bl,
+        'number_container' => $number_container,
+        'etaRaw' => (string)$etaRaw,
+        'etaConverted' => (string)$etaDateVal,
+        'statusContainer' => $statusContainer,
+    ];
+    // Guardar en log (append)
+    $logPath = __DIR__ . '/../uploads/packinglists/debug_log.txt';
+    @file_put_contents($logPath, json_encode($debugInfo, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);
+    // Mostrar en pantalla si se pasa ?debug=1 (útil para pruebas rápidas)
+    if (isset($_GET['debug']) && $_GET['debug'] == '1') {
+        echo "DEBUG_CONTAINER: " . htmlentities(json_encode($debugInfo, JSON_UNESCAPED_UNICODE)) . "<br>";
+    }
     $stmtC->execute();
     $idContainer = $conexion->insert_id;
     $stmtC->close();
@@ -128,8 +283,7 @@ try {
     // --------------------------------------------------
     // 8) INSERT en items (columnas también desplazadas +1)
     // --------------------------------------------------
-    $stmtI = $conexion->prepare("
-        INSERT INTO items (
+    $stmtI = $conexion->prepare("\n        INSERT INTO items (\n
             idContainer,
             Number_Commercial_Invoice,
             Code_Product_EC,
@@ -137,6 +291,7 @@ try {
             Customer,
             Number_PO,
             Description,
+            codigo_fsc,
             Packing_Unit,
             Qty_Box,
             Weight_Neto_Per_Box_kg,
@@ -145,12 +300,12 @@ try {
             Price_Box_EC,
             Total_Price_EC,
             Price_BOX_USA,
-            Total_Price_USA
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ");
+            Total_Price_USA,
+            valor_logistico_comex
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n    ");
     if (!$stmtI) throw new Exception($conexion->error);
-    // 1 entero + 7 strings + 1 entero + 7 doubles = 16 parámetros
-    $types = "i" . str_repeat("s", 7) . "i" . str_repeat("d", 7);
+        // tipos: idContainer (i) + 7 strings + 2 enteros + 8 doubles = 18 parámetros
+        $types = "i" . str_repeat("s", 7) . "ii" . str_repeat("d", 8);
 
     foreach (array_slice($rows, 1) as $r) {
         // Saltar filas vacías
@@ -163,22 +318,31 @@ try {
         }
         if ($empty) continue;
 
-        // Mapear columnas *desplazadas +1*
-        $itemInvoice             = trim((string)($r[11] ?? ''));  // col 11
-        $code_product_ec         = trim((string)($r[12] ?? ''));  // col 12
-        $number_lot              = trim((string)($r[13] ?? ''));  // col 13
-        $customer                = trim((string)($r[14] ?? ''));  // col 14
-        $number_po               = trim((string)($r[15] ?? ''));  // col 15
-        $description             = trim((string)($r[16] ?? ''));  // col 16
-        $packing_unit            = trim((string)($r[17] ?? ''));  // col 17
-        $qty_box                 = (int)  ($r[18] ?? 0);         // col 18
-        $weight_neto_per_box_kg  = (float)($r[19] ?? 0);         // col 19
-        $weight_bruto_per_box_kg = (float)($r[20] ?? 0);         // col 20
-        $total_weight_kg         = (float)($r[21] ?? 0);         // col 21
-        $priceBoxEC              = (float)($r[23] ?? 0);         // col 23
-        $totalPriceEC            = (float)($r[24] ?? 0);         // col 24
-        $priceBoxUSA             = (float)($r[25] ?? 0);         // col 25
-        $totalPriceUSA           = (float)($r[26] ?? 0);         // col 26
+        // Obtener valores por nombre de columna si es posible, si no fallback a índices antiguos
+        $getRow = function($row, $name, $fallbackIndex = null) use ($colIndex) {
+            if (isset($colIndex[$name])) return trim((string)($row[$colIndex[$name]] ?? ''));
+            if ($fallbackIndex !== null) return trim((string)($row[$fallbackIndex] ?? ''));
+            return '';
+        };
+
+        $itemInvoice             = $getRow($r, 'number_commercial_inovice', 11);
+        if ($itemInvoice === '') $itemInvoice = $getRow($r, 'number_commercial_invoice', 11);
+        $code_product_ec         = $getRow($r, 'code_product_ec', 12);
+        $number_lot              = $getRow($r, 'number_lot', 13);
+        $customer                = $getRow($r, 'customer', 14);
+        $number_po               = $getRow($r, 'number_po', 15);
+        $description             = $getRow($r, 'description', 16);
+        $codigo_fsc              = $getRow($r, 'codigo_fsc', 16);
+        $packing_unit            = (int)  ($getRow($r, 'packing_unit', 17) ?: 0);
+        $qty_box                 = (int)  ($getRow($r, 'qty_box', 18) ?: 0);
+        $weight_neto_per_box_kg  = (float)($getRow($r, 'weight_neto_per_box_kg', 19) ?: 0);
+        $weight_bruto_per_box_kg = (float)($getRow($r, 'weight_bruto_per_box_kg', 20) ?: 0);
+        $total_weight_kg         = (float)($getRow($r, 'total_weight_kg', 21) ?: 0);
+        $priceBoxEC              = (float)($getRow($r, 'price_box_ec', 23) ?: 0);
+        $totalPriceEC            = (float)($getRow($r, 'total_price_ec', 24) ?: 0);
+        $priceBoxUSA             = (float)($getRow($r, 'price_box_usa', 25) ?: 0);
+        $totalPriceUSA           = (float)($getRow($r, 'total_price_box_usa', 26) ?: 0);
+        $valor_logistico_comex   = (float)($getRow($r, 'valor_logistico_comex', 28) ?: 0);
 
         $stmtI->bind_param(
             $types,
@@ -189,6 +353,7 @@ try {
             $customer,
             $number_po,
             $description,
+            $codigo_fsc,
             $packing_unit,
             $qty_box,
             $weight_neto_per_box_kg,
@@ -197,7 +362,8 @@ try {
             $priceBoxEC,
             $totalPriceEC,
             $priceBoxUSA,
-            $totalPriceUSA
+            $totalPriceUSA,
+            $valor_logistico_comex
         );
         $stmtI->execute();
         if ($stmtI->errno) {
@@ -225,12 +391,29 @@ try {
  * Convierte 'd/m/Y' a 'Y-m-d'. Si falla, devuelve cadena vacía.
  */
 function convertirFecha($val) {
-    if (!empty($val)) {
-        $d = DateTime::createFromFormat('d/m/Y', $val);
-        if ($d && $d->format('d/m/Y') === $val) {
-            return $d->format('Y-m-d');
+    $val = trim((string)$val);
+    if ($val === '') return '';
+
+    // Si es numérico, probablemente sea fecha Excel (serial)
+    if (is_numeric($val)) {
+        try {
+            $dt = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float)$val);
+            return $dt->format('Y-m-d');
+        } catch (Exception $e) {
+            // continue
         }
     }
+
+    // Intentar formatos comunes: d/m/Y o Y-m-d
+    $d = DateTime::createFromFormat('d/m/Y', $val);
+    if ($d && $d->format('d/m/Y') === $val) return $d->format('Y-m-d');
+    $d2 = DateTime::createFromFormat('Y-m-d', $val);
+    if ($d2 && $d2->format('Y-m-d') === $val) return $d2->format('Y-m-d');
+
+    // Último intento: strtotime
+    $ts = strtotime($val);
+    if ($ts !== false) return date('Y-m-d', $ts);
+
     return '';
 }
     

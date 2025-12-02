@@ -13,6 +13,59 @@ $user = $usuario->obtenerUsuarioPorId($IdUsuario);
 $start = isset($_GET['start']) ? $_GET['start'] : null;
 $end = isset($_GET['end']) ? $_GET['end'] : null;
 
+// --------------------------
+// Sincronizar estado de contenedores
+// Si la cantidad de registros en `palets_cargados` que mencionan el número
+// de contenedor es igual a la cantidad de items asociados a ese contenedor,
+// entonces marcamos el contenedor como 'Despachado'. Esto se ejecuta cada
+// vez que se carga la página de Total Inventory.
+// --------------------------
+try {
+  // Obtener lista de contenedores (IdContainer y Number_Container)
+  $containersRes = $conexion->query("SELECT IdContainer, Number_Container, status FROM container");
+  if ($containersRes) {
+    $paletStmt = $conexion->prepare("SELECT COUNT(*) AS cnt FROM palets_cargados WHERE notas LIKE ?");
+    $itemsStmt = $conexion->prepare("SELECT COUNT(*) AS cnt FROM items WHERE idContainer = ?");
+    $updateStmt = $conexion->prepare("UPDATE container SET status = 'Despachado' WHERE IdContainer = ?");
+
+    while ($c = $containersRes->fetch_assoc()) {
+      $idCont = $c['IdContainer'];
+      $numCont = $c['Number_Container'];
+      // Normalizar número de contenedor para la búsqueda
+      $like = "%" . $numCont . "%";
+
+      // contar palets_cargados donde notas contiene el número de contenedor
+            $paletStmt->bind_param('s', $like);
+            $paletStmt->execute();
+            $paletStmt->bind_result($paletCnt);
+            $paletStmt->fetch();
+            // liberar resultados antes de la próxima ejecución
+            if (method_exists($paletStmt, 'free_result')) { $paletStmt->free_result(); }
+
+      // contar items asociados al contenedor
+            $itemsStmt->bind_param('i', $idCont);
+            $itemsStmt->execute();
+            $itemsStmt->bind_result($itemsCnt);
+            $itemsStmt->fetch();
+            if (method_exists($itemsStmt, 'free_result')) { $itemsStmt->free_result(); }
+
+      // Si son iguales y no está ya Despachado => actualizar
+      if ($paletCnt > 0 && $paletCnt == $itemsCnt && strtolower($c['status']) != 'despachado') {
+        $updateStmt->bind_param('i', $idCont);
+        $updateStmt->execute();
+      }
+    }
+
+    $paletStmt->close();
+    $itemsStmt->close();
+    $updateStmt->close();
+  }
+} catch (Exception $e) {
+  // En caso de error, no interrumpimos la carga de la página; registramos para depuración
+  error_log("[total-inventory] Error sincronizando estados: " . $e->getMessage());
+}
+
+
 
 $sql = "SELECT 
   pl.IdPackingList AS 'ITEM #',
@@ -26,6 +79,8 @@ $sql = "SELECT
   i.Qty_Box,
   i.Price_Box_EC AS 'PRICE BOX EC',
   i.Total_Price_EC AS 'TOTAL PRICE EC',
+  i.valor_logistico_comex AS 'VALOR_LOGISTICO_COMEX',
+  (i.valor_logistico_comex * i.Qty_Box) AS 'COMEX TOTAL',
   i.Price_Box_USA AS 'PRICE BOX USA',
   i.Total_Price_USA AS 'TOTAL PRICE USA',
   c.status AS 'STATUS'
@@ -43,6 +98,8 @@ $total_inventory_price = 0;
 $total_transit_price = 0;
 // Monto USA total (nuevo)
 $total_price_usa = 0;
+// Comex total
+$total_comex = 0;
 
 // Guardo en array
 $items = [];
@@ -55,11 +112,13 @@ while ($row = $result->fetch_assoc()) {
         $total_inventory_boxes += $row['Qty_Box'];
         $total_inventory_price += $row['TOTAL PRICE EC'];
     $total_price_usa += $row['TOTAL PRICE USA'];
+  $total_comex += $row['COMEX TOTAL'];
     } else {
         $status = "Transit";
         $total_transit_boxes += $row['Qty_Box'];
         $total_transit_price += $row['TOTAL PRICE EC'];
     $total_price_usa += $row['TOTAL PRICE USA'];
+  $total_comex += $row['COMEX TOTAL'];
     }
 }
 
@@ -486,6 +545,22 @@ $result->data_seek(0);
                 </div>
               </div>
             </div>
+            <!-- Tarjeta Comex Total -->
+            <div class="card prod-p-card bg-success mb-0">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="prod-icon">
+                    <i class="ti ti-chart-line text-white f-36"></i>
+                  </div>
+                  <div class="ms-auto text-end text-white">
+                    <h3 class="mb-0 text-white">
+                        $<?= number_format($total_comex, 2) ?>
+                    </h3>
+                    <span>Comex Total</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -581,6 +656,7 @@ $result->data_seek(0);
                           <th>Qty_Box</th>
                           <th>PRICE BOX EC</th>
                           <th>TOTAL PRICE EC</th>
+              <th>COMEX TOTAL</th>
                           <th>PRICE BOX USA</th>
                           <th>TOTAL PRICE USA</th>
                           <th>STATUS</th>
@@ -612,6 +688,7 @@ $result->data_seek(0);
                           <td><?= $row['Qty_Box'] ?></td>
                           <td>$<?= number_format($row['PRICE BOX EC'], 2) ?></td>
                           <td>$<?= number_format($row['TOTAL PRICE EC'], 2) ?></td>
+              <td>$<?= number_format($row['COMEX TOTAL'] ?? 0, 2) ?></td>
                           <td>$<?= number_format($row['PRICE BOX USA'], 2) ?></td>
                           <td>$<?= number_format($row['TOTAL PRICE USA'], 2) ?></td>
                           <td><span class="badge <?= $badge_color ?>"><?= $row['STATUS'] ?></span></td>
@@ -884,7 +961,14 @@ document.getElementById("btnDescargarVisible").addEventListener("click", async f
     if (!res.ok) throw new Error(res.statusText);
     const rows = await res.json();
 
-    const ws = XLSX.utils.json_to_sheet(rows);
+    // Remove the 'COMEX TOTAL' column from the export (keep it visible on the UI)
+    const exportRows = rows.map(r => {
+      const copy = { ...r };
+      if (copy.hasOwnProperty('COMEX TOTAL')) delete copy['COMEX TOTAL'];
+      return copy;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Data");
 
@@ -960,6 +1044,7 @@ async function aplicarFiltrosAvanzados() {
           <td>${row['Qty_Box']}</td>
           <td>$${Number(row['PRICE BOX EC']).toFixed(2)}</td>
           <td>$${Number(row['TOTAL PRICE EC']).toFixed(2)}</td>
+          <td>$${Number(row['COMEX TOTAL'] || 0).toFixed(2)}</td>
           <td>$${Number(row['PRICE BOX USA']).toFixed(2)}</td>
           <td>$${Number(row['TOTAL PRICE USA']).toFixed(2)}</td>
           <td><span class="badge ${badgeClass}">${row.STATUS}</span></td>
@@ -1010,6 +1095,7 @@ async function limpiarFiltrosAvanzados() {
           <td>${row['Qty_Box']}</td>
           <td>$${Number(row['PRICE BOX EC']).toFixed(2)}</td>
           <td>$${Number(row['TOTAL PRICE EC']).toFixed(2)}</td>
+          <td>$${Number(row['COMEX TOTAL'] || 0).toFixed(2)}</td>
           <td>$${Number(row['PRICE BOX USA']).toFixed(2)}</td>
           <td>$${Number(row['TOTAL PRICE USA']).toFixed(2)}</td>
           <td><span class="badge ${badgeClass}">${row.STATUS}</span></td>

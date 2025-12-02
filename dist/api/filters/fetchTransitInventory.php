@@ -24,6 +24,8 @@ try {
         i.Qty_Box,
         i.Price_Box_EC AS 'PRICE BOX EC',
         i.Total_Price_EC AS 'TOTAL PRICE EC',
+        i.valor_logistico_comex AS 'VALOR_LOGISTICO_COMEX',
+        (i.valor_logistico_comex * i.Qty_Box) AS 'COMEX TOTAL',
         c.ETA_Date AS 'ETA Date',
         c.New_ETA_DATE AS 'NEW ETA DATE'
     FROM container c
