@@ -381,6 +381,11 @@ $stmtBookings = $conexion->prepare("
       </div>
 
       <div class="col-md-4">
+        <label class="form-label">Nombre Bodega</label>
+        <input type="text" name="nombre_bodega" id="nombre_bodega" class="form-control" placeholder="Nombre de la bodega (ej: Bodega A)">
+      </div>
+
+      <div class="col-md-4">
         <label class="form-label" for="parteSelect">Número de Parte</label>
         <select id="parteSelect" name="numero_parte" class="form-control" disabled>
           <option value="">-- Selecciona --</option>
@@ -670,6 +675,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ancho_restante:          form.ancho_restante.value,
       altura_restante:         form.altura_restante.value,
       peso_restante:           form.peso_restante.value
+      ,
+      'nombre_bodega': form.nombre_bodega ? form.nombre_bodega.value.trim() : ''
     };
 
    fetch('../api/warehouseusa/guardar_manual.php', {

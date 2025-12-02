@@ -14,7 +14,6 @@ $user=$usuario->obtenerUsuarioPorId($IdUsuario);
 
 $sql = "
 SELECT
-  i.IdItem,
   d.id,
   c.num_op AS NUM_OP,
   c.Number_Container,
@@ -28,14 +27,10 @@ SELECT
   d.descripcion AS Description_Dispatch,
   d.modelo AS Modelo_Dispatch,
 
-  -- Primer Number_PO
-  SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT i.Number_PO ORDER BY i.Number_PO), ',', 1) AS First_Number_PO,
-
-  -- Primer Description
-  SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT i.Description ORDER BY i.Number_PO), ',', 1) AS First_Description_Item,
-
-  -- Total cantidad de cajas
-  SUM(COALESCE(i.Qty_Box,0)) AS Total_Qty_Item_Packing,
+  -- Primer Number_PO y descripción y total cajas desde una subconsulta agregada de items
+  i.First_Number_PO AS First_Number_PO,
+  i.First_Description_Item AS First_Description_Item,
+  i.Total_Qty_Item_Packing AS Total_Qty_Item_Packing,
 
   d.palets AS palets,
   d.cantidad AS cantidad,
@@ -55,16 +50,55 @@ SELECT
   d.altura_in_restante,
   d.peso_lb_restante,
   d.estado AS Status
-FROM dispatch d
-LEFT JOIN container c ON c.Number_Container = d.notas
-LEFT JOIN items i ON i.Number_Commercial_Invoice = d.numero_factura
-                  AND i.Code_Product_EC = d.numero_parte
-WHERE d.estado = 'En Almacén'
-GROUP BY d.id, c.num_op, c.Number_Container, c.Booking_BK, d.codigo_despacho, d.fecha_entrada,
-         d.recibo_almacen, d.numero_lote, d.numero_factura, d.numero_parte, d.descripcion, d.modelo,
-         d.palets, d.cantidad, d.valor_unitario, d.unidad, d.longitud_in, d.ancho_in, d.altura_in,
-         d.peso_lb, d.valor_unitario_restante, d.valor_restante, d.unidad_restante, d.longitud_in_restante,
-         d.ancho_in_restante, d.altura_in_restante, d.peso_lb_restante, d.estado
+FROM container c
+LEFT JOIN (
+  -- Agregar dispatch por (notas/container) + invoice+parte para evitar filas duplicadas
+  SELECT
+    notas,
+    numero_factura,
+    numero_parte,
+    MIN(id) AS id,
+    MIN(codigo_despacho) AS codigo_despacho,
+    MIN(fecha_entrada) AS fecha_entrada,
+    MIN(recibo_almacen) AS recibo_almacen,
+    MIN(numero_lote) AS numero_lote,
+    SUM(COALESCE(palets,0)) AS palets,
+    SUM(COALESCE(cantidad,0)) AS cantidad,
+    MIN(valor_unitario) AS valor_unitario,
+    MIN(valor) AS valor,
+    MIN(unidad) AS unidad,
+    MIN(longitud_in) AS longitud_in,
+    MIN(ancho_in) AS ancho_in,
+    MIN(altura_in) AS altura_in,
+  MIN(peso_lb) AS peso_lb,
+  -- Campos 'restante' agregados para evitar columnas desconocidas en la consulta externa
+  MIN(valor_unitario_restante) AS valor_unitario_restante,
+  MIN(valor_restante) AS valor_restante,
+  MIN(unidad_restante) AS unidad_restante,
+  MIN(longitud_in_restante) AS longitud_in_restante,
+  MIN(ancho_in_restante) AS ancho_in_restante,
+  MIN(altura_in_restante) AS altura_in_restante,
+  MIN(peso_lb_restante) AS peso_lb_restante,
+  MAX(estado) AS estado,
+    MIN(descripcion) AS descripcion,
+    MIN(modelo) AS modelo
+  FROM dispatch
+  WHERE estado = 'En Almacén'
+  GROUP BY notas, numero_factura, numero_parte
+) d ON c.Number_Container = d.notas
+LEFT JOIN (
+  -- Agregación de items por invoice+parte para unir valores únicos
+  SELECT
+    Number_Commercial_Invoice,
+    Code_Product_EC,
+    SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT Number_PO ORDER BY Number_PO), ',', 1) AS First_Number_PO,
+    SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT Description ORDER BY Number_PO), ',', 1) AS First_Description_Item,
+    SUM(COALESCE(Qty_Box,0)) AS Total_Qty_Item_Packing
+  FROM items
+  GROUP BY Number_Commercial_Invoice, Code_Product_EC
+) i ON i.Number_Commercial_Invoice = d.numero_factura
+    AND i.Code_Product_EC = d.numero_parte
+WHERE d.id IS NOT NULL
 ORDER BY c.num_op, d.descripcion, d.modelo;
 
 
@@ -120,11 +154,6 @@ try {
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
 <!-- SheetJS para exportar Excel -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-
-    <!-- map-vector css -->
-    <link rel="stylesheet" href="../assets/css/plugins/jsvectormap.min.css">
     <!-- [Google Font : Public Sans] icon -->
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -618,7 +647,8 @@ if (isset($result) && $result->num_rows > 0) {
     <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
   <td>
     <input type="text" class="form-control form-control-sm po-input"
-           data-id="<?= htmlspecialchars($row['idItem'] ?? $row['IdItem'] ?? $row['id'] ?? '') ?>"
+           data-invoice="<?= htmlspecialchars($row['Number_Commercial_Invoice']) ?>"
+           data-parte="<?= htmlspecialchars($row['Code_Product_EC']) ?>"
            value="<?= htmlspecialchars($row['First_Number_PO'] ?? '') ?>">
   </td>
     <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
@@ -804,11 +834,20 @@ async function actualizarStatus(id, value) {
 async function handlePoChange() {
   const id = this.dataset.id;
   const po = this.value.trim();
+  // support updating by IdItem or by invoice+parte (when view aggregates items)
+  const invoice = this.dataset.invoice || null;
+  const parte = this.dataset.parte || null;
   try {
+    const body = { po };
+    if (id) body.id = id;
+    else if (invoice && parte) {
+      body.invoice = invoice;
+      body.parte = parte;
+    }
     const res = await fetch('../api/update_dispatch_po.php', {
       method: 'POST',
       headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ id, po })
+      body: JSON.stringify(body)
     });
     const json = await res.json();
     Swal.fire(
@@ -1047,10 +1086,10 @@ async function aplicarFiltrosAvanzados() {
         r.Receive || '',
         // 5 Lot Num
         r.Lot_Number || '',
-        // 6 Booking BK
-        r.Booking_BK || '',
-        // 7 PO Num (input)
-  `<input type="text" class="form-control form-control-sm po-input" data-id="${r.idItem || r.IdItem || r.id || ''}" value="${r.Number_PO || ''}">`,
+    // 6 Booking BK
+    r.Booking_BK || '',
+    // 7 PO Num (input) - send invoice+parte so server can update all matching items
+  `<input type="text" class="form-control form-control-sm po-input" data-invoice="${r.Number_Commercial_Invoice || ''}" data-parte="${r.Code_Product_EC || ''}" value="${r.Number_PO || ''}">`,
         // 8 Comm. Invoice Num
         r.Number_Commercial_Invoice || '',
         // 9 EC Product Code

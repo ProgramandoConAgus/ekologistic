@@ -7,6 +7,16 @@ session_start();
 include '../../con_db.php';
 header('Content-Type: application/json');
 
+// Asegurarse de que la columna nombre_bodega exista en las tablas destino
+$tablesToCheck = ['dispatch', 'palets_cargados'];
+foreach ($tablesToCheck as $t) {
+    $h = $conexion->query("SHOW COLUMNS FROM {$t} LIKE 'nombre_bodega'");
+    if (!($h && $h->num_rows > 0)) {
+        // intentar crear la columna (silencioso en caso de error)
+        $conexion->query("ALTER TABLE {$t} ADD COLUMN nombre_bodega VARCHAR(255) NULL");
+    }
+}
+
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception('Método no permitido', 405);
@@ -136,6 +146,19 @@ try {
         'cantidad_restante' => 0
     ];
     insertarRegistro($stmt, $principal);
+
+    // Guardar nombre_bodega si fue enviado: actualizamos el/los registros insertados
+    $nombreBodega = trim($data['nombre_bodega'] ?? '');
+    if ($nombreBodega !== '') {
+        // actualizamos en la tabla seleccionada (dispatch o palets_cargados)
+        $updateSql = "UPDATE {$tableName} SET nombre_bodega = ? WHERE numero_factura = ? AND fecha_entrada = ? AND numero_lote = ?";
+        $upd = $conexion->prepare($updateSql);
+        if ($upd) {
+            $upd->bind_param('ssss', $nombreBodega, $numeroFactura, $fechaEntrada, $numeroLote);
+            $upd->execute();
+            $upd->close();
+        }
+    }
 
     // Insertar registro restante solo si ancho_restante no es null, 0 ni vacío
     $anchoRestanteRaw = $data['ancho_restante'] ?? null;
