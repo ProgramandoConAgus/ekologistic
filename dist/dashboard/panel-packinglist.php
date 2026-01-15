@@ -1,4 +1,48 @@
 <?php
+session_start();
+include('../usuarioClass.php');
+include("../con_db.php");
+$IdUsuario=$_SESSION["IdUsuario"];
+
+$usuario= new Usuario($conexion);
+
+$user=$usuario->obtenerUsuarioPorId($IdUsuario);
+
+
+// Construcción de la consulta SQL
+$sql = "SELECT 
+    pl.IdPackingList AS 'ITEM #',
+    MAX(c.num_op) AS 'Num OP',
+    MAX(c.Destinity_POD) AS 'Destinity POD',
+    MAX(c.Booking_BK) AS 'Booking_BK',
+    MAX(c.Number_Container) AS 'Number_Container',
+    SUM(i.Qty_Box) AS 'Qty_Box',
+    SUM(i.Total_Price_EC) AS 'TOTAL PRICE EC',
+    pl.Date_Created AS 'Date created',
+    DATE_FORMAT(pl.Date_Created, '%H:%i') AS 'Hour',
+    CONCAT(u.nombre, ' ', u.apellido) AS 'User Name',
+    pl.path_file AS 'File Home',
+    pl.status AS 'STATUS'
+FROM 
+    packing_list pl
+JOIN 
+    usuarios u ON pl.IdUsuario = u.IdUsuario
+JOIN 
+    container c ON pl.IdPackingList = c.IdPackingList
+JOIN 
+    items i ON c.IdContainer = i.IdContainer
+GROUP BY 
+    pl.IdPackingList;";
+
+try {
+    $stmt = $conexion->prepare($sql);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+} catch (mysqli_sql_exception $e) {
+    echo "Error en la consulta: " . $e->getMessage();
+}
+
 
 ?>
 
@@ -7,19 +51,15 @@
   <!-- [Head] start -->
 
   <head>
-    <title>Home | Light Able Admin & Dashboard Template</title>
+    <title>Packing List | Eko Logistic</title>
     <!-- [Meta] -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta
-      name="description"
-      content="Light Able admin and dashboard template offer a variety of UI elements and pages, ensuring your admin panel is both fast and effective."
-    />
-    <meta name="author" content="phoenixcoded" />
 
-    <!-- [Favicon] icon -->
-    <link rel="icon" href="../assets/images/favicon.svg" type="image/x-icon" />
+
+      <!-- [Favicon] icon -->
+  <link rel="icon" href="../assets/images/ekologistic.png" type="image/x-icon" />
 
     <!-- map-vector css -->
     <link rel="stylesheet" href="../assets/css/plugins/jsvectormap.min.css">
@@ -37,8 +77,36 @@
     <!-- [Template CSS Files] -->
     <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" >
     <link rel="stylesheet" href="../assets/css/style-preset.css" >
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  </head>
+    <!-- Agrega esto en tu <head> -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+    
+    /* Ajustes para el modal y Handsontable */
+    .modal-xl {
+        max-width: 95% !important;
+    }
+    
+    #excelEditor {
+        width: 100%;
+        overflow: auto;
+    }
+    
+    .handsontable {
+        font-size: 12px;
+    }
+    
+    .htCore td {
+        white-space: nowrap;
+    }
+    
+</style>
+<link rel="stylesheet" href="./tipografia.css">
+</head>
   <!-- [Head] end -->
   <!-- [Body] Start -->
 
@@ -51,12 +119,13 @@
 </div>
 <!-- [ Pre-loader ] End -->
  <!-- [ Sidebar Menu ] start -->
+
 <nav class="pc-sidebar">
   <div class="navbar-wrapper">
     <div class="m-header">
       <a href="../dashboard/index.html" class="b-brand text-primary">
         <!-- ========   Change your logo from here   ============ -->
-        <img src="../assets/images/ekologistic.png" alt="logo image" height="70px" width="240px"/>
+        <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="180px"/>
         
       </a>
     </div>
@@ -65,24 +134,56 @@
     <li class="pc-item pc-caption">
       <label>Navegación</label>
     </li>
-    <li class="pc-item pc-hasmenu">
-      <a href="#!" class="pc-link">
+    <style>
+  /* Fuerza los menús con la clase 'force-open' a mantenerse desplegados */
+  li.pc-item.force-open > ul.pc-submenu {
+    display: block !important;
+  }
+
+  li.pc-item.force-open > a.pc-link .pc-arrow i,
+  li.pc-item.open > a.pc-link .pc-arrow i {
+    transform: rotate(90deg);
+    transition: transform 0.2s ease;
+  }
+</style>
+
+<!-- LOGISTICA (Siempre abierto) -->
+<li class="pc-item pc-hasmenu open">
+  <a href="#!" class="pc-link active">
+    <span class="pc-micon">
+      <i class="ph-duotone ph-truck"></i>
+    </span>
+    <span class="pc-mtext">Logística</span>
+    <span class="pc-arrow">
+      <i data-feather="chevron-right"></i>
+    </span>
+  </a>
+  <ul class="pc-submenu">
+    <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
+    <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
+
+    <!-- Inventory como submenu abierto -->
+    <li class="pc-item pc-hasmenu open force-open">
+      <a href="#!" class="pc-link active">
         <span class="pc-micon">
-          <i class="ph-duotone ph-truck"></i>
+          <i class="ph-duotone ph-archive-box"></i>
         </span>
-        <span class="pc-mtext">Logistica</span>
-        <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
+        <span class="pc-mtext">Inventory</span>
+        <span class="pc-arrow">
+          <i data-feather="chevron-right"></i>
+        </span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">BLs</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-contenedores.php">Contenedores</a></li>
-        <li class="pc-item"><a class="pc-link" href="../application/panel-inventarios.php">Inventarios</a></li>
-        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Packing List</a></li>
-        <li class="pc-item"><a class="pc-link">Despachos</a></li>
-        <li class="pc-item"><a class="pc-link">Palets</a></li>
-        <li class="pc-item"><a class="pc-link" >Ordenes de Compra</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse USA 1</a></li>
+        <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA 2</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Warehouse Receipt</a></li>
       </ul>
     </li>
+  </ul>
+</li>
+
     <li class="pc-item pc-hasmenu">
       <a href="#!" class="pc-link">
         <span class="pc-micon">
@@ -92,10 +193,10 @@
         <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
       </a>
       <ul class="pc-submenu">
-        <li class="pc-item"><a class="pc-link">Exports</a></li>
-        <li class="pc-item"><a class="pc-link">Imports</a></li>
-        <li class="pc-item"><a class="pc-link">Despachos</a></li>
-        <li class="pc-item"><a class="pc-link">Consolidados</a></li>
+        <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
+        <li class="pc-item"><a  href="../admins/importsPanel.php" class="pc-link">Imports</a></li>
+        <li class="pc-item"><a href="../admins/despachosPanel.php" class="pc-link">Despachos</a></li>
+        <li class="pc-item"><a href="../admins/consolidadosPanel.php" class="pc-link">Consolidados</a></li>
       </ul>
     </li>
   </ul>
@@ -111,7 +212,7 @@
               <a href="#" class="arrow-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-offset="0,20">
                 <div class="d-flex align-items-center">
                   <div class="flex-grow-1 me-2">
-                    <h6 class="mb-0">Juan Loaiza</h6>
+                    <h6 class="mb-0"><?=ucfirst($user['nombre'])?> <?=ucfirst($user['apellido'])?></h6>
                     <small>Administrador</small>
                   </div>
                   <div class="flex-shrink-0">
@@ -163,54 +264,6 @@
 <!-- [Mobile Media Block end] -->
 <div class="ms-auto">
   <ul class="list-unstyled">
-    <li class="dropdown pc-h-item d-none d-md-inline-flex">
-      <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
-        aria-haspopup="false" aria-expanded="false">
-        <i class="ph-duotone ph-circles-four"></i>
-      </a>
-      <div class="dropdown-menu dropdown-qta dropdown-menu-end pc-h-dropdown">
-        <div class="overflow-hidden">
-          <div class="qta-links m-n1">
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-shopping-cart"></i>
-              <span>E-commerce</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-lifebuoy"></i>
-              <span>Helpdesk</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-scroll"></i>
-              <span>Invoice</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-books"></i>
-              <span>Online Courses</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-envelope-open"></i>
-              <span>Mail</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-identification-badge"></i>
-              <span>Membership</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-chats-circle"></i>
-              <span>Chat</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-currency-circle-dollar"></i>
-              <span>Plans</span>
-            </a>
-            <a href="#!" class="dropdown-item">
-              <i class="ph-duotone ph-user-circle"></i>
-              <span>Users</span>
-            </a>
-          </div>
-        </div>
-      </div>
-    </li>
     <li class="dropdown pc-h-item">
       <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
         aria-haspopup="false" aria-expanded="false">
@@ -219,48 +272,15 @@
       <div class="dropdown-menu dropdown-menu-end pc-h-dropdown">
         <a href="#!" class="dropdown-item" onclick="layout_change('dark')">
           <i class="ph-duotone ph-moon"></i>
-          <span>Dark</span>
+          <span>Noche</span>
         </a>
         <a href="#!" class="dropdown-item" onclick="layout_change('light')">
           <i class="ph-duotone ph-sun-dim"></i>
-          <span>Light</span>
+          <span>Dia</span>
         </a>
         <a href="#!" class="dropdown-item" onclick="layout_change_default()">
           <i class="ph-duotone ph-cpu"></i>
-          <span>Default</span>
-        </a>
-      </div>
-    </li>
-    <li class="pc-h-item">
-      <a class="pc-head-link pct-c-btn" href="#" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_pc_layout">
-        <i class="ph-duotone ph-gear-six"></i>
-      </a>
-    </li>
-    <li class="dropdown pc-h-item">
-      <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
-        aria-haspopup="false" aria-expanded="false">
-        <i class="ph-duotone ph-diamonds-four"></i>
-      </a>
-      <div class="dropdown-menu dropdown-menu-end pc-h-dropdown">
-        <a href="#!" class="dropdown-item">
-          <i class="ph-duotone ph-user"></i>
-          <span>My Account</span>
-        </a>
-        <a href="#!" class="dropdown-item">
-          <i class="ph-duotone ph-gear"></i>
-          <span>Settings</span>
-        </a>
-        <a href="#!" class="dropdown-item">
-          <i class="ph-duotone ph-lifebuoy"></i>
-          <span>Support</span>
-        </a>
-        <a href="#!" class="dropdown-item">
-          <i class="ph-duotone ph-lock-key"></i>
-          <span>Lock Screen</span>
-        </a>
-        <a href="#!" class="dropdown-item">
-          <i class="ph-duotone ph-power"></i>
-          <span>Logout</span>
+          <span>Estandar</span>
         </a>
       </div>
     </li>
@@ -268,90 +288,15 @@
       <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
         aria-haspopup="false" aria-expanded="false">
         <i class="ph-duotone ph-bell"></i>
-        <span class="badge bg-success pc-h-badge">3</span>
       </a>
       <div class="dropdown-menu dropdown-notification dropdown-menu-end pc-h-dropdown">
         <div class="dropdown-header d-flex align-items-center justify-content-between">
-          <h5 class="m-0">Notifications</h5>
-          <ul class="list-inline ms-auto mb-0">
-            <li class="list-inline-item">
-              <a href="../application/mail.html" class="avtar avtar-s btn-link-hover-primary">
-                <i class="ti ti-link f-18"></i>
-              </a>
-            </li>
-          </ul>
+          <h5 class="m-0">Avisos</h5>
         </div>
         <div class="dropdown-body text-wrap header-notification-scroll position-relative"
           style="max-height: calc(100vh - 235px)">
           <ul class="list-group list-group-flush">
-            <li class="list-group-item">
-              <p class="text-span">Today</p>
-              <div class="d-flex">
-                <div class="flex-shrink-0">
-                  <img src="../assets/images/user/avatar-2.jpg" alt="user-image" class="user-avtar avtar avtar-s" />
-                </div>
-                <div class="flex-grow-1 ms-3">
-                  <div class="d-flex">
-                    <div class="flex-grow-1 me-3 position-relative">
-                      <h6 class="mb-0 text-truncate">Keefe Bond added new tags to 💪 Design system</h6>
-                    </div>
-                    <div class="flex-shrink-0">
-                      <span class="text-sm">2 min ago</span>
-                    </div>
-                  </div>
-                  <p class="position-relative mt-1 mb-2"><br /><span class="text-truncate">Lorem Ipsum has been the
-                      industry's standard dummy text ever since the 1500s.</span></p>
-                  <span class="badge bg-light-primary border border-primary me-1 mt-1">web design</span>
-                  <span class="badge bg-light-warning border border-warning me-1 mt-1">Dashobard</span>
-                  <span class="badge bg-light-success border border-success me-1 mt-1">Design System</span>
-                </div>
-              </div>
-            </li>
-            <li class="list-group-item">
-              <div class="d-flex">
-                <div class="flex-shrink-0">
-                  <div class="avtar avtar-s bg-light-primary">
-                    <i class="ph-duotone ph-chats-teardrop f-18"></i>
-                  </div>
-                </div>
-                <div class="flex-grow-1 ms-3">
-                  <div class="d-flex">
-                    <div class="flex-grow-1 me-3 position-relative">
-                      <h6 class="mb-0 text-truncate">Message</h6>
-                    </div>
-                    <div class="flex-shrink-0">
-                      <span class="text-sm">1 hour ago</span>
-                    </div>
-                  </div>
-                  <p class="position-relative mt-1 mb-2"><br /><span class="text-truncate">Lorem Ipsum has been the
-                      industry's standard dummy text ever since the 1500s.</span></p>
-                </div>
-              </div>
-            </li>
-            <li class="list-group-item">
-              <p class="text-span">Yesterday</p>
-              <div class="d-flex">
-                <div class="flex-shrink-0">
-                  <div class="avtar avtar-s bg-light-danger">
-                    <i class="ph-duotone ph-user f-18"></i>
-                  </div>
-                </div>
-                <div class="flex-grow-1 ms-3">
-                  <div class="d-flex">
-                    <div class="flex-grow-1 me-3 position-relative">
-                      <h6 class="mb-0 text-truncate">Challenge invitation</h6>
-                    </div>
-                    <div class="flex-shrink-0">
-                      <span class="text-sm">12 hour ago</span>
-                    </div>
-                  </div>
-                  <p class="position-relative mt-1 mb-2"><br /><span class="text-truncate"><strong> Jonny aber </strong>
-                      invites to join the challenge</span></p>
-                  <button class="btn btn-sm rounded-pill btn-outline-secondary me-2">Decline</button>
-                  <button class="btn btn-sm rounded-pill btn-primary">Accept</button>
-                </div>
-              </div>
-            </li>
+            
             <li class="list-group-item">
               <div class="d-flex">
                 <div class="flex-shrink-0">
@@ -362,73 +307,19 @@
                 <div class="flex-grow-1 ms-3">
                   <div class="d-flex">
                     <div class="flex-grow-1 me-3 position-relative">
-                      <h6 class="mb-0 text-truncate">Forms</h6>
+                      <h6 class="mb-0 text-truncate">Recientes</h6>
                     </div>
                     <div class="flex-shrink-0">
-                      <span class="text-sm">2 hour ago</span>
+                      <span class="text-sm">Hace unos minutos</span>
                     </div>
                   </div>
-                  <p class="position-relative mt-1 mb-2">Lorem Ipsum is simply dummy text of the printing and
-                    typesetting industry. Lorem Ipsum has been the industry's standard
-                    dummy text ever since the 1500s.</p>
-                </div>
-              </div>
-            </li>
-            <li class="list-group-item">
-              <div class="d-flex">
-                <div class="flex-shrink-0">
-                  <img src="../assets/images/user/avatar-2.jpg" alt="user-image" class="user-avtar avtar avtar-s" />
-                </div>
-                <div class="flex-grow-1 ms-3">
-                  <div class="d-flex">
-                    <div class="flex-grow-1 me-3 position-relative">
-                      <h6 class="mb-0 text-truncate">Keefe Bond added new tags to 💪 Design system</h6>
-                    </div>
-                    <div class="flex-shrink-0">
-                      <span class="text-sm">2 min ago</span>
-                    </div>
-                  </div>
-                  <p class="position-relative mt-1 mb-2"><br /><span class="text-truncate">Lorem Ipsum has been the
-                      industry's standard dummy text ever since the 1500s.</span></p>
-                  <button class="btn btn-sm rounded-pill btn-outline-secondary me-2">Decline</button>
-                  <button class="btn btn-sm rounded-pill btn-primary">Accept</button>
-                </div>
-              </div>
-            </li>
-            <li class="list-group-item">
-              <div class="d-flex">
-                <div class="flex-shrink-0">
-                  <div class="avtar avtar-s bg-light-success">
-                    <i class="ph-duotone ph-shield-checkered f-18"></i>
-                  </div>
-                </div>
-                <div class="flex-grow-1 ms-3">
-                  <div class="d-flex">
-                    <div class="flex-grow-1 me-3 position-relative">
-                      <h6 class="mb-0 text-truncate">Security</h6>
-                    </div>
-                    <div class="flex-shrink-0">
-                      <span class="text-sm">5 hour ago</span>
-                    </div>
-                  </div>
-                  <p class="position-relative mt-1 mb-2">Lorem Ipsum is simply dummy text of the printing and
-                    typesetting industry. Lorem Ipsum has been the industry's standard
-                    dummy text ever since the 1500s.</p>
+                  <p class="position-relative mt-1 mb-2">Se cambio el estado del contenedor N ° 12345.</p>
                 </div>
               </div>
             </li>
           </ul>
         </div>
-        <div class="dropdown-footer">
-          <div class="row g-3">
-            <div class="col-6">
-              <div class="d-grid"><button class="btn btn-primary">Archive all</button></div>
-            </div>
-            <div class="col-6">
-              <div class="d-grid"><button class="btn btn-outline-secondary">Mark all as read</button></div>
-            </div>
-          </div>
-        </div>
+
       </div>
     </li>
     
@@ -448,14 +339,14 @@
             <div class="row align-items-center">
               <div class="col-md-12">
                 <ul class="breadcrumb">
-                  <li class="breadcrumb-item"><a href="../dashboard/index.html">Inicio</a></li>
+                  <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
                   <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
                   <li class="breadcrumb-item" aria-current="page">Packing List</li>
                 </ul>
               </div>
               <div class="col-md-12">
                 <div class="page-header-title">
-                  <h2 class="mb-0">Panel de Packings List</h2>
+                  <h2 class="mb-0">Packing List</h2>
                 </div>
               </div>
             </div>
@@ -468,66 +359,158 @@
           
         <div class="col-md-12 col-xl-12">
     <div class="card table-card">
-        <div class="card-header d-flex align-items-center justify-content-between py-3">
+        <div class="card-header d-flex align-items-center justify-content-end py-3">
             <h5 class="mb-0"></h5>
-            <button class="btn btn-sm btn-success">
-                <a class="text-white" href="../forms/bls-carga.php">Nuevo Packing List</a>
+            <div class="d-flex gap-2 align-items-center">
+              <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                <i class="ti ti-filter"></i> Filtros avanzados
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="limpiarFiltrosAvanzados()">
+                <i class="ti ti-x"></i> Limpiar
+              </button>
+            </div>
+            <button style="margin-left:3%;" class="btn btn-sm btn-success">
+                <a class="text-white" href="../forms/importarpk.php">Nuevo Packing List</a>
             </button>
+        </div>
+        <!-- Modal de filtros -->
+        <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form id="filterForm">
+                  <!-- Filtro por Cliente 
+                  <div class="mb-3">
+                    <label for="customerFilter" class="form-label">Cliente</label>
+                    <select class="form-select" id="customerFilter">
+                      <option value="">Todos los clientes</option>
+                      <?php
+                      // Resetear el puntero del resultado para obtener valores únicos
+                      $result->data_seek(0);
+                      $customers = [];
+                      while ($row = $result->fetch_assoc()) {
+                        if (!in_array($row['Customer'], $customers)) {
+                          $customers[] = $row['Customer'];
+                          echo '<option value="' . htmlspecialchars($row['Customer']) . '">' . htmlspecialchars($row['Customer']) . '</option>';
+                        }
+                      }
+                      $result->data_seek(0); // Resetear para el bucle principal
+                      ?>
+                    </select>
+                  </div>
+                  -->
+                  <!-- Filtro por Number PO 
+                  <div class="mb-3">
+                    <label for="poFilter" class="form-label">Número de PO</label>
+                    <input type="text" class="form-control" id="poFilter" placeholder="Ingrese número de PO">
+                  </div>
+                  -->
+                  <!-- Filtro por Numero OP (Container) -->
+                  <div class="mb-3">
+                    <label for="containerFilter" class="form-label">Número de Contenedor (OP)</label>
+                    <input type="text" class="form-control" id="containerFilter" placeholder="Ingrese número de contenedor">
+                  </div>
+                  <div class="mb-3">
+                    <label for="containerFilter" class="form-label">Date Created</label><br>
+                    <input type="text" id="rangoFechas" class="form-control form-control-sm" placeholder="Seleccione rango" style="max-width: 220px;" readonly>
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="aplicarFiltrosAvanzados()">Aplicar filtros</button>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="card-body">
     <div class="table-responsive">
         <table class="table table-hover" id="pc-dt-simple">
-            <thead>
-                <tr>
-                    <th>Productos incluidos</th>
-                    <th>Destinatario / Cliente</th>
-                    <th>Estado</th>
-                    <th>Fecha de generación</th>
-                    <th>Inventario asociado</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Producto A, Producto B</td>
-                    <td>Cliente XYZ</td>
-                    <td><span class="badge text-bg-success">Enviado</span></td>
-                    <td>10/03/2025</td>
-                    <td>
-                        <a href="../admins/inventario.php?producto=PL-123456" class="avtar avtar-xs btn-link-secondary">
-                            <i class="ti ti-eye f-20"></i> Ver Inventario
-                        </a>
-                    </td>
-                </tr>
-                <tr>
-                    <td>Producto C, Producto D</td>
-                    <td>Cliente ABC</td>
-                    <td><span class="badge text-bg-warning">Pendiente</span></td>
-                    <td>12/03/2025</td>
-                    <td>
-                        <a href="../admins/inventario.php?producto=PL-789012" class="avtar avtar-xs btn-link-secondary">
-                            <i class="ti ti-eye f-20"></i> Ver Inventario
-                        </a>
-                    </td>
-                </tr>
-                <tr>
-                    <td>Producto E, Producto F</td>
-                    <td>Cliente DEF</td>
-                    <td><span class="badge text-bg-info">Recibido</span></td>
-                    <td>15/03/2025</td>
-                    <td>
-                        <a href="../admins/inventario.php?producto=PL-345678" class="avtar avtar-xs btn-link-secondary">
-                            <i class="ti ti-eye f-20"></i> Ver Inventario
-                        </a>
-                    </td>
-                </tr>
-            </tbody>
+           <!-- Encabezados de la tabla -->
+          <thead>
+              <tr>
+                  <th>Num OP</th>
+                  <th>Destinity POD</th>
+                  <th>Booking_BK</th>
+                  <th>Number_Container</th>
+                  <th>Qty_Box</th>
+                  <th>TOTAL PRICE EC</th>
+                  <th>Date created</th>
+                  <th>Hour</th>
+                  <th>User Name</th>
+                  <th>File Home</th>
+                  <th>STATUS‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ </th>
+              </tr>
+          </thead>
+
+          <!-- Cuerpo de la tabla -->
+          <tbody>
+              <?php while($packings = $result->fetch_assoc()) { ?>
+              <tr>
+                  <td><?= $packings['Num OP'] ?></td>
+                  <td><?= $packings['Destinity POD'] ?></td>
+                  <td><?= $packings['Booking_BK'] ?></td>
+                  <td><?= $packings['Number_Container'] ?></td>
+                  <td><?= $packings['Qty_Box'] ?></td>
+                  <td>$<?= number_format($packings['TOTAL PRICE EC'], 2) ?></td>
+                  <td><?= date('d-m-Y', strtotime($packings['Date created'])) ?></td>
+                  <td><?= $packings['Hour'] ?></td>
+                  <td><?= $packings['User Name']  ?></td>
+                  <td>
+                      <div class="d-flex gap-0">
+                          <button class="btn d-flex align-items-center btn-edit-excel" 
+                                  data-excel-path="<?= $packings['File Home'] ?>" 
+                                  data-packing-id="<?= $packings['ITEM #'] ?>">
+                              <i class="ti ti-edit f-30"></i>
+                          </button>
+
+                          <a href="<?= $packings['File Home'] ?>" download class="btn d-flex align-items-center btn-download-excel">
+                              <i class="ti ti-download f-30"></i>
+                          </a>
+                      </div>
+                  </td>
+                  <td >
+                    <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" 
+                      data-id="<?=$packings['ITEM #'] ?>">
+                      <option value="Inicial" <?= $packings['STATUS'] == 'Inicial' ? 'selected' : '' ?>>Inicial</option>
+                      <option value="Completado" <?= $packings['STATUS'] == 'Completado' ? 'selected' : '' ?>>Completado</option>
+                    </select>
+                  </td>
+              </tr>
+              <?php } ?>
+          </tbody>
         </table>
     </div>
 </div>
 
     </div>
 </div>
-
+<!-- Modal para edición -->
+<div class="modal fade" id="editExcelModal" tabindex="-1" aria-labelledby="editExcelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editExcelModalLabel">Editar Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="excelEditor" style="height: 600px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="guardarCambios">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Fin Modal edicion-->
+ 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script> <!-- Soporte en español -->
 <script>
 function confirmDelete(blNumber) {
     if (confirm(`¿Estás seguro de que quieres eliminar el BL ${blNumber}?`)) {
@@ -535,6 +518,73 @@ function confirmDelete(blNumber) {
         console.log(`BL ${blNumber} eliminado.`);
     }
 }
+// Inicializar Flatpickr con configuración en español y un solo mes
+const rangoFechas = flatpickr("#rangoFechas", {
+    mode: "range",
+    locale: "es",
+    dateFormat: "Y-m-d",  // Formato para backend
+    altInput: true,
+    altFormat: "d/m/Y",   // Formato visual
+    static: true,         // Calendario fijo
+    showMonths: 1,        // Mostrar solo un mes
+    allowInput: false,
+    onReady: function(selectedDates, dateStr, instance) {
+        // Restaurar fechas desde URL
+        const params = new URLSearchParams(window.location.search);
+        if(params.has('dateFrom') && params.has('dateTo')) {
+            instance.setDate([
+                params.get('dateFrom'),
+                params.get('dateTo')
+            ]);
+        }
+    },
+    onChange: function(selectedDates, dateStr, instance) {
+        // Actualizar texto alternativo
+        if(selectedDates.length === 2) {
+            const [start, end] = selectedDates;
+            instance.altInput.value = 
+                instance.formatDate(start, 'd/m/Y') + ' a ' + 
+                instance.formatDate(end, 'd/m/Y');
+        }
+    }
+});
+</script>
+
+<!-- ACTUALIZAR STATUS -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Guardar cambios en Status
+    document.querySelectorAll('.status-select').forEach(select => {
+        select.addEventListener('change', function () {
+            const id = this.getAttribute('data-id'); // Id del packinglist
+            const value = this.value; // Nuevo valor seleccionado
+
+            actualizarStatus(id, value);
+        });
+    });
+
+    function actualizarStatus(id, value) {
+        fetch('../api/actualizar_status_p.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, value }) // Enviamos solo id y value
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+              Swal.fire({
+              title: 'Éxito',
+              text: data.message,
+              icon: 'success',
+              confirmButtonText: 'Continuar'
+            });
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+});
 </script>
 
 </div>
@@ -560,170 +610,363 @@ function confirmDelete(blNumber) {
         </div>
       </div>
     </footer>
- <div class="offcanvas border-0 pct-offcanvas offcanvas-end" tabindex="-1" id="offcanvas_pc_layout">
-  <div class="offcanvas-header justify-content-between">
-    <h5 class="offcanvas-title">Settings</h5>
-    <button type="button" class="btn btn-icon btn-link-danger" data-bs-dismiss="offcanvas" aria-label="Close"><i
-        class="ti ti-x"></i></button>
-  </div>
-  <div class="pct-body customizer-body">
-    <div class="offcanvas-body py-0">
-      <ul class="list-group list-group-flush">
-        <li class="list-group-item">
-          <div class="pc-dark">
-            <h6 class="mb-1">Theme Mode</h6>
-            <p class="text-muted text-sm">Choose light or dark mode or Auto</p>
-            <div class="row theme-color theme-layout">
-              <div class="col-4">
-                <div class="d-grid">
-                  <button class="preset-btn btn active" data-value="true" onclick="layout_change('light');">
-                    <span class="btn-label">Light</span>
-                    <span class="pc-lay-icon"><span></span><span></span><span></span><span></span></span>
-                  </button>
+
+
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    let hot;
+    let currentExcelPath;
+    let currentPackingId;
+
+    // 1) Abrir modal con editor
+    document.querySelectorAll('.btn-edit-excel').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentExcelPath = this.dataset.excelPath;
+            currentPackingId  = this.dataset.packingId;
+
+            // Mostrar loading
+            Swal.fire({
+                title: 'Cargando Excel...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch(`../api/leer_excel.php?path=${encodeURIComponent(currentExcelPath)}&packingId=${currentPackingId}`)
+                .then(r => r.json())
+                .then(data => {
+                    Swal.close(); // cerrar loading
+
+                    const container = document.getElementById('excelEditor');
+                    if (!hot) {
+                        hot = new Handsontable(container, {
+                            data: data,
+                            rowHeaders: true,
+                            colHeaders: true,
+                            contextMenu: true,
+                            licenseKey: 'tu-licencia',
+                            stretchH: 'all',
+                            width: '100%',
+                            height: '70vh',
+                            manualColumnResize: true,
+                            manualRowResize: true
+                        });
+                    } else {
+                        hot.updateSettings({ data: data });
+                    }
+                    $('#editExcelModal').modal('show').on('shown.bs.modal', () => {
+                        hot.render();
+                        hot.view.adjustElementsSize();
+                    });
+                })
+                .catch(err => {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'No se pudo cargar el Excel: ' + err.message,
+                        icon: 'error',
+                        confirmButtonText: 'Cerrar'
+                    });
+                });
+        });
+    });
+
+    // 2) Guardar cambios
+    document.getElementById('guardarCambios').addEventListener('click', function() {
+        const datos = hot.getData();
+
+        Swal.fire({
+            title: 'Guardando cambios...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        fetch('../api/guardar_excel.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                path:      currentExcelPath,
+                packingId: currentPackingId,
+                data:      datos
+            })
+        })
+        .then(r => {
+            if (!r.ok) throw new Error('Error al guardar');
+            return r.json();
+        })
+        .then(result => {
+            Swal.close(); // cerrar loading
+
+            if (result.success) {
+                Swal.fire({
+                    title: '¡Listo!',
+                    text: 'Los cambios se guardaron correctamente.',
+                    icon: 'success',
+                    confirmButtonText: 'Continuar'
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: result.error || 'Ocurrió un error inesperado.',
+                    icon: 'error',
+                    confirmButtonText: 'Cerrar'
+                });
+            }
+        })
+        .catch(err => {
+            Swal.close();
+            Swal.fire({
+                title: 'Error',
+                text: 'Error al guardar cambios: ' + err.message,
+                icon: 'error',
+                confirmButtonText: 'Cerrar'
+            });
+        });
+    });
+});
+
+// Forzar redimensionamiento al cambiar tamaño de ventana
+window.addEventListener('resize', function() {
+    if (hot) {
+        hot.render();
+        hot.view.adjustElementsSize();
+    }
+});
+</script>
+
+
+
+
+
+<script>
+
+// Función para inicializar listeners de status
+function initStatusListeners() {
+    document.querySelectorAll('.status-select').forEach(select => {
+        select.removeEventListener('change', handleStatusChange); // Eliminar existentes
+        select.addEventListener('change', handleStatusChange);
+    });
+}
+
+function handleStatusChange() {
+    const id = this.getAttribute('data-id');
+    const value = this.value;
+    actualizarStatus(id, value);
+}
+async function actualizarStatus(id, value) {
+    try {
+        const response = await fetch('../api/actualizar_status_p.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, value })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            Swal.fire({
+                title: 'Éxito',
+                text: data.message,
+                icon: 'success',
+                confirmButtonText: 'Continuar'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: data.error || 'Error desconocido',
+                icon: 'error',
+                confirmButtonText: 'Entendido'
+            });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor',
+            icon: 'error'
+        });
+    }
+}
+
+async function aplicarFiltrosAvanzados() {
+
+const container = document.getElementById('containerFilter').value;
+const rango = document.getElementById('rangoFechas').value.trim();
+
+const params = new URLSearchParams();
+if (container) params.append('container', container);
+
+if (rango) {
+    const partes = rango.split(' a ');
+    if (partes.length === 2) {
+        const [desde, hasta] = partes;
+        params.append('dateFrom', desde);
+        params.append('dateTo', hasta);
+    }
+}
+
+try {
+    const res = await fetch(`../api/filters/fetchPanelPL.php?${params.toString()}`);
+    if (!res.ok) throw new Error(res.statusText);
+    const rows = await res.json();
+
+    const tbody = document.querySelector('#pc-dt-simple tbody');
+    tbody.innerHTML = '';
+
+    rows.forEach(row => {
+        const tr = `
+        <tr>
+            <td>${row['Num OP'] || ''}</td>
+            <td>${row['Destinity POD'] || ''}</td>
+            <td>${row['Booking_BK'] || ''}</td>
+            <td>${row['Number_Container'] || ''}</td>
+            <td>${row['Qty_Box'] || 0}</td>
+            <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
+            <td>${formatDate(row['Date created'])}</td>
+            <td>${row['Hour'] || ''}</td>
+            <td>${row['User Name'] || ''}</td>
+            <td>
+                <div class="d-flex gap-0">
+                    <button class="btn d-flex align-items-center btn-edit-excel" 
+                            data-excel-path="${row['File Home'] || '#'}" 
+                            data-packing-id="${row['ITEM #'] || ''}">
+                        <i class="ti ti-edit f-30"></i>
+                    </button>
+                    <a href="${row['File Home'] || '#'}" download 
+                        class="btn d-flex align-items-center btn-download-excel">
+                        <i class="ti ti-download f-30"></i>
+                    </a>
                 </div>
-              </div>
-              <div class="col-4">
-                <div class="d-grid">
-                  <button class="preset-btn btn" data-value="false" onclick="layout_change('dark');">
-                    <span class="btn-label">Dark</span>
-                    <span class="pc-lay-icon"><span></span><span></span><span></span><span></span></span>
-                  </button>
+            </td>
+            <td>
+                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" 
+                        data-id="${row['ITEM #'] || ''}">
+                    <option value="Inicial" ${row.STATUS === 'Inicial' ? 'selected' : ''}>Inicial</option>
+                    <option value="Completado" ${row.STATUS === 'Completado' ? 'selected' : ''}>Completado</option>
+                </select>
+            </td>
+        </tr>`;
+        tbody.insertAdjacentHTML('beforeend', tr);
+    });
+
+    initStatusListeners();
+    initEditButtons();
+    const modalEl = document.getElementById('filterModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    modal?.hide();
+
+} catch (err) {
+    console.error('Error al cargar datos:', err);
+    Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
+}
+}
+
+function formatDate(dateString) {
+if (!dateString) return '';
+const date = new Date(dateString);
+return isNaN(date) ? '' : 
+    `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
+}
+
+async function limpiarFiltrosAvanzados() {
+  document.getElementById('containerFilter').value = '';
+  document.getElementById('rangoFechas').value = '';
+
+  try {
+      const res = await fetch(`../api/filters/fetchPanelPL.php`);
+      if (!res.ok) throw new Error(res.statusText);
+      const rows = await res.json();
+
+      const tbody = document.querySelector('#pc-dt-simple tbody');
+      tbody.innerHTML = '';
+
+      rows.forEach(row => {
+        const tr = `
+        <tr>
+            <td>${row['Num OP'] || ''}</td>
+            <td>${row['Destinity POD'] || ''}</td>
+            <td>${row['Booking_BK'] || ''}</td>
+            <td>${row['Number_Container'] || ''}</td>
+            <td>${row['Qty_Box'] || 0}</td>
+            <td>$${Number(row['TOTAL PRICE EC'] || 0).toFixed(2)}</td>
+            <td>${formatDate(row['Date created'])}</td>
+            <td>${row['Hour'] || ''}</td>
+            <td>${row['User Name'] || ''}</td>
+            <td>
+                <div class="d-flex gap-0">
+                    <button class="btn d-flex align-items-center btn-edit-excel" 
+                            data-excel-path="${row['File Home'] || '#'}" 
+                            data-packing-id="${row['ITEM #'] || ''}">
+                        <i class="ti ti-edit f-30"></i>
+                    </button>
+                    <a href="${row['File Home'] || '#'}" download 
+                        class="btn d-flex align-items-center btn-download-excel">
+                        <i class="ti ti-download f-30"></i>
+                    </a>
                 </div>
-              </div>
-              <div class="col-4">
-                <div class="d-grid">
-                  <button class="preset-btn btn" data-value="default" onclick="layout_change_default();"
-                    data-bs-toggle="tooltip"
-                    title="Automatically sets the theme based on user's operating system's color scheme.">
-                    <span class="btn-label">Default</span>
-                    <span class="pc-lay-icon d-flex align-items-center justify-content-center">
-                      <i class="ph-duotone ph-cpu"></i>
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li class="list-group-item">
-          <h6 class="mb-1">Sidebar Theme</h6>
-          <p class="text-muted text-sm">Choose Sidebar Theme</p>
-          <div class="row theme-color theme-sidebar-color">
-            <div class="col-6">
-              <div class="d-grid">
-                <button class="preset-btn btn" data-value="true" onclick="layout_sidebar_change('dark');">
-                  <span class="btn-label">Dark</span>
-                  <span class="pc-lay-icon"><span></span><span></span><span></span><span></span></span>
-                </button>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="d-grid">
-                <button class="preset-btn btn active" data-value="false" onclick="layout_sidebar_change('light');">
-                  <span class="btn-label">Light</span>
-                  <span class="pc-lay-icon"><span></span><span></span><span></span><span></span></span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li class="list-group-item">
-          <h6 class="mb-1">Accent color</h6>
-          <p class="text-muted text-sm">Choose your primary theme color</p>
-          <div class="theme-color preset-color">
-            <a href="#!" class="active" data-value="preset-1"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-2"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-3"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-4"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-5"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-6"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-7"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-8"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-9"><i class="ti ti-check"></i></a>
-            <a href="#!" data-value="preset-10"><i class="ti ti-check"></i></a>
-          </div>
-        </li>
-        <li class="list-group-item">
-          <h6 class="mb-1">Sidebar Caption</h6>
-          <p class="text-muted text-sm">Sidebar Caption Hide/Show</p>
-          <div class="row theme-color theme-nav-caption">
-            <div class="col-6">
-              <div class="d-grid">
-                <button class="preset-btn btn active" data-value="true" onclick="layout_caption_change('true');">
-                  <span class="btn-label">Caption Show</span>
-                  <span
-                    class="pc-lay-icon"><span></span><span></span><span><span></span><span></span></span><span></span></span>
-                </button>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="d-grid">
-                <button class="preset-btn btn" data-value="false" onclick="layout_caption_change('false');">
-                  <span class="btn-label">Caption Hide</span>
-                  <span
-                    class="pc-lay-icon"><span></span><span></span><span><span></span><span></span></span><span></span></span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li class="list-group-item">
-          <div class="pc-rtl">
-            <h6 class="mb-1">Theme Layout</h6>
-            <p class="text-muted text-sm">LTR/RTL</p>
-            <div class="row theme-color theme-direction">
-              <div class="col-6">
-                <div class="d-grid">
-                  <button class="preset-btn btn active" data-value="false" onclick="layout_rtl_change('false');">
-                    <span class="btn-label">LTR</span>
-                    <span class="pc-lay-icon"><span></span><span></span><span></span><span></span></span>
-                  </button>
-                </div>
-              </div>
-              <div class="col-6">
-                <div class="d-grid">
-                  <button class="preset-btn btn" data-value="true" onclick="layout_rtl_change('true');">
-                    <span class="btn-label">RTL</span>
-                    <span class="pc-lay-icon"><span></span><span></span><span></span><span></span></span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li class="list-group-item pc-box-width">
-          <div class="pc-container-width">
-            <h6 class="mb-1">Layout Width</h6>
-            <p class="text-muted text-sm">Choose Full or Container Layout</p>
-            <div class="row theme-color theme-container">
-              <div class="col-6">
-                <div class="d-grid">
-                  <button class="preset-btn btn active" data-value="false" onclick="change_box_container('false')">
-                    <span class="btn-label">Full Width</span>
-                    <span class="pc-lay-icon"><span></span><span></span><span></span><span><span></span></span></span>
-                  </button>
-                </div>
-              </div>
-              <div class="col-6">
-                <div class="d-grid">
-                  <button class="preset-btn btn" data-value="true" onclick="change_box_container('true')">
-                    <span class="btn-label">Fixed Width</span>
-                    <span class="pc-lay-icon"><span></span><span></span><span></span><span><span></span></span></span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li class="list-group-item">
-          <div class="d-grid">
-            <button class="btn btn-light-danger" id="layoutreset">Reset Layout</button>
-          </div>
-        </li>
-      </ul>
-    </div>
-  </div>
-</div>
+            </td>
+            <td>
+                <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6" 
+                        data-id="${row['ITEM #'] || ''}">
+                    <option value="Inicial" ${row.STATUS === 'Inicial' ? 'selected' : ''}>Inicial</option>
+                    <option value="Completado" ${row.STATUS === 'Completado' ? 'selected' : ''}>Completado</option>
+                </select>
+            </td>
+        </tr>`;
+        tbody.insertAdjacentHTML('beforeend', tr);
+      });
+
+      initStatusListeners();
+      initEditButtons();
+      const modalEl = document.getElementById('filterModal');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal?.hide();
+
+  } catch (err) {
+      console.error('Error al cargar datos:', err);
+      Swal.fire('Error', 'No se pudieron resetear los filtros', 'error');
+  }
+}
+
+// Inicialización al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+initStatusListeners();
+initEditButtons();
+});
+
+// Función para botones de edición (ejemplo básico)
+function initEditButtons() {
+document.querySelectorAll('.btn-edit-excel').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const packingId = this.dataset.packingId;
+        const excelPath = this.dataset.excelPath;
+        // Lógica de edición aquí
+        console.log('Editar:', packingId, excelPath);
+    });
+});
+}
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <!-- [Page Specific JS] start -->
     <script src="../assets/js/plugins/apexcharts.min.js"></script>
     <script src="../assets/js/plugins/jsvectormap.min.js"></script>
@@ -738,11 +981,6 @@ function confirmDelete(blNumber) {
     <script src="../assets/js/fonts/custom-font.js"></script>
     <script src="../assets/js/pcoded.js"></script>
     <script src="../assets/js/plugins/feather.min.js"></script>
-
-    
-    
-    
-    
     <script>layout_change('light');</script>
     
     

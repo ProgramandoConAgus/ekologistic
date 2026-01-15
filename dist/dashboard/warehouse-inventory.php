@@ -1,0 +1,1211 @@
+<?php
+
+session_start();
+include('../usuarioClass.php');
+include("../con_db.php");
+$IdUsuario=$_SESSION["IdUsuario"];
+if(!$_SESSION["IdUsuario"]){
+  header("Location: ../");
+}
+$usuario= new Usuario($conexion);
+
+$user=$usuario->obtenerUsuarioPorId($IdUsuario);
+
+
+$sql = "
+SELECT
+  d.id,
+  c.num_op AS NUM_OP,
+  c.Number_Container,
+  c.Booking_BK,
+  d.codigo_despacho,
+  d.fecha_entrada AS Entry_Date,
+  d.recibo_almacen AS Receive,
+  d.numero_lote AS Lot_Number,
+  d.numero_factura AS Number_Commercial_Invoice,
+  d.numero_parte AS Code_Product_EC,
+  d.descripcion AS Description_Dispatch,
+  d.modelo AS Modelo_Dispatch,
+
+  -- Primer Number_PO y descripción y total cajas desde una subconsulta agregada de items
+  i.First_Number_PO AS First_Number_PO,
+  i.First_Description_Item AS First_Description_Item,
+  i.Total_Qty_Item_Packing AS Total_Qty_Item_Packing,
+
+  d.palets AS palets,
+  d.cantidad AS cantidad,
+  (d.palets * d.cantidad) AS Total_Despachado,
+  d.valor_unitario AS Unit_Value,
+  (d.valor_unitario * d.cantidad) AS Value,
+  d.unidad AS Unit,
+  d.longitud_in AS Length_in,
+  d.ancho_in AS Broad_in,
+  d.altura_in AS Height_in,
+  d.peso_lb AS Weight_lb,
+  d.valor_unitario_restante,
+  d.valor_restante,
+  d.unidad_restante,
+  d.longitud_in_restante,
+  d.ancho_in_restante,
+  d.altura_in_restante,
+  d.peso_lb_restante,
+  d.estado AS Status
+FROM container c
+LEFT JOIN (
+  -- Agregar dispatch por (notas/container) + invoice+parte para evitar filas duplicadas
+  SELECT
+    notas,
+    numero_factura,
+    numero_parte,
+    MIN(id) AS id,
+    MIN(codigo_despacho) AS codigo_despacho,
+    MIN(fecha_entrada) AS fecha_entrada,
+    MIN(recibo_almacen) AS recibo_almacen,
+    MIN(numero_lote) AS numero_lote,
+    SUM(COALESCE(palets,0)) AS palets,
+    SUM(COALESCE(cantidad,0)) AS cantidad,
+    MIN(valor_unitario) AS valor_unitario,
+    MIN(valor) AS valor,
+    MIN(unidad) AS unidad,
+    MIN(longitud_in) AS longitud_in,
+    MIN(ancho_in) AS ancho_in,
+    MIN(altura_in) AS altura_in,
+  MIN(peso_lb) AS peso_lb,
+  -- Campos 'restante' agregados para evitar columnas desconocidas en la consulta externa
+  MIN(valor_unitario_restante) AS valor_unitario_restante,
+  MIN(valor_restante) AS valor_restante,
+  MIN(unidad_restante) AS unidad_restante,
+  MIN(longitud_in_restante) AS longitud_in_restante,
+  MIN(ancho_in_restante) AS ancho_in_restante,
+  MIN(altura_in_restante) AS altura_in_restante,
+  MIN(peso_lb_restante) AS peso_lb_restante,
+  MAX(estado) AS estado,
+    MIN(descripcion) AS descripcion,
+    MIN(modelo) AS modelo
+  FROM dispatch
+  WHERE estado = 'En Almacén'
+  GROUP BY notas, numero_factura, numero_parte
+) d ON c.Number_Container = d.notas
+LEFT JOIN (
+  -- Agregación de items por invoice+parte para unir valores únicos
+  SELECT
+    Number_Commercial_Invoice,
+    Code_Product_EC,
+    SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT Number_PO ORDER BY Number_PO), ',', 1) AS First_Number_PO,
+    SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT Description ORDER BY Number_PO), ',', 1) AS First_Description_Item,
+    SUM(COALESCE(Qty_Box,0)) AS Total_Qty_Item_Packing
+  FROM items
+  GROUP BY Number_Commercial_Invoice, Code_Product_EC
+) i ON i.Number_Commercial_Invoice = d.numero_factura
+    AND i.Code_Product_EC = d.numero_parte
+WHERE d.id IS NOT NULL
+ORDER BY c.num_op, d.descripcion, d.modelo;
+
+
+
+
+
+
+
+";
+$result = $conexion->query($sql);
+
+
+if (!$result) {
+    die("Error en la consulta: " . $conexion->error);
+}
+
+/*
+try {
+    $stmt = $conexion->prepare($sql);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+} catch (mysqli_sql_exception $e) {
+    echo "Error en la consulta: " . $e->getMessage();
+}
+
+*/
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+  <!-- [Head] start -->
+
+  <head>
+    <title>WareHouse USA 1 | Eko Logistic</title>
+    <!-- [Meta] -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+
+      <!-- [Favicon] icon -->
+  <link rel="icon" href="../assets/images/ekologistic.png" type="image/x-icon" />
+<!-- jQuery (solo una vez) -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
+<!-- DataTables con Bootstrap 5 -->
+<link
+  rel="stylesheet"
+  href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css"
+/>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<!-- SheetJS para exportar Excel -->
+    <!-- [Google Font : Public Sans] icon -->
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- [Tabler Icons] https://tablericons.com -->
+    <link rel="stylesheet" href="../assets/fonts/tabler-icons.min.css" >
+    <!-- [Feather Icons] https://feathericons.com -->
+    <link rel="stylesheet" href="../assets/fonts/feather.css" >
+    <!-- [Font Awesome Icons] https://fontawesome.com/icons -->
+    <link rel="stylesheet" href="../assets/fonts/fontawesome.css" >
+    <!-- [Material Icons] https://fonts.google.com/icons -->
+    <link rel="stylesheet" href="../assets/fonts/material.css" >
+    <!-- [Template CSS Files] -->
+    <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" >
+    <link rel="stylesheet" href="../assets/css/style-preset.css" >
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Agrega esto en tu <head> -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+    /* Ajustes para el modal y Handsontable */
+    .modal-xl {
+        max-width: 95% !important;
+    }
+    
+    #excelEditor {
+        width: 100%;
+        overflow: auto;
+    }
+    
+    .handsontable {
+        font-size: 12px;
+    }
+    
+    .htCore td {
+        white-space: nowrap;
+    }
+    
+</style>
+
+<style>
+  .table-responsive {
+    position: relative;
+    padding-bottom: 3.5rem;
+  }
+  .pagination-wrapper {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    padding: 0.25rem 0;
+    z-index: 10;
+  }
+  /* Estilos de paginación Bootstrap */
+  .pagination-wrapper .pagination {
+    margin: 0;
+  }
+  .pagination-wrapper .pagination li.page-item {
+    margin: 0 0.125rem;
+  }
+  .pagination-wrapper .pagination li.page-item .page-link {
+    padding: 0.375rem 0.75rem;
+  }
+  .pagination-wrapper .pagination li.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+  }
+</style>
+<link rel="stylesheet" href="./tipografia.css">
+</head>
+  <!-- [Head] end -->
+  <!-- [Body] Start -->
+
+  <body data-pc-preset="preset-1" data-pc-sidebar-theme="light" data-pc-sidebar-caption="true" data-pc-direction="ltr" data-pc-theme="light">
+    <!-- [ Pre-loader ] start -->
+<div class="loader-bg">
+  <div class="loader-track">
+    <div class="loader-fill"></div>
+  </div>
+</div>
+<!-- [ Pre-loader ] End -->
+ <!-- [ Sidebar Menu ] start -->
+
+<nav class="pc-sidebar">
+  <div class="navbar-wrapper">
+    <div class="m-header">
+      <a href="../dashboard/index.html" class="b-brand text-primary">
+        <!-- ========   Change your logo from here   ============ -->
+        <img src="../assets/images/ekologistic.png" alt="logo image" height="50px" width="180px"/>
+        
+      </a>
+    </div>
+    <div class="navbar-content">
+  <ul class="pc-navbar">
+    <li class="pc-item pc-caption">
+      <label>Navegación</label>
+    </li>
+  <style>
+  /* Fuerza los menús con la clase 'force-open' a mantenerse desplegados */
+  li.pc-item.force-open > ul.pc-submenu {
+    display: block !important;
+  }
+
+  li.pc-item.force-open > a.pc-link .pc-arrow i,
+  li.pc-item.open > a.pc-link .pc-arrow i {
+    transform: rotate(90deg);
+    transition: transform 0.2s ease;
+  }
+</style>
+
+<!-- LOGISTICA (Siempre abierto) -->
+<li class="pc-item pc-hasmenu open">
+  <a href="#!" class="pc-link active">
+    <span class="pc-micon">
+      <i class="ph-duotone ph-truck"></i>
+    </span>
+    <span class="pc-mtext">Logística</span>
+    <span class="pc-arrow">
+      <i data-feather="chevron-right"></i>
+    </span>
+  </a>
+  <ul class="pc-submenu">
+    <li class="pc-item"><a class="pc-link" href="../dashboard/panel-packinglist.php">Dashboard Packing List</a></li>
+    <li class="pc-item"><a class="pc-link" href="../dashboard/index.php">Dashboard Logistic</a></li>
+
+    <!-- Inventory como submenu abierto -->
+    <li class="pc-item pc-hasmenu open force-open">
+      <a href="#!" class="pc-link active">
+        <span class="pc-micon">
+          <i class="ph-duotone ph-archive-box"></i>
+        </span>
+        <span class="pc-mtext">Inventory</span>
+        <span class="pc-arrow">
+          <i data-feather="chevron-right"></i>
+        </span>
+      </a>
+      <ul class="pc-submenu">
+        <li class="pc-item"><a class="pc-link" href="../dashboard/transit-inventory.php">Transit Inventory</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/warehouse-inventory.php">WareHouse USA 1</a></li>
+        <li class="pc-item"><a class="pc-link" href="../admins/warehouseUsaPanel.php">WareHouse USA 2</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/total-inventory.php">Total Inventory</a></li>
+        <li class="pc-item"><a class="pc-link" href="../dashboard/panel-dispatch.php">Warehouse Receipt</a></li>
+      </ul>
+    </li>
+  </ul>
+</li>
+    <li class="pc-item pc-hasmenu">
+      <a href="#!" class="pc-link">
+        <span class="pc-micon">
+          <i class="ph-duotone ph-currency-dollar"></i>
+        </span>
+        <span class="pc-mtext">Liquidaciones</span>
+        <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
+      </a>
+      <ul class="pc-submenu">
+       <li class="pc-item"><a href="../admins/exportsPanel.php" class="pc-link">Exports</a></li>
+        <li class="pc-item"><a  href="../admins/importsPanel.php" class="pc-link">Imports</a></li>
+        <li class="pc-item"><a href="../admins/despachosPanel.php" class="pc-link">Despachos</a></li>
+        <li class="pc-item"><a href="../admins/consolidadosPanel.php" class="pc-link">Consolidados</a></li>
+      </ul>
+    </li>
+  </ul>
+    </div>
+</div>
+
+    <div class="card pc-user-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+       
+          <div class="flex-grow-1 ms-3">
+            <div class="dropdown">
+              <a href="#" class="arrow-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-offset="0,20">
+                <div class="d-flex align-items-center">
+                  <div class="flex-grow-1 me-2">
+                    <h6 class="mb-0"><?=ucfirst($user['nombre'])?> <?=ucfirst($user['apellido'])?></h6>
+                    <small>Administrador</small>
+                  </div>
+                  <div class="flex-shrink-0">
+                    <div class="btn btn-icon btn-link-secondary avtar">
+                      <i class="ph-duotone ph-windows-logo"></i>    
+                    </div>
+                  </div>
+                </div>
+              </a>
+              <div class="dropdown-menu">
+                <ul>
+                  
+                  <li>
+                    <a class="pc-user-links" href="../pages/login-v1.php">
+                      <i class="ph-duotone ph-power"></i>
+                      <span>Cerrar Sesión</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+<!-- [ Sidebar Menu ] end -->
+ <!-- [ Header Topbar ] start -->
+<header class="pc-header">
+  <div class="header-wrapper"> <!-- [Mobile Media Block] start -->
+<div class="me-auto pc-mob-drp">
+  <ul class="list-unstyled">
+    <!-- ======= Menu collapse Icon ===== -->
+    <li class="pc-h-item pc-sidebar-collapse">
+      <a href="#" class="pc-head-link ms-0" id="sidebar-hide">
+        <i class="ti ti-menu-2"></i>
+      </a>
+    </li>
+    <li class="pc-h-item pc-sidebar-popup">
+      <a href="#" class="pc-head-link ms-0" id="mobile-collapse">
+        <i class="ti ti-menu-2"></i>
+      </a>
+    </li>
+   
+    
+  </ul>
+</div>
+<!-- [Mobile Media Block end] -->
+<div class="ms-auto">
+  <ul class="list-unstyled">
+    <li class="dropdown pc-h-item">
+      <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
+        aria-haspopup="false" aria-expanded="false">
+        <i class="ph-duotone ph-sun-dim"></i>
+      </a>
+      <div class="dropdown-menu dropdown-menu-end pc-h-dropdown">
+        <a href="#!" class="dropdown-item" onclick="layout_change('dark')">
+          <i class="ph-duotone ph-moon"></i>
+          <span>Noche</span>
+        </a>
+        <a href="#!" class="dropdown-item" onclick="layout_change('light')">
+          <i class="ph-duotone ph-sun-dim"></i>
+          <span>Dia</span>
+        </a>
+        <a href="#!" class="dropdown-item" onclick="layout_change_default()">
+          <i class="ph-duotone ph-cpu"></i>
+          <span>Estandar</span>
+        </a>
+      </div>
+    </li>
+    <li class="dropdown pc-h-item">
+      <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
+        aria-haspopup="false" aria-expanded="false">
+        <i class="ph-duotone ph-bell"></i>
+      </a>
+      <div class="dropdown-menu dropdown-notification dropdown-menu-end pc-h-dropdown">
+        <div class="dropdown-header d-flex align-items-center justify-content-between">
+          <h5 class="m-0">Avisos</h5>
+        </div>
+        <div class="dropdown-body text-wrap header-notification-scroll position-relative"
+          style="max-height: calc(100vh - 235px)">
+          <ul class="list-group list-group-flush">
+            
+            <li class="list-group-item">
+              <div class="d-flex">
+                <div class="flex-shrink-0">
+                  <div class="avtar avtar-s bg-light-info">
+                    <i class="ph-duotone ph-notebook f-18"></i>
+                  </div>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                  <div class="d-flex">
+                    <div class="flex-grow-1 me-3 position-relative">
+                      <h6 class="mb-0 text-truncate">Recientes</h6>
+                    </div>
+                    <div class="flex-shrink-0">
+                      <span class="text-sm">Hace unos minutos</span>
+                    </div>
+                  </div>
+                  <p class="position-relative mt-1 mb-2">Se cambio el estado del contenedor N ° 12345.</p>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </li>
+    
+  </ul>
+</div> </div>
+</header>
+<!-- [ Header ] end -->
+
+
+
+    <!-- [ Main Content ] start -->
+    <div class="pc-container">
+      <div class="pc-content">
+        <!-- [ breadcrumb ] start -->
+        <div class="page-header">
+          <div class="page-block">
+            <div class="row align-items-center">
+              <div class="col-md-12">
+                <ul class="breadcrumb">
+                  <li class="breadcrumb-item"><a href="../dashboard/index.php">Inicio</a></li>
+                  <li class="breadcrumb-item"><a href="javascript: void(0)">Logistica</a></li>
+                  <li class="breadcrumb-item" aria-current="page">WareHouse USA 1</li>
+                </ul>
+              </div>
+              <div class="col-md-12">
+                <div class="page-header-title">
+                  <h2 class="mb-0">WareHouse USA 1</h2>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- [ breadcrumb ] end -->
+        <!-- [ Main Content ] start -->
+        <div class="row">
+       
+          
+        <div class="col-md-12 col-xl-12">
+    <div class="card table-card">
+        <div class="card-header d-flex align-items-center justify-content-between py-3">
+            <h5 class="mb-0">WareHouse USA 1</h5>
+          <!-- Botón único de acciones -->
+          <button class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#actionsModal">
+            <i class="ti ti-menu-2"></i> Acciones
+          </button>
+        </div>
+        <!-- Modal de Acciones -->
+        <div class="modal fade" id="actionsModal" tabindex="-1" aria-labelledby="actionsModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="actionsModalLabel">Acciones</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body d-flex flex-column gap-2">
+                <button type="button"
+                        class="btn btn-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#filterModal"
+                        data-bs-dismiss="modal">
+                  <i class="ti ti-filter"></i> Filtros avanzados
+                </button>
+                <button type="button"
+                        class="btn btn-secondary"
+                        id="btnClearFilters"
+                        data-bs-dismiss="modal">
+                  <i class="ti ti-x"></i> Limpiar
+                </button>
+                <a href="../forms/importardispatch.php"
+                  class="btn btn-success">
+                  <i class="ti ti-plus"></i> Nuevo Dispatch Inventory
+                </a>
+                <button type="button"
+                        id="exportBtn"
+                        class="btn btn-info">
+                  <i class="ti ti-file-export"></i> Exportar a Excel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      <!-- Modal de filtros -->
+      <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="filterModalLabel">Filtros avanzados</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form id="filterForm">
+                <!-- Filtro por Num OP -->
+                <div class="mb-3">
+                  <label for="containerFilter" class="form-label">Numero de Container</label>
+                  <input type="text" class="form-control" id="containerFilter" placeholder="Ingrese número de Container">
+                </div>
+
+                <!-- Filtro por Destiny POD -->
+                <div class="mb-3">
+                  <label for="OpFilter" class="form-label">Op Number</label>
+                  <input type="text" class="form-control" id="OpFilter" placeholder="Ingrese Op Number">
+                </div>
+
+                <!-- Filtro por Description -->
+                <div class="mb-3">
+                  <label for="descriptionFilter" class="form-label">Description</label>
+                  <input type="text" class="form-control" id="descriptionFilter" placeholder="Ingrese descripción (ej: Warehouse USA 1)">
+                </div>
+
+                <!-- Filtro por ETA Date -->
+                <div class="mb-3">
+                  <label for="rangoFechas" class="form-label">Entry Date</label><br>
+                  <input
+                    type="text"
+                    id="rangoFechas"
+                    class="form-control form-control-sm"
+                    placeholder="Seleccione rango"
+                    style="max-width: 220px;"
+                    readonly>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+              <button id="btnApplyFilters" class="btn btn-primary">Aplicar filtros</button>            
+            </div>
+          </div>
+        </div>
+      </div>
+        <div class="card-body">
+    <div class="table-responsive">
+<?php
+$palletsPorGrupo = [];
+
+if (isset($result) && $result->num_rows > 0) {
+    $result->data_seek(0);
+
+    while ($rowTemp = $result->fetch_assoc()) {
+        // Usamos ?? para evitar "Undefined array key"
+        $descripcion = $rowTemp['Description_Item'] ?? '';
+        $modelo = $rowTemp['Modelo_Dispatch'] ?? '';
+        $totalPalets = $rowTemp['total_palets'] ?? 0;
+
+        $key = $descripcion . '|' . $modelo;
+
+        if (!isset($palletsPorGrupo[$key])) {
+            $palletsPorGrupo[$key] = 0;
+        }
+
+        if ((int)$totalPalets > 0) {
+            $palletsPorGrupo[$key]++;
+        }
+    }
+
+    // Volvemos al inicio del puntero para reutilizar el resultado
+    $result->data_seek(0);
+}
+?>
+
+
+<table class="table table-hover" id="pc-dt-simple">
+  <thead>
+    <tr>
+      <th>Dispatch Code</th>
+      <th>OP Num</th>
+      <th>Container Num</th>
+      <th>Entry Date</th>
+      <th>Warehouse Rec.</th>
+      <th>Lot Num</th>
+      <th>Booking BK</th>
+      <th>PO Num</th>
+      <th>Comm. Invoice Num</th>
+      <th>EC Product Code</th>
+      <th>Description</th>
+      <th>Palets</th>
+      <th>Qty/Pallet</th>
+      <th>Total</th>
+      <th>Qty Item</th>
+      <th>Unit Value</th>
+      <th>Value</th>
+      <th>Unit</th>
+      <th>Length (in)</th>
+      <th>Width (in)</th>
+      <th>Height (in)</th>
+      <th>Weight (lb)</th>
+      <th>Load Pallets</th>
+      <th>Load Qty</th>
+      <th>Status‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ </th>
+    </tr>
+  </thead>
+  <tbody>
+<?php while($row = $result->fetch_assoc()) { ?>
+  <tr>
+   <td>
+  <input type="text" class="form-control form-control-sm codigo-despacho-input"
+         data-id="<?= htmlspecialchars($row['id']) ?>"
+         value="<?= htmlspecialchars($row['codigo_despacho']) ?>"
+         placeholder="Código despacho">
+</td>
+
+    <td><?= htmlspecialchars($row['NUM_OP']) ?></td>
+    <td><?= htmlspecialchars($row['Number_Container']) ?></td>
+    <td><?= htmlspecialchars($row['Entry_Date']) ?></td>
+    <td><?= htmlspecialchars($row['Receive']) ?></td>
+    <td><?= htmlspecialchars($row['Lot_Number']) ?></td>
+    <td><?= htmlspecialchars($row['Booking_BK']) ?></td>
+  <td>
+    <input type="text" class="form-control form-control-sm po-input"
+           data-invoice="<?= htmlspecialchars($row['Number_Commercial_Invoice']) ?>"
+           data-parte="<?= htmlspecialchars($row['Code_Product_EC']) ?>"
+           value="<?= htmlspecialchars($row['First_Number_PO'] ?? '') ?>">
+  </td>
+    <td><?= htmlspecialchars($row['Number_Commercial_Invoice']) ?></td>
+    <td><?= htmlspecialchars($row['Code_Product_EC']) ?></td>
+    <td><?= htmlspecialchars($row['First_Description_Item']) ?></td>
+    <td><?= htmlspecialchars($row['palets']) ?></td>
+    <td><?= htmlspecialchars($row['cantidad']) ?></td>
+    <td><?= htmlspecialchars($row['Total_Despachado']) ?></td>
+    <td><?= htmlspecialchars($row['Total_Qty_Item_Packing']) ?></td>
+    <td>$<?= htmlspecialchars($row['Unit_Value']) ?></td>
+    <td>$<?= htmlspecialchars($row['Value']) ?></td>
+    <td><?= htmlspecialchars($row['Unit']) ?></td>
+    <td><?= htmlspecialchars($row['Length_in']) ?></td>
+    <td><?= htmlspecialchars($row['Broad_in']) ?></td>
+    <td><?= htmlspecialchars($row['Height_in']) ?></td>
+    <td><?= htmlspecialchars($row['Weight_lb']) ?></td>
+    
+    <!-- Input para Palets de carga -->
+   <td>
+  <input type="number" min="0" class="form-control form-control-sm palets-carga-input" 
+    data-id="<?= htmlspecialchars($row['id']) ?>" placeholder="0">
+</td>
+
+<td>
+  <input type="number" min="0" class="form-control form-control-sm cantidad-carga-input"
+    data-id="<?= htmlspecialchars($row['id']) ?>" placeholder="0">
+</td>
+
+
+    <td>
+      <select class="form-select form-select-sm status-select bg-light text-dark border-0 rounded-3 shadow-sm fs-6"
+        data-container="<?= htmlspecialchars($row['Number_Container']) ?>"
+        data-invoice="<?= htmlspecialchars($row['Number_Commercial_Invoice']) ?>"
+        data-id="<?= htmlspecialchars($row['id']) ?>">
+        <option value="Cargado" <?= $row['Status'] == 'Cargado' ? 'selected' : '' ?>>Cargado</option>
+        <option value="En Almacén" <?= $row['Status'] == 'En Almacén' ? 'selected' : '' ?>>En Almacén</option>
+      </select>
+    </td>
+  </tr>
+<?php } ?>
+</tbody>
+
+</table>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Cuando cambie el valor de "Load Pallets"
+  document.querySelectorAll('.palets-carga-input').forEach(input => {
+    input.addEventListener('input', () => {
+      const tr = input.closest('tr');
+      const qtyPerPallet = parseFloat(tr.children[12].textContent) || 0; // columna "Qty/Pallet"
+      const loadQtyInput = tr.querySelector('.cantidad-carga-input');
+      const palletsValue = parseFloat(input.value) || 0;
+
+      // Calcular Load Qty
+      const loadQty = (qtyPerPallet)
+      loadQtyInput.value = loadQty;
+    });
+  });
+});
+</script>
+
+
+
+    </div>
+</div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script> <!-- Soporte en español -->
+
+<!-- ACTUALIZAR STATUS -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Reusable init functions attach listeners to current DOM nodes
+  initStatusListeners();
+  initPoListeners();
+  initCodigoDespachoListeners();
+
+});
+
+
+
+
+async function actualizarStatus(id, value) {
+  try {
+    // Obtener la fila y los inputs
+    const row = document.querySelector(`.status-select[data-id='${id}']`)?.closest('tr');
+
+    if (!row) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se encontró la fila correspondiente para validar.'
+      });
+      return;
+    }
+
+    // Leer valores de los inputs
+    const paletsInput = row.querySelector('.palets-carga-input');
+    const cantidadInput = row.querySelector('.cantidad-carga-input');
+
+    const paletsValue = parseFloat(paletsInput?.value);
+    const cantidadValue = parseFloat(cantidadInput?.value);
+
+    // Validación previa: verificar que sean números válidos y mayores a 0
+    if (value === 'Cargado') {
+      if (isNaN(paletsValue) || paletsValue <= 0) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Dato inválido',
+          text: 'Debes ingresar un valor válido mayor a 0 para Palets de carga.'
+        });
+        return;
+      }
+
+      if (isNaN(cantidadValue) || cantidadValue <= 0) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Dato inválido',
+          text: 'Debes ingresar un valor válido mayor a 0 para Cantidad a cargar.'
+        });
+        return;
+      }
+    }
+
+    // Confirmación visual
+    Swal.fire({ title: 'Cargando', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    // Enviar datos por fetch
+    const res = await fetch('../api/actualizar_status_dispatch.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id,
+        value,
+        palets: paletsValue,
+        cantidad: cantidadValue
+      })
+    });
+
+    const json = await res.json();
+    Swal.close();
+
+    if (json.success) {
+      if (json.container) {
+        await Swal.fire({
+          icon: 'success',
+          title: `Contenedor ${json.container}`,
+          text: json.message,
+          confirmButtonText: 'OK'
+        });
+      } else {
+        await Swal.fire({
+          icon: 'success',
+          title: json.message,
+          toast: true,
+          position: 'top-end',
+          timer: 1500
+        });
+      }
+
+      // Refrescar la página luego del mensaje
+      location.reload();
+
+    } else {
+      Swal.fire({ icon: 'error', title: json.error || 'Error', toast: true, position: 'top-end', timer: 2000 });
+    }
+
+  } catch (err) {
+    Swal.close();
+    Swal.fire({ icon: 'error', title: 'Error de conexión', toast: true, position: 'top-end', timer: 2000 });
+    console.error(err);
+  }
+}
+
+
+
+
+async function handlePoChange() {
+  const id = this.dataset.id;
+  const po = this.value.trim();
+  // support updating by IdItem or by invoice+parte (when view aggregates items)
+  const invoice = this.dataset.invoice || null;
+  const parte = this.dataset.parte || null;
+  try {
+    const body = { po };
+    if (id) body.id = id;
+    else if (invoice && parte) {
+      body.invoice = invoice;
+      body.parte = parte;
+    }
+    const res = await fetch('../api/update_dispatch_po.php', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify(body)
+    });
+    const json = await res.json();
+    Swal.fire(
+      json.success ? 'Éxito' : 'Error',
+      json.success ? (json.message || 'Actualizado') : json.error,
+      json.success ? 'success' : 'error'
+    );
+  } catch (err) {
+    console.error(err);
+    Swal.fire('Error de red','','error');
+  }
+}
+
+// Re-attach listeners after AJAX table refresh
+function initStatusListeners() {
+  document.querySelectorAll('.status-select').forEach(sel => {
+    // remove previous to avoid duplicate handlers
+    sel.removeEventListener('change', statusSelectHandler);
+    sel.addEventListener('change', statusSelectHandler);
+  });
+}
+
+function statusSelectHandler() {
+  const id = this.dataset.id;
+  const value = this.value;
+  actualizarStatus(id, value);
+}
+
+function initPoListeners() {
+  document.querySelectorAll('.po-input').forEach(inp => {
+    inp.removeEventListener('change', poInputHandler);
+    inp.addEventListener('change', poInputHandler);
+  });
+}
+
+function poInputHandler() {
+  handlePoChange.call(this);
+}
+
+function initCodigoDespachoListeners() {
+  document.querySelectorAll('.codigo-despacho-input').forEach(inp => {
+    inp.removeEventListener('change', codigoDespachoHandler);
+    inp.addEventListener('change', codigoDespachoHandler);
+  });
+}
+
+function codigoDespachoHandler() {
+  handleCodigoDespachoChange.call(this);
+}
+
+async function handleCodigoDespachoChange() {
+  const id = this.dataset.id;
+  const codigo = this.value.trim();
+  const input = this; // referencia al input actual
+
+  try {
+    const res = await fetch('../api/update_codigo_despacho.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, codigo })
+    });
+
+    const text = await res.text(); 
+    let json;
+
+    try {
+      json = JSON.parse(text); 
+    } catch (parseError) {
+      console.error('Respuesta no es JSON válida:', text);
+      return;
+    }
+
+    if (json.success) {
+      // Cambiar fondo a verde temporalmente
+      input.style.backgroundColor = '#d4edda'; // verde claro
+      input.style.transition = 'background-color 0.5s';
+      setTimeout(() => {
+        input.style.backgroundColor = ''; // vuelve al color original
+      }, 1500);
+    } else {
+      // Si hubo error, podemos marcar en rojo temporal
+      input.style.backgroundColor = '#f8d7da'; // rojo claro
+      setTimeout(() => {
+        input.style.backgroundColor = '';
+      }, 2000);
+      console.error(json.error || 'Error al actualizar código');
+    }
+
+  } catch (err) {
+    console.error('Error de red o fetch:', err);
+    // opcional: marcar en rojo temporal
+    input.style.backgroundColor = '#f8d7da';
+    setTimeout(() => {
+      input.style.backgroundColor = '';
+    }, 2000);
+  }
+}
+
+</script>
+
+
+
+</div>
+
+        </div>
+        <!-- [ Main Content ] end -->
+      </div>
+    </div>
+    <!-- [ Main Content ] end -->
+    <footer class="pc-footer">
+      <div class="footer-wrapper container-fluid">
+        <div class="row">
+          <div class="col-sm-6 my-1">
+            <p class="m-0">Software <a style="color:#afc97c"> EKO LOGISTIC</a></p>
+          </div>
+          <div class="col-sm-6 ms-auto my-1">
+            <ul class="list-inline footer-link mb-0 justify-content-sm-end d-flex">
+              <li class="list-inline-item"><a>Inicio</a></li>
+              <li class="list-inline-item"><a>Documentación</a></li>
+              <li class="list-inline-item"><a>Soporte</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+<script>
+// --- Helper para convertir fechas ---
+function toISODate(str) {
+  let d,m,y;
+  if (str.includes('/')) [d,m,y] = str.split('/');
+  else                  [y,m,d] = str.split('-');
+  return `${y.padStart(4,'0')}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+}
+
+$(document).ready(function(){
+  // 1) Inicializa DataTable UNA sola vez
+  const table = $('#pc-dt-simple').DataTable({
+    paging:       true,
+    pageLength:   10,
+    lengthChange: false,
+    searching:    false,
+    info:         false,
+    ordering:     false,
+    language:     { paginate:{ previous:'«', next:'»' } },
+    dom:          't<"pagination-wrapper"p>'
+  });
+  $('.pagination-wrapper')
+    .appendTo($('#pc-dt-simple').closest('.table-responsive'));
+
+  // 2) Inicializa flatpickr en el input de rango
+  flatpickr('#rangoFechas', {
+    mode: 'range',
+    locale: 'es',
+    dateFormat: 'Y-m-d'
+  });
+
+  // 3) Botones
+  $('#btnApplyFilters').on('click', aplicarFiltrosAvanzados);
+  $('#btnClearFilters').on('click', limpiarFiltrosAvanzados);
+
+  // 4) Exportar Excel
+  $('#exportBtn').on('click', () => {
+    // 1) Cabeceras
+    const headers = [];
+    $('#pc-dt-simple thead th').each((_, th) => {
+      headers.push($(th).text().trim());
+    });
+
+    // 2) Filas de datos
+    const data = [ headers ];
+    table.rows().every(function(){
+      const $row = $(this.node());
+      const rowArr = [];
+
+      $row.find('td').each((i, td) => {
+        const $td = $(td);
+
+        // si es la celda de Status, tomar el valor seleccionado
+        const $sel = $td.find('select.status-select');
+        if ($sel.length) {
+          rowArr.push($sel.val());
+        } else {
+          rowArr.push($td.text().trim());
+        }
+      });
+
+      data.push(rowArr);
+    });
+
+    // 3) Generar libro y descargar
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Warehouse');
+    XLSX.writeFile(wb, 'warehouse_inventory.xlsx');
+  });
+
+
+ // 5) Función para aplicar filtros
+async function aplicarFiltrosAvanzados() {
+  const container = $('#containerFilter').val().trim();
+  const op        = $('#OpFilter').val().trim();
+  const description = $('#descriptionFilter').val().trim();
+  const rango     = $('#rangoFechas').val().trim();
+  const params    = new URLSearchParams();
+
+  if (container) params.append('container', container);
+  if (op)        params.append('op', op);
+  if (description) params.append('description', description);
+  if (rango) {
+    const [f,t] = rango.split(' a ').map(s => s.trim());
+    params.append('dateFrom', toISODate(f));
+    params.append('dateTo',   toISODate(t));
+  }
+
+  try {
+    const res  = await fetch(`../api/filters/fetchWarehouse.php?${params.toString()}`);
+    if (!res.ok) throw new Error(res.statusText);
+    const rows = await res.json();
+
+    // refresca la DataTable sin reinit
+    table.clear();
+
+    rows.forEach(r => {
+      // Build a row that matches the original table's 25 columns exactly.
+      table.row.add([
+        // 0 Dispatch Code (input)
+        `<input type="text" class="form-control form-control-sm codigo-despacho-input" data-id="${r.id}" value="${r.codigo_despacho || ''}" placeholder="Código despacho">`,
+        // 1 OP Num
+        r.NUM_OP || '',
+        // 2 Container Num
+        r.Number_Container || '',
+        // 3 Entry Date
+        r.Entry_Date || '',
+        // 4 Warehouse Rec.
+        r.Receive || '',
+        // 5 Lot Num
+        r.Lot_Number || '',
+    // 6 Booking BK
+    r.Booking_BK || '',
+    // 7 PO Num (input) - send invoice+parte so server can update all matching items
+  `<input type="text" class="form-control form-control-sm po-input" data-invoice="${r.Number_Commercial_Invoice || ''}" data-parte="${r.Code_Product_EC || ''}" value="${r.Number_PO || ''}">`,
+        // 8 Comm. Invoice Num
+        r.Number_Commercial_Invoice || '',
+        // 9 EC Product Code
+        r.Code_Product_EC || '',
+        // 10 Description
+        r.Description || '',
+        // 11 Palets
+        r.palets || '',
+        // 12 Qty/Pallet
+        r.cantidad || r.Qty || '',
+        // 13 Total
+        r.total_despachado || '',
+        // 14 Qty Item
+        r.Qty_Item_Packing || r.Qty || '',
+        // 15 Unit Value
+        (r.Unit_Value ? ('$' + r.Unit_Value) : ''),
+        // 16 Value
+        (r.Value ? ('$' + r.Value) : ''),
+        // 17 Unit
+        r.Unit || '',
+        // 18 Length (in)
+        r.Length_in || '',
+        // 19 Width (in)
+        r.Broad_in || '',
+        // 20 Height (in)
+        r.Height_in || '',
+        // 21 Weight (lb)
+        r.Weight_lb || '',
+        // 22 Load Pallets (input)
+        `<input type="number" min="0" class="form-control form-control-sm palets-carga-input" data-id="${r.id}" placeholder="0">`,
+        // 23 Load Qty (input)
+        `<input type="number" min="0" class="form-control form-control-sm cantidad-carga-input" data-id="${r.id}" placeholder="0">`,
+        // 24 Status (select)
+        `<select class="form-select form-select-sm status-select" data-id="${r.id}" data-container="${r.Number_Container || ''}" data-invoice="${r.Number_Commercial_Invoice || ''}">
+           <option value="Cargado"${r.Status === 'Cargado' ? ' selected' : ''}>Cargado</option>
+           <option value="En Almacén"${r.Status === 'En Almacén' ? ' selected' : ''}>En Almacén</option>
+         </select>`
+      ]);
+    });
+
+  table.draw();
+
+  // cierra modal y re-atacha listeners (necesario para los inputs/selects añadidos dinámicamente)
+  bootstrap.Modal.getInstance($('#filterModal')[0])?.hide();
+  initStatusListeners();
+  initPoListeners();
+  initCodigoDespachoListeners();
+
+  } catch (err) {
+    console.error(err);
+    Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
+  }
+}
+
+
+  // 6) Función para limpiar filtros
+  async function limpiarFiltrosAvanzados() {
+    $('#containerFilter, #OpFilter, #descriptionFilter').val('');
+    const fp = document.getElementById('rangoFechas')._flatpickr;
+    if (fp) fp.clear();
+    await aplicarFiltrosAvanzados();
+  }
+
+});
+</script>
+
+
+
+
+
+
+
+
+
+
+    <!-- [Page Specific JS] start -->
+    <script src="../assets/js/plugins/apexcharts.min.js"></script>
+    <script src="../assets/js/plugins/jsvectormap.min.js"></script>
+    <script src="../assets/js/plugins/world.js"></script>
+    <script src="../assets/js/plugins/world-merc.js"></script>
+    <script src="../assets/js/pages/dashboard-default.js"></script>
+    <!-- [Page Specific JS] end -->
+    <!-- Required Js -->
+    <script src="../assets/js/plugins/popper.min.js"></script>
+    <script src="../assets/js/plugins/simplebar.min.js"></script>
+    <script src="../assets/js/plugins/bootstrap.min.js"></script>
+    <script src="../assets/js/fonts/custom-font.js"></script>
+    <script src="../assets/js/pcoded.js"></script>
+    <script src="../assets/js/plugins/feather.min.js"></script>
+    <script>layout_change('light');</script>
+    
+    
+    
+    
+    <script>layout_sidebar_change('light');</script>
+    
+    
+    
+    <script>change_box_container('false');</script>
+    
+    
+    <script>layout_caption_change('true');</script>
+    
+    
+    
+    
+    <script>layout_rtl_change('false');</script>
+    
+    
+    <script>preset_change("preset-1");</script>
+    
+  </body>
+  <!-- [Body] end -->
+</html>
+
+
+<?php
+
+?>

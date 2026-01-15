@@ -57,7 +57,7 @@
             <div class="text-center">
               <img src="../assets/images/ekologistic.png" alt="images" class="img-fluid mb-3" height="70" width="120">
               <h4 class="f-w-500 mb-1">Ingresa con tus credenciales</h4>
-              <p class="mb-3">No tienes cuenta? <a href="../pages/register-v1.html" class="link ms-1" style="color: #afc97c;">Solicitar acceso</a></p>
+              <p class="mb-3">No tienes cuenta? <a href="../register.php" class="link ms-1" style="color: #afc97c;">Solicitar acceso</a></p>
             </div>
             <div class="mb-3">
               <input type="email" class="form-control" id="floatingInput" placeholder="Correo">
@@ -67,7 +67,7 @@
             </div>
             <div class="d-flex mt-1 justify-content-between align-items-center">
              
-              <a href="../pages/forgot-password-v1.html" class="link-primary ms-1"><h6 class="f-w-400 mb-0">Recuperar contraseña</h6></a>
+              <a href="../forgot-password/forgot-password.php" class="link-primary ms-1"><h6 class="f-w-400 mb-0">Recuperar contraseña</h6></a>
             </div>
             <div class="d-grid mt-4">
              <a href="../dashboard/index.php" class="text-white d-grid mt-4"> <button type="button" style="background-color:#afc97c" class="btn text-white">Ingresar</button></a>
