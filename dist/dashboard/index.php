@@ -34,7 +34,7 @@ try {
         SUM(i.Qty_Box) AS 'Total Boxes',
         c.ETA_Date AS 'ETA Date',
         c.New_ETA_Date AS 'NEW ETA DATE',
-        SUM(i.Total_Price_EC) AS 'TOTAL PRICE EC',
+        SUM(i.Total_Price_EXW) AS 'TOTAL PRICE EC',
         SUM(i.Total_Price_USA) AS 'TOTAL PRICE USA',
         c.Status AS 'status',
         c.IdContainer

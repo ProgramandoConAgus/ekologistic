@@ -17,7 +17,7 @@ $sql = "SELECT
     MAX(c.Booking_BK) AS 'Booking_BK',
     MAX(c.Number_Container) AS 'Number_Container',
     SUM(i.Qty_Box) AS 'Qty_Box',
-    SUM(i.Total_Price_EC) AS 'TOTAL PRICE EC',
+    SUM(i.Total_Price_EXW) AS 'TOTAL PRICE EC',
     pl.Date_Created AS 'Date created',
     DATE_FORMAT(pl.Date_Created, '%H:%i') AS 'Hour',
     CONCAT(u.nombre, ' ', u.apellido) AS 'User Name',

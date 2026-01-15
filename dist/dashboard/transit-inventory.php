@@ -28,9 +28,9 @@ $sql = "SELECT
   i.Description,
   i.Qty_Box,
   i.Price_Box_EC AS 'PRICE BOX EC',
-  i.Total_Price_EC AS 'TOTAL PRICE EC',
+  i.Total_Price_EXW AS 'TOTAL PRICE EC',
   i.valor_logistico_comex AS 'VALOR LOGISTICO COMEX',
-  (i.valor_logistico_comex * i.Qty_Box) AS 'COMEX TOTAL',
+  i.Total_Price_INCOTERM AS 'COMEX TOTAL',
   i.Price_Box_USA AS 'PRICE BOX USA',
   i.Total_Price_USA AS 'TOTAL PRICE USA',
   i.Total_Price_EXW AS 'TOTAL PRICE EXW',
@@ -555,7 +555,7 @@ $result->data_seek(0);
                             <th>Qty_Box</th>
                             <th>Price Box Ec</th>
                             <th>TOTAL PRICE EC</th>
-                            <th>COMEX TOTAL</th>
+                            <th>TOTAL LOGISTICS</th>
                             <th>Price Box USA</th>
                             <th>TOTAL PRICE USA</th>
                             <th>ETA Date</th>

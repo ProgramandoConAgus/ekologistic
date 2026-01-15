@@ -1,8 +1,8 @@
 <?php
 
 $servidor="localhost";
-$usuario="u981249563_ekologistic";
-$contraseña="Pca@70071";
+$usuario="root";
+$contraseña="";
 $baseDatos="u981249563_ekologisticdb";
 
 //Crear conexion
